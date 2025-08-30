@@ -13,7 +13,7 @@ class FirstAgent:
         self.model = OllamaLLM(model=model_name)
         self.output_parser = PydanticOutputParser(pydantic_object=Agent_output_parameters)
         self.format_instructions = self.output_parser.get_format_instructions()
-        current_dir = Path(__file__).parent  # diretório deste arquivo
+        current_dir = Path(__file__).parent  
         prompt_path = current_dir / "FirstAgentPrompt.txt"
         self.template = prompt_path.read_text()
         self.prompt = ChatPromptTemplate.from_template(self.template)
@@ -36,15 +36,10 @@ class FirstAgent:
         return params
 
 
-    def fetch_api(self, params):
+    def fetch_api(self, params:dict):
         resp_json = get_laps_data(params)
         times = [data.get("lap_duration") for data in resp_json]
-        self.plot.Plot_laptimes(times,10)
+        self.plot.Plot_laptimes(times,params["driver_number"])
         return times
 
-
-
-    def print_chart(self):
-        fig,ax = plt.subplots(figsize=(10,10))
-        plt.show()
         

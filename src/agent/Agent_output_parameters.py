@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 class Agent_output_parameters(BaseModel):
-    action: Optional[str] = None   # "execute" ou "chart"
+    action: Optional[str] = None
     session_key: Optional[str] = None
     driver_number: Optional[str] = None
     lap_number: Optional[str] = None
