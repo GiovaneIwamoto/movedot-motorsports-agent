@@ -26,14 +26,13 @@ class FirstAgent:
             "format_instructions": self.format_instructions
             })
         params = result.model_dump()
-        print(params)
 
         if params.get("action") == "execute":
-            self.fetch_api(params)
+            return params
         else:
             pass
 
-        return params
+        return "empty"
 
 
     def fetch_api(self, params:dict):

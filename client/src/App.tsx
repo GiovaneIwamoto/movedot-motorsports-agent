@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import './App.css'
+import PromptBox from './components/PromptBox/PromptBox'
+import SubmitButton from './components/SubmitButton/SubmitButton';
+import AnswerBox from './components/AnswerBox/AnswerBox';
+import LoadingDisplay from './components/LoadingDisplay/LoadingDisplay';
 
 function App() {
-  const [prompt, setPrompt] = useState('')
+  const [prompt, setPrompt] = useState(
+    'I would like to know information about session key 9161, about driver number 63'
+  );
   const [response, setResponse] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -14,7 +20,6 @@ function App() {
     setResponse('')
 
     try {
-      // TODO: Update this URL to your actual agent endpoint
       const response = await fetch('http://localhost:8000/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,40 +48,23 @@ function App() {
 
       <main className="main">
         <form onSubmit={handleSubmit} className="prompt-form">
-          <div className="input-group">
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Enter your prompt here..."
-              className="prompt-input"
-              rows={4}
-              disabled={isLoading}
-            />
-          </div>
-          
-          <button 
-            type="submit" 
-            className="send-button"
-            disabled={isLoading || !prompt.trim()}
-          >
-            {isLoading ? 'Sending...' : 'Send to Agent'}
-          </button>
+          <PromptBox 
+            prompt={prompt} 
+            setPrompt={setPrompt} 
+            isLoading={isLoading} 
+          />
+          <SubmitButton
+            prompt={prompt} 
+            isLoading={isLoading} />
         </form>
 
         {response && (
-          <div className="response-section">
-            <h3>Agent Response:</h3>
-            <div className="response-content">
-              {response}
-            </div>
-          </div>
+          <AnswerBox
+            response={response}/>
         )}
 
         {isLoading && (
-          <div className="loading">
-            <div className="spinner"></div>
-            <p>Agent is thinking...</p>
-          </div>
+          <LoadingDisplay/>
         )}
       </main>
     </div>
