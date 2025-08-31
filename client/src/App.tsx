@@ -15,11 +15,9 @@ function App() {
 
     try {
       // TODO: Update this URL to your actual agent endpoint
-      const response = await fetch('/api/agent', {
+      const response = await fetch('http://localhost:8000/api/agent', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: prompt.trim() }),
       })
 
