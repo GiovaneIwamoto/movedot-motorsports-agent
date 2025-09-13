@@ -1,73 +1,39 @@
-import { useState } from 'react'
 import './App.css'
-import PromptBox from './components/PromptBox/PromptBox'
-import SubmitButton from './components/SubmitButton/SubmitButton';
-import AnswerBox from './components/AnswerBox/AnswerBox';
-import LoadingDisplay from './components/LoadingDisplay/LoadingDisplay';
+import Card from './components/Card/Card';
+import Sidebar from './components/Sidebar/Sidebar';
+import Header from './components/Header/Header';
+import { useState } from 'react';
+import NewCardScreen from './components/Screens/NewCardScreen/NewCardScreen';
+import PromptScreen from './components/Screens/PromptScreen/PromptScreen';
 
 function App() {
-  const [prompt, setPrompt] = useState(
-    'I would like to know information about session key 9161, about driver number 63'
-  );
-  const [response, setResponse] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!prompt.trim()) return
 
-    setIsLoading(true)
-    setResponse('')
+  const [NewCardScreenOpen, SetNewCardScreenOpen] = useState(false);
+  const [PromptScreenOpen, SetPromptScreenOpen] = useState(false);
 
-    try {
-      const response = await fetch('http://localhost:8000/api/agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim() }),
-      })
 
-      if (response.ok) {
-        const data = await response.json()
-        setResponse(data.response || 'Response received from agent')
-      } else {
-        setResponse('Error: Failed to get response from agent')
-      }
-    } catch (error) {
-      setResponse('Error: Failed to connect to agent')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+
+  const openNewScreen = () => SetNewCardScreenOpen(true);
+  const closeNewScreen = () => SetNewCardScreenOpen(false);
+
+  const openPromptScreen = () => SetPromptScreenOpen(true);
+  const closePromptScreen = () => SetPromptScreenOpen(false);
 
   return (
     <div className="app">
-      <header className="header">
-        <h1>Personal Motorsport Agent</h1>
-        <p>Send prompts to your AI agent</p>
-      </header>
-
-      <main className="main">
-        <form onSubmit={handleSubmit} className="prompt-form">
-          <PromptBox
-            prompt={prompt}
-            setPrompt={setPrompt}
-            isLoading={isLoading}
-          />
-          <SubmitButton
-            prompt={prompt}
-            isLoading={isLoading} />
-        </form>
-
-        {response && (
-          <AnswerBox
-            response={response} />
-        )}
-
-        {isLoading && (
-          <LoadingDisplay />
-        )}
-      </main>
+      {NewCardScreenOpen && <NewCardScreen onClose={closeNewScreen} />}
+      {PromptScreenOpen && <PromptScreen onClose={closePromptScreen} />}
+      <Header onNewCardClick={openNewScreen} />
+      <div className="workspace">
+        <Sidebar />
+        <div className="cardsContainer">
+          <Card onClick={openPromptScreen} />
+        </div>
+      </div>
     </div>
+
+
   )
 }
 
