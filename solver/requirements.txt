@@ -1,0 +1,8 @@
+langchain
+langchain-ollama
+ollama
+matplotlib
+fastapi
+uvicorn[standard]
+pytest
+pytest-mock
