@@ -48,23 +48,23 @@ function App() {
 
       <main className="main">
         <form onSubmit={handleSubmit} className="prompt-form">
-          <PromptBox 
-            prompt={prompt} 
-            setPrompt={setPrompt} 
-            isLoading={isLoading} 
+          <PromptBox
+            prompt={prompt}
+            setPrompt={setPrompt}
+            isLoading={isLoading}
           />
           <SubmitButton
-            prompt={prompt} 
+            prompt={prompt}
             isLoading={isLoading} />
         </form>
 
         {response && (
           <AnswerBox
-            response={response}/>
+            response={response} />
         )}
 
         {isLoading && (
-          <LoadingDisplay/>
+          <LoadingDisplay />
         )}
       </main>
     </div>

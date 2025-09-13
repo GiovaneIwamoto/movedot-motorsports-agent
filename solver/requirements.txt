@@ -4,3 +4,5 @@ ollama
 matplotlib
 fastapi
 uvicorn[standard]
+pytest
+pytest-mock

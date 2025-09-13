@@ -1,0 +1,9 @@
+services:
+  main:
+    build: .
+    image: mototorsport_agent:latest
+    container_name: mototorsport_agent_container 
+    volumes:
+      - .:/app
+    stdin_open: true   
+    tty: true          

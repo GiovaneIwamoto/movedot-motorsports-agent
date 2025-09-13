@@ -15,6 +15,5 @@ app.add_middleware(
 @app.post("/solve")
 async def solve(payload: dict = Body(...)):
     prompt = payload.get("prompt", "")
-    result = f"Resposta do python: {agent.generate_response(prompt)}"
+    result = f"Resposta do python: {agent.get_req_params(prompt)}"
     return {"response": result}
-

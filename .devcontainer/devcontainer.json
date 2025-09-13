@@ -1,0 +1,27 @@
+{
+  "name": "Mototorsport Agent Dev",
+  "dockerComposeFile": [
+    "../docker-compose.yml"
+  ],
+  "service": "main",
+  "workspaceFolder": "/app",
+
+  "runServices": [ "main" ],
+  "overrideCommand": false,
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+
+  "postCreateCommand": "echo 'Container de dev pronto 🚀'"
+}
