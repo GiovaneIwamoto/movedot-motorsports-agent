@@ -7,7 +7,6 @@ const Sidebar: React.FC = () => {
                 <li>Home</li>
                 <li>Profile</li>
                 <li>Settings</li>
-                <li>Configurations</li>
             </ul>
         </div>
     );

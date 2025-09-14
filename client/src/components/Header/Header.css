@@ -5,4 +5,7 @@
     color: white;
     display: flex;
     align-items: center;
+    font-family: 'Poppins', sans-serif;
+    padding: 10px;
+    font-size: larger;
 }

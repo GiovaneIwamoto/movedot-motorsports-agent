@@ -1,14 +1,14 @@
 {
   "name": "Mototorsport Agent Dev",
   "dockerComposeFile": [
-    "../docker-compose.yml"
+    "docker-compose.yml"
   ],
   "service": "main",
   "workspaceFolder": "/app",
-
-  "runServices": [ "main" ],
+  "runServices": [
+    "main"
+  ],
   "overrideCommand": false,
-
   "customizations": {
     "vscode": {
       "settings": {
@@ -22,6 +22,5 @@
       ]
     }
   },
-
   "postCreateCommand": "echo 'Container de dev pronto 🚀'"
 }

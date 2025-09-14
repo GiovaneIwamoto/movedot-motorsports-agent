@@ -10,7 +10,7 @@ const Header: React.FC<HeaderProps> = ({ onNewCardClick }) => {
     return (
         <div className='header'>
             <img></img>
-            <p>Título do projeto</p>
+            <p>RAG in a rock</p>
             <NewCardButton onClick={onNewCardClick} />
         </div>
     );

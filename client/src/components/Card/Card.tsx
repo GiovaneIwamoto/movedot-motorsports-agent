@@ -1,20 +1,22 @@
 import React from 'react';
 import './Card.css';
-import motorsportImage from "../../assets/motorsport_image.jpg";
 
 
 interface CardProps {
-    onClick: () => void;
+  Title: string;
+  Description: string;
+  Photo: string;
+  onClick: () => void;
 }
 
-const Card: React.FC<CardProps> = ({ onClick }) => {
-    return (
-        <div className='card' onClick={onClick}>
-            <img className="card_image" src={motorsportImage} alt="card_picture"></img>
-            <h2>F1 API</h2>
-            <p>Data from formula 1</p>
-        </div>
-    );
+const Card: React.FC<CardProps> = ({ Title, Description, Photo, onClick }) => {
+  return (
+    <div className="card" onClick={onClick}>
+      <img className="card_image" src={Photo} alt="card_picture" />
+      <h2>{Title}</h2>
+      <p>{Description}</p>
+    </div>
+  );
 };
 
 export default Card;

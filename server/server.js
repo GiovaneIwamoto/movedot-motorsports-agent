@@ -1,65 +1,36 @@
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
-require('dotenv').config();
+
+const {connectWithRetry} = require('./config/db_config')
+const { getCards } = require('./src/db_integration');
+const { request_agent } = require('./src/solver_integration');
+const { healthcheck } = require('./src/healthcheck');
+const {errorHandler, notFoundHandler} = require('./src/error_handler')
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.SERVER_PORT;
+const router = express.Router();
 
 app.use(cors());
 app.use(express.json());
+app.use('/', router);
 
-const PYTHON_AGENT_URL = process.env.PYTHON_AGENT_URL // from .env
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Agent backend is running' });
-});
+router.get('/api/getcards', getCards);
+router.post('/api/agent', request_agent);
+router.get('/health', healthcheck)
 
 
-app.post('/api/agent', async (req, res) => {
-  const {prompt} = req.body;
 
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
-  }
+app.use(errorHandler);
+app.use('*', notFoundHandler);
 
-  console.log(`Received prompt: ${prompt}`);
-
-  try {
-    const response = await axios.post(
-      process.env.PYTHON_AGENT_URL + '/solve',
-      { prompt },
-      { headers: { 'Content-Type': 'application/json' } }
-    );
-
-    res.json({
-      response: response.data.response,
-      timestamp: new Date().toISOString()
+connectWithRetry()
+  .then(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Agent backend server running on port ${PORT}`);
     });
-  } catch (error) {
-    console.error('Erro ao chamar o solver Python:', error.message);
-    res.status(500).json({ error: 'Erro ao se comunicar com o solver Python' });
-  }
-});
-
-
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: 'Something went wrong'
+  })
+  .catch(err => {
+    console.error(err);
+    process.exit(1);
   });
-});
-
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Not found',
-    message: 'Endpoint not found'
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Agent backend server running on port ${PORT}`);
-  console.log(`📡 Python agent URL: ${PYTHON_AGENT_URL}`);
-  console.log(`🌐 Health check: http://localhost:${PORT}/health`);
-});
