@@ -6,8 +6,8 @@ from langchain_ollama.llms import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser, CommaSeparatedListOutputParser
 
-from f1_api.f1_fetch import get_laps_data
-from agent.Agent_output_parameters import Agent_output_parameters
+from src.f1_api.f1_fetch import get_laps_data
+from src.agent.Agent_output_parameters import Agent_output_parameters
 from langchain.chains import LLMChain
 
 

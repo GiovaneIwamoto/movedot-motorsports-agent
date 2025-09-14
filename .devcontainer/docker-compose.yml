@@ -1,0 +1,84 @@
+version: "3.9"
+
+services:
+  postgress_container:
+    build:
+      context: ../database
+      dockerfile: Dockerfile
+    image: motorsport_agent_db:latest
+    container_name: motorsport_agent_db_container
+    ports:
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
+    networks:
+      - my_custom_network
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+
+  node_server:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    image: motorsport_agent_server:latest
+    container_name: motorsport_agent_server_container
+    volumes:
+      - ../server:/server
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    networks:
+      - my_custom_network
+    environment:
+      DATABASE_HOST: postgress_container
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      MAIN_TABLE_NAME: cards
+      SERVER_PORT: ${SERVER_PORT}
+      SOLVER_PORT: ${SOLVER_PORT}
+      SOLVER_ADDR: python_solver
+    depends_on:
+      - postgress_container  
+    env_file:
+      - .env
+
+  react_client:
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+    image: motorsport_agent_client:latest
+    container_name: motorsport_agent_client_container
+    volumes:
+    - ../client:/client
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
+    networks:
+      - my_custom_network
+    environment:
+      SERVER_PORT: ${SERVER_PORT}
+    depends_on:
+      - node_server
+    env_file:
+      - .env
+  python_solver:
+    build:
+      context: ../solver
+      dockerfile: Dockerfile
+    image: motorsport_agent_solver:latest
+    container_name: motorsport_agent_solver_container
+    volumes:
+    - ../solver:/solver
+    ports:
+      - "${SOLVER_PORT}:${SOLVER_PORT}"
+    networks:
+      - my_custom_network
+    env_file:
+      - .env
+
+
+networks:
+  my_custom_network:
+    driver: bridge

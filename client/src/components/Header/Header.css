@@ -1,0 +1,11 @@
+.header {
+    background-color: rgb(36, 35, 39);
+    width: 100vw;
+    height: 75px;
+    color: white;
+    display: flex;
+    align-items: center;
+    font-family: 'Poppins', sans-serif;
+    padding: 10px;
+    font-size: larger;
+}
