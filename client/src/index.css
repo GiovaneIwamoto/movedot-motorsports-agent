@@ -1,7 +1,14 @@
+.Current_page{
+    background: var(--secondary-color);
+}
+
+
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  color: var(--text-color)
 }
 
 html {
@@ -21,12 +28,32 @@ body {
   min-height: 100vh;
 }
 
-/* Remove default button styles */
 button {
   font-family: inherit;
 }
 
-/* Remove default textarea styles */
 textarea {
   font-family: inherit;
+}
+
+:root {
+  --text-font: white;
+  --details-color: #10b956;
+}
+
+body.day_mode {
+  --primary-color: #dadada;
+  --secondary-color: #ffffff;
+  --tertiary-color: #ccc;
+  --details-color: #cc0e0e;
+  --text-color: black;
+}
+
+/* Noite */
+body.night_mode {
+  --primary-color: rgb(48, 48, 48);
+  --secondary-color: rgb(31, 31, 31);
+  --tertiary-color: #686868;
+  --details-color: #ad17db;
+  --text-color: white;
 }

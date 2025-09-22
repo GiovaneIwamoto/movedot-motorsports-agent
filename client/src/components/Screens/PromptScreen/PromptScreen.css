@@ -1,40 +1,36 @@
-.register_background {
-    position: absolute;
-    background-color: rgba(0, 0, 0, 0.089);
-    height: 100%;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.promptScreen_background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #9b9b9b69;
+  display: flex;
+  justify-content: flex-end; /* painel à direita */
+  align-items: stretch;
+  z-index: 10;
 }
 
-.register_box {
-    min-width: 50vw;
-    background-color: rgb(255, 255, 255);
-    border-radius: 20px;
-    padding: 20px;
+.side_panel {
+  background-color: var(--secondary-color);
+  width: 700px;
+  height: 100%;
+  box-shadow: -3px 0 10px rgba(0,0,0,0.2);
+  padding: 20px;
+  overflow-y: auto;
+  position: relative; /* ainda referência para filhos absolutos se precisar */ 
 }
 
-.register_form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+.promptScreen_footer {
+    position: absolute;  /* ou fixed se quiser que fique sempre visível mesmo rolando */
+    bottom: 0;           /* distancia do fundo da tela */
+    left: 0;             /* alinha à esquerda */
+    width: 100%;         /* ocupa toda a largura */
+    padding: 10px;
+    background-color: #fff;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
 }
 
-.register_form label {
-    display: flex;
-    flex-direction: column;
-    font-weight: 500;
-}
-
-.register_form input,
-.register_form textarea {
-    padding: 0.5rem;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-    margin: 20px;
-}
 
 .form_buttons {
     display: flex;
@@ -42,20 +38,6 @@
     gap: 1rem;
 }
 
-.form_buttons button {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-}
 
-.form_buttons button[type="submit"] {
-    background-color: #22c55e;
-    color: white;
-}
 
-.form_buttons button[type="button"] {
-    background-color: #ef4444;
-    color: white;
-}
+

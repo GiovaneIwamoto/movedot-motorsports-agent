@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 
 const {connectWithRetry} = require('./config/db_config')
-const { getCards } = require('./src/db_integration');
+const { getCards, createCard, deleteCard, updateCard, } = require('./src/db_integration');
 const { request_agent } = require('./src/solver_integration');
 const { healthcheck } = require('./src/healthcheck');
 const {errorHandler, notFoundHandler} = require('./src/error_handler')
@@ -11,9 +11,18 @@ const app = express();
 const PORT = process.env.SERVER_PORT;
 const router = express.Router();
 
-app.use(cors());
+app.use(cors({
+  origin: '*',   // permite qualquer origem
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+}));
 app.use(express.json());
+
 app.use('/', router);
+
+
+router.post('/api/createCard', createCard);
+router.post('/api/deleteCard', deleteCard);
+router.post('/api/updateCard', updateCard);
 
 router.get('/api/getcards', getCards);
 router.post('/api/agent', request_agent);

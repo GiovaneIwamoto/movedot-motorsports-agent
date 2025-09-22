@@ -1,3 +1,7 @@
+
+
+
+
 .app {
   width: 100vw;
   height: 100vh;
@@ -5,12 +9,19 @@
   overflow: hidden;
 }
 
-.workspace {
+.main_layout{
   display: flex;
   height: 100%;
 }
 
+
 .body {
   margin: 0;
   padding: 0;
+}
+
+.Current_page {
+    flex: 1; 
+    box-sizing: border-box;
+    overflow-y: auto;
 }

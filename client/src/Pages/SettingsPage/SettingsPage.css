@@ -1,0 +1,87 @@
+.settings_page_app {
+  padding: 20px;
+  max-width: 700px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+}
+
+h2 {
+  margin-bottom: 25px;
+}
+
+.settings_form_app {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.settings_section_app {
+  padding: 15px 20px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: var(--secondary-color);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings_section_app h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-color);
+}
+
+.settings_section_app label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+input[type="number"] {
+  width: 60px;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid #aaa;
+}
+
+/* Toggle tema */
+.theme_toggle {
+  display: flex;
+  align-items: center;
+}
+
+.theme_button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #ddd;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.theme_button:hover {
+  background: #ccc;
+}
+
+.form_buttons_app {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.form_buttons_app button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+
+
+

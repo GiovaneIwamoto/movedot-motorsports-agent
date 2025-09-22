@@ -1,0 +1,16 @@
+.myButton {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.myButton:hover {
+  opacity: 0.8;
+}
+
+.myButton.colored {
+  background-color: var(--details-color);
+  color: white;
+}

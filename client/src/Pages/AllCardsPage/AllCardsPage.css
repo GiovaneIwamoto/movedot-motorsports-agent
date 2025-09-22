@@ -1,0 +1,6 @@
+.homepage_background {
+    min-height: 100vh; /* altura mínima da tela */
+    min-width: 100vw;       /* largura total da tela */
+    padding: 20px;
+    box-sizing: border-box;
+}

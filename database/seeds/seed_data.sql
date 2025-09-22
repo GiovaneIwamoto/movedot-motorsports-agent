@@ -1,4 +1,4 @@
-INSERT INTO cards (name, description, photo, data_type, data_file, data_url, created_at)
+INSERT INTO cards (name, description, photo, data_type, data_file, data_url, favorite, created_at)
 VALUES (
     'F1 API',
     'Public API with data from Formula 1',
@@ -6,10 +6,11 @@ VALUES (
     'url',
     NULL,
     'https://f1.com',
+    true,
     '2025-09-13'
 );
 
-INSERT INTO cards (name, description, photo, data_type, data_file, data_url, created_at)
+INSERT INTO cards (name, description, photo, data_type, data_file, data_url, favorite, created_at)
 VALUES (
     'Airplane crash API',
     'Public API with data aiplanes crashes',
@@ -17,5 +18,6 @@ VALUES (
     'url',
     NULL,
     'https://f1.com',
+    false,
     '2025-09-13'
 );

@@ -1,26 +1,103 @@
 .sidebar {
     width: 250px;
     height: 100%;
-    background-color: #1e293b;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.border_line {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    right: 0;
+    width: 2px;
+    background-color: var(--tertiary-color);
+}
+
+.sidebar_top {
+    padding: 20px;
+    text-align: center;
+}
+
+.company_logo {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 50%;
+    margin-bottom: 10px;
+}
+
+.company_name {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.user_info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.user_avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.user_text {
+    text-align: left;
+}
+
+.user_name {
+    font-weight: 600;
+    margin: 0;
+}
+
+.user_role {
+    font-size: 12px;
+    color: gray;
+    margin: 0;
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0;
+}
+
+.menu_button {
+    width: 100%;
+    padding: 15px 10px;
+    background: none;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 500;
+    border-radius: 5px;
+    transition: background 0.2s;
+    color: var(--text-color)
+}
+
+.menu_button:hover {
+    background-color: var(--tertiary-color);
+}
+
+.menu_button.active {
+    background-color: var(--details-color);
     color: white;
 }
 
-
-.menu {
-    list-style: none;
-    padding: 0;
-    margin-top: 50px;
-}
-
-.menu li {
-    width: 100%;
-    box-sizing: border-box;
-    margin: 20px 0;
-    cursor: pointer;
-    transition: background 0.2s;
-    padding: 8px;
-}
-
-.menu li:hover {
-    background-color: #334155;
+.sidebar_footer {
+    padding: 20px;
+    text-align: center;
+    font-size: 12px;
+    color: gray;
 }
