@@ -8,7 +8,6 @@ from .context_tools import (
 
 from .analysis_tools import (
     analyze_data_with_pandas,
-    create_plots_from_data,
     debug_csv_storage,
     list_available_data,
     quick_data_check,
@@ -30,7 +29,6 @@ __all__ = [
     
     # Analysis tools
     "analyze_data_with_pandas",
-    "create_plots_from_data",
     "debug_csv_storage",
     "list_available_data",
     "quick_data_check",
