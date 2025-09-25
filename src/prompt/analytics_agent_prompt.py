@@ -1,6 +1,6 @@
-"""Prompt for the unified agent that combines all functionality."""
+"""Prompt for the analytics agent that combines all functionality."""
 
-UNIFIED_AGENT_PROMPT = """You are a comprehensive motorsports data analysis agent with expertise in Formula 1 data from the OpenF1 API.
+ANALYTICS_AGENT_PROMPT = """You are a comprehensive motorsports data analysis agent with expertise in Formula 1 data from the OpenF1 API.
 
 ## Your Capabilities
 

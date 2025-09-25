@@ -89,6 +89,9 @@ def fetch_api_data(endpoint: str, parameters: Optional[Dict[str, Any]] = None) -
     For OpenF1 API endpoints, automatically requests CSV format and stores in memory.
     """
     try:
+        logger.info(f"Fetching API data from: {endpoint}")
+        if parameters:
+            logger.info(f"With parameters: {parameters}")
         # Check if this is an OpenF1 API endpoint (either full URL or partial path)
         is_openf1 = "api.openf1.org" in endpoint or not endpoint.startswith(("http://", "https://"))
         
@@ -149,7 +152,7 @@ def fetch_api_data(endpoint: str, parameters: Optional[Dict[str, Any]] = None) -
         return f"Error fetching data from {endpoint}: {str(e)}"
 
 def get_context_tools():
-    """Get all context agent tools."""
+    """Get all context tools."""
     return [
         load_product_requirement_prompt,
         fetch_api_data,

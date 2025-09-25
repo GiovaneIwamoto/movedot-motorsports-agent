@@ -66,6 +66,11 @@ def create_plots_from_data(plot_query: str, csv_names: Optional[str] = None) -> 
         csv_names: Comma-separated list of CSV names to use for plotting
     """
     try:
+        logger.info(f"Creating plots: {plot_query[:100]}...")
+        if csv_names:
+            logger.info(f"Using CSVs: {csv_names}")
+        else:
+            logger.info("Using all available CSVs for plotting")
         # Get list of available CSVs
         csv_memory = get_csv_memory()
         available_csvs = csv_memory.list_available_csvs()
@@ -111,7 +116,7 @@ def create_plots_from_data(plot_query: str, csv_names: Optional[str] = None) -> 
                 return f"Error creating plot: {str(e)}"
         
         # Use the pandas agent to generate plotting code
-        llm_worker = get_openai_client("worker")
+        llm_worker = get_openai_client()
         
         # Create a simple agent for plotting
         plotting_prompt = f"""
@@ -154,6 +159,11 @@ def analyze_data_with_pandas(analysis_query: str, csv_names: Optional[str] = Non
         csv_names: Comma-separated list of CSV names to analyze. If None, analyzes all available CSVs.
     """
     try:
+        logger.info(f"Starting data analysis: {analysis_query[:100]}...")
+        if csv_names:
+            logger.info(f"Analyzing specific CSVs: {csv_names}")
+        else:
+            logger.info("Analyzing all available CSVs")
         # Get list of available CSVs (single check with caching)
         csv_memory = get_csv_memory()
         available_csvs = csv_memory.list_available_csvs()
@@ -197,7 +207,7 @@ def analyze_data_with_pandas(analysis_query: str, csv_names: Optional[str] = Non
             return "No DataFrames could be loaded successfully."
         
         # Create pandas agent with all dataframes
-        llm_worker = get_openai_client("worker")
+        llm_worker = get_openai_client()
         agent = create_pandas_dataframe_agent(
             llm_worker,
             dataframes_list,
@@ -307,7 +317,7 @@ def clear_csv_cache() -> str:
 
 
 def get_analysis_tools():
-    """Get all analysis agent tools."""
+    """Get all analysis tools."""
     return [
         analyze_data_with_pandas,
         create_plots_from_data,

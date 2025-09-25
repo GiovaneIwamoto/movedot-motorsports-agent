@@ -11,17 +11,12 @@ class Settings(BaseSettings):
     
     # API Keys
     openai_api_key: str = Field(..., env="OPENAI_API_KEY")
-    tavily_api_key: str = Field(..., env="TAVILY_API_KEY")
     
     # Model configurations
-    summarizer_model: str = Field(default="gpt-4", env="SUMMARIZER_MODEL")
-    worker_model: str = Field(default="gpt-4o-mini", env="WORKER_MODEL")
-    supervisor_model: str = Field(default="gpt-4", env="SUPERVISOR_MODEL")
+    agent_model: str = Field(default="gpt-4o-mini", env="AGENT_MODEL")
     
     # Temperature settings
-    summarizer_temperature: float = Field(default=0.1, env="SUMMARIZER_TEMPERATURE")
-    worker_temperature: float = Field(default=0.1, env="WORKER_TEMPERATURE")
-    supervisor_temperature: float = Field(default=0.1, env="SUPERVISOR_TEMPERATURE")
+    agent_temperature: float = Field(default=0.1, env="AGENT_TEMPERATURE")
     
     # File paths
     data_dir: str = Field(default="data", env="DATA_DIR")

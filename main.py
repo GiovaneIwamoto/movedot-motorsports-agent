@@ -11,7 +11,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from src.core import chat_with_unified_agent, chat_with_supervisor, chat_with_context_agent, chat_with_analysis_agent
+from src.core import chat_with_agent
 from src.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -56,9 +56,8 @@ def interactive_mode():
             if not user_input:
                 continue
             
-            print("\nAgent: ", end="", flush=True)
-            response = chat_with_unified_agent(user_input)
-            print(response)
+            response = chat_with_agent(user_input)
+            print(f"\nAgent: {response}\n")
             
         except KeyboardInterrupt:
             print("\n\nGoodbye!")
@@ -67,20 +66,10 @@ def interactive_mode():
             print(f"\nError: {e}")
 
 
-def single_query_mode(query: str, agent_type: str = "unified"):
+def single_query_mode(query: str):
     """Run a single query and exit."""
     try:
-        if agent_type == "unified":
-            response = chat_with_unified_agent(query)
-        elif agent_type == "supervisor":
-            response = chat_with_supervisor(query)
-        elif agent_type == "context":
-            response = chat_with_context_agent(query)
-        elif agent_type == "analysis":
-            response = chat_with_analysis_agent(query)
-        else:
-            raise ValueError(f"Unknown agent type: {agent_type}")
-        
+        response = chat_with_agent(query)
         print(response)
         
     except Exception as e:
@@ -95,9 +84,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py                                    # Interactive mode (unified agent)
+  python main.py                                    # Interactive mode
   python main.py -q "What data do I have available?" # Single query
-  python main.py -q "Analyze driver performance" -a unified  # Use unified agent
+  python main.py -q "Analyze driver performance"    # Single query
         """
     )
     
@@ -106,12 +95,6 @@ Examples:
         help="Single query to process (exits after processing)"
     )
     
-    parser.add_argument(
-        "-a", "--agent",
-        choices=["unified", "supervisor", "context", "analysis"],
-        default="unified",
-        help="Agent type to use (default: unified)"
-    )
     
     parser.add_argument(
         "-v", "--verbose",
@@ -135,7 +118,7 @@ Examples:
     
     # Run appropriate mode
     if args.query:
-        single_query_mode(args.query, args.agent)
+        single_query_mode(args.query)
     else:
         interactive_mode()
 
