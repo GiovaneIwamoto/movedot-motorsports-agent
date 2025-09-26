@@ -133,11 +133,19 @@ class MotorsportsAnalytics {
         
         // Add scroll listener to detect section visibility
         this.setupScrollListener();
+        
+        // Setup dynamic chat scrollbar
+        this.setupChatScrollbar();
     }
 
     async loadDataOverview() {
         try {
             const response = await fetch(`${this.apiBase}/data/overview`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             this.updateDataSources(data.available_datasets);
@@ -145,7 +153,30 @@ class MotorsportsAnalytics {
             
         } catch (error) {
             console.error('Error loading data overview:', error);
-            this.showError('Erro ao carregar dados');
+            // Don't show error message immediately, try again after a delay
+            setTimeout(() => {
+                this.retryLoadDataOverview();
+            }, 2000);
+        }
+    }
+
+    async retryLoadDataOverview() {
+        try {
+            const response = await fetch(`${this.apiBase}/data/overview`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            this.updateDataSources(data.available_datasets);
+            this.updateMetrics(data.total_datasets);
+            
+        } catch (error) {
+            console.error('Error loading data overview (retry):', error);
+            // Don't show error in chat, just log it
+            console.warn('Data overview could not be loaded, continuing without it');
         }
     }
 
@@ -962,6 +993,26 @@ class MotorsportsAnalytics {
                 analyticsSection.classList.remove('blurred');
             }
         }
+    }
+
+    setupChatScrollbar() {
+        const chatMessages = document.querySelector('.chat-messages');
+        if (!chatMessages) return;
+
+        let scrollTimeout;
+        
+        chatMessages.addEventListener('scroll', () => {
+            // Add scrolling class
+            chatMessages.classList.add('scrolling');
+            
+            // Clear existing timeout
+            clearTimeout(scrollTimeout);
+            
+            // Remove scrolling class after 1 second of no scrolling
+            scrollTimeout = setTimeout(() => {
+                chatMessages.classList.remove('scrolling');
+            }, 1000);
+        });
     }
 
 }
