@@ -9,8 +9,6 @@
 </head>
 <body>
     <div class="home-container">
-
-
         <!-- Main Content -->
         <div class="main-content">
             <div class="app-name">
@@ -19,21 +17,31 @@
             
             <div class="product-description">
                 An AI-powered analytics platform mentored by MoveDot.<br>
-                A startup backed by <span class="yc-badge"><span class="yc-icon">Y</span> Combinator</span>.
+                A startup backed by <span class="yc-badge"><span class="yc-icon">Y</span> Combinator</span>
             </div>
             
             <!-- Navigation Button -->
             <div class="navigation-section">
-                <a href="index.html" class="enter-button">
-                    <span>Enter Dashboard</span>
+                <a href="index.html" class="enter-button" id="enter-button">
+                    <span class="button-text">Enter Dashboard</span>
                     <div class="arrow">→</div>
+                    <div class="button-loader" id="button-loader" style="display: none;">
+                        <div class="loader-dots">
+                            <div class="loader-dot"></div>
+                            <div class="loader-dot"></div>
+                            <div class="loader-dot"></div>
+                        </div>
+                    </div>
                 </a>
             </div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-            <p>Motorsports Analytics Platform</p>
+            <p>
+                <span class="move-dot-logo">M</span>
+                Powered by MoveDot AI
+            </p>
         </div>
     </div>
 

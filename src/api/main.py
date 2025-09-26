@@ -111,6 +111,15 @@ async def read_dashboard():
     else:
         raise HTTPException(status_code=404, detail="Dashboard page not found")
 
+@app.get("/data-sources.html")
+async def read_data_sources():
+    """Serve the data sources page."""
+    html_path = Path(__file__).parent.parent.parent / "web" / "data-sources.html"
+    if html_path.exists():
+        return HTMLResponse(content=html_path.read_text(), media_type="text/html")
+    else:
+        raise HTTPException(status_code=404, detail="Data sources page not found")
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""

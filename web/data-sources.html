@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquivos CSV - MoveDot Motorsports Analytics</title>
+    <link rel="stylesheet" href="static/styles.css">
+    <link rel="stylesheet" href="static/effects.css">
+    <link rel="stylesheet" href="static/framer-components.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Main Content -->
+        <main class="main-content csv-files-main">
+            <!-- CSV Files Content -->
+            <section class="csv-files-content">
+                <!-- Ultra Minimalist Header -->
+                <div class="page-header-ultra">
+                    <h1>Arquivos CSV</h1>
+                    <span class="file-count" id="file-count">7 arquivos</span>
+                </div>
+                
+                <!-- CSV Files List -->
+                <div class="csv-files-list" id="csv-files-list">
+                    <!-- Files will be loaded here -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Floating Dock -->
+        <nav class="floating-dock" id="floating-dock">
+            <button class="dock-item" data-page="home" onclick="navigateTo('home.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <div class="dock-item-tooltip">Home</div>
+            </button>
+            
+            <button class="dock-item" data-page="dashboard" onclick="navigateTo('index.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <div class="dock-item-tooltip">Dashboard</div>
+            </button>
+            
+            <button class="dock-item" data-page="analytics" onclick="navigateTo('index.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="dock-item-tooltip">Analytics</div>
+            </button>
+            
+            <button class="dock-item active" data-page="data-sources">
+                <div class="dock-item-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="dock-item-tooltip">Data Sources</div>
+            </button>
+            
+            <button class="dock-item" data-page="export" onclick="exportData()">
+                <div class="dock-item-icon">
+                    <i class="fas fa-download"></i>
+                </div>
+                <div class="dock-item-tooltip">Export</div>
+            </button>
+            
+            <button class="dock-item" data-page="new-analysis" onclick="navigateTo('index.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <div class="dock-item-tooltip">New Analysis</div>
+            </button>
+        </nav>
+    </div>
+
+    <script src="static/app.js"></script>
+    <script>
+        // Ultra Minimalist CSV Files Page
+        class CSVFilesManager {
+            constructor() {
+                this.csvFiles = [];
+                this.init();
+            }
+            
+            async init() {
+                await this.loadCSVFiles();
+                this.renderFiles();
+            }
+            
+            async loadCSVFiles() {
+                try {
+                    const response = await fetch('/api/data/overview');
+                    const data = await response.json();
+                    
+                    // Transform API data to our format
+                    this.csvFiles = data.available_datasets.map(file => ({
+                        name: file.name,
+                        size: this.formatFileSize(file.size),
+                        source: file.source
+                    }));
+                    
+                } catch (error) {
+                    console.error('Error loading CSV files:', error);
+                    // Fallback to hardcoded data from csv_memory.json
+                    this.csvFiles = [
+                        { name: 'openf1_meetings_year_2023.csv', size: '3.7 KB', source: 'OpenF1' },
+                        { name: 'openf1_sessions_country_name_Monaco_year_2023.csv', size: '827 B', source: 'OpenF1' },
+                        { name: 'openf1_session_result_session_key_9094.csv', size: '1.1 KB', source: 'OpenF1' },
+                        { name: 'openf1_drivers_session_key_9094.csv', size: '4.1 KB', source: 'OpenF1' },
+                        { name: 'openf1_sessions_country_name_Brazil_year_2023.csv', size: '836 B', source: 'OpenF1' },
+                        { name: 'openf1_meetings_country_name_Brazil_year_2023.csv', size: '324 B', source: 'OpenF1' },
+                        { name: 'openf1_laps_driver_number_1_session_key_9204.csv', size: '5.5 KB', source: 'OpenF1' },
+                        { name: 'openf1_laps_driver_number_14_session_key_9204.csv', size: '5.5 KB', source: 'OpenF1' }
+                    ];
+                }
+            }
+            
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            }
+            
+            renderFiles() {
+                const container = document.getElementById('csv-files-list');
+                const countElement = document.getElementById('file-count');
+                
+                // Update count
+                countElement.textContent = `${this.csvFiles.length} arquivos`;
+                
+                // Render files
+                container.innerHTML = this.csvFiles.map(file => `
+                    <div class="csv-file-item" onclick="analyzeFile('${file.name}')">
+                        <div class="file-icon">
+                            <i class="fas fa-file-csv"></i>
+                        </div>
+                        <div class="file-details">
+                            <h3>${file.name}</h3>
+                            <p>${file.size} • ${file.source}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        // Navigation function
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+        
+        // Analyze file function
+        function analyzeFile(fileName) {
+            // Navigate to dashboard with file analysis
+            const message = `Analise o arquivo ${fileName}`;
+            window.location.href = `index.html?analyze=${encodeURIComponent(message)}`;
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            window.csvFilesManager = new CSVFilesManager();
+        });
+    </script>
+</body>
+</html>

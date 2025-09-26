@@ -12,31 +12,6 @@
 </head>
 <body>
     <div id="app">
-        <!-- Header -->
-        <header class="header framer-glass">
-            <div class="header-content">
-                <div class="logo framer-hover-glow">
-                    <i class="fas fa-chart-line"></i>
-                    <span>MoveDot Analytics</span>
-                </div>
-                <nav class="nav">
-                    <a href="home.html" class="nav-link framer-hover-lift">Home</a>
-                    <a href="#" class="nav-link active framer-hover-lift">Dashboard</a>
-                    <a href="#" class="nav-link framer-hover-lift">Analytics</a>
-                    <a href="#" class="nav-link framer-hover-lift" id="data-sources-toggle">Data Sources</a>
-                </nav>
-                <div class="header-actions">
-                    <button class="framer-btn framer-btn-secondary framer-hover-lift">
-                        <i class="fas fa-download"></i>
-                        Export
-                    </button>
-                    <button class="framer-btn framer-btn-primary framer-hover-glow">
-                        <i class="fas fa-plus"></i>
-                        New Analysis
-                    </button>
-                </div>
-            </div>
-        </header>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -93,12 +68,16 @@
                             <div class="query-progress-bar"></div>
                         </div>
                         <div class="chat-input-wrapper">
-                            <input 
-                                type="text" 
-                                id="chat-input" 
-                                placeholder="Ask your question about motorsports data..."
-                                class="chat-input framer-input"
-                            >
+                            <div class="placeholder-container">
+                                <input 
+                                    type="text" 
+                                    id="chat-input" 
+                                    class="chat-input animated-input framer-input"
+                                >
+                                <div class="placeholder-text" id="placeholder-text">
+                                    Ask your question about motorsports data...
+                                </div>
+                            </div>
                             <button id="send-button" class="send-button">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
@@ -203,20 +182,64 @@
             </section>
         </main>
 
-        <!-- Data Sources Sidebar -->
-        <div class="sidebar-overlay" id="sidebar-overlay"></div>
-        <aside class="data-sources-sidebar framer-card" id="data-sources-sidebar">
-            <div class="sidebar-header">
-                <h3>Data Sources</h3>
-                <button class="close-sidebar" id="close-data-sources">
-                    <i class="fas fa-times"></i>
-                </button>
+
+        <!-- Loader Overlay -->
+        <div class="loader-overlay" id="loader-overlay">
+            <div class="loader-container">
+                <div class="loader-spinner"></div>
+                <div class="loader-text">Loading Dashboard</div>
+                <div class="loader-dots">
+                    <div class="loader-dot"></div>
+                    <div class="loader-dot"></div>
+                    <div class="loader-dot"></div>
+                </div>
             </div>
-            <div class="data-count" id="data-count">0 datasets</div>
-            <div class="data-sources" id="data-sources">
-                <div class="loading">Loading data sources...</div>
-            </div>
-        </aside>
+        </div>
+
+        <!-- Floating Dock -->
+        <nav class="floating-dock" id="floating-dock">
+            <button class="dock-item" data-page="home" data-href="home.html">
+                <div class="dock-item-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <div class="dock-item-tooltip">Home</div>
+            </button>
+            
+            <button class="dock-item active" data-page="dashboard" data-href="#">
+                <div class="dock-item-icon">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <div class="dock-item-tooltip">Dashboard</div>
+            </button>
+            
+            <button class="dock-item" data-page="analytics" data-href="#">
+                <div class="dock-item-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="dock-item-tooltip">Analytics</div>
+            </button>
+            
+            <button class="dock-item" data-page="data-sources" id="data-sources-toggle">
+                <div class="dock-item-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="dock-item-tooltip">Data Sources</div>
+            </button>
+            
+            <button class="dock-item" data-page="export" id="export-btn">
+                <div class="dock-item-icon">
+                    <i class="fas fa-download"></i>
+                </div>
+                <div class="dock-item-tooltip">Export</div>
+            </button>
+            
+            <button class="dock-item" data-page="new-analysis" id="new-analysis-btn">
+                <div class="dock-item-icon">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <div class="dock-item-tooltip">New Analysis</div>
+            </button>
+        </nav>
     </div>
 
     <script src="static/app.js"></script>

@@ -2,6 +2,10 @@
 
 class HomePage {
     constructor() {
+        // Loader system
+        this.loaderTimeout = null;
+        this.isLoading = false;
+        
         this.init();
     }
 
@@ -17,6 +21,7 @@ class HomePage {
         if (enterButton) {
             enterButton.addEventListener('click', (e) => {
                 e.preventDefault();
+                console.log('Enter Dashboard clicked');
                 this.navigateToDashboard();
             });
         }
@@ -24,10 +29,21 @@ class HomePage {
         // Keyboard navigation
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
+                console.log('Keyboard navigation triggered');
                 this.navigateToDashboard();
             }
         });
 
+        // Add visual feedback
+        if (enterButton) {
+            enterButton.addEventListener('mousedown', () => {
+                enterButton.style.transform = 'translateY(-2px) scale(0.98)';
+            });
+            
+            enterButton.addEventListener('mouseup', () => {
+                enterButton.style.transform = '';
+            });
+        }
     }
 
     startBackgroundAnimation() {
@@ -48,21 +64,77 @@ class HomePage {
 
 
     navigateToDashboard() {
-        const enterButton = document.querySelector('.enter-button');
-        if (enterButton) {
-            // Add loading state
+        console.log('Navigating to dashboard...');
+        
+        // Show inline loader in button
+        this.showButtonLoader();
+        
+        // Navigate after loader animation
+        setTimeout(() => {
+            console.log('Redirecting to dashboard...');
+            window.location.href = 'index.html';
+        }, 2000);
+    }
+
+    showButtonLoader() {
+        if (this.isLoading) return;
+        
+        console.log('Showing button loader');
+        this.isLoading = true;
+        
+        const enterButton = document.getElementById('enter-button');
+        const buttonText = enterButton.querySelector('.button-text');
+        const arrow = enterButton.querySelector('.arrow');
+        const buttonLoader = document.getElementById('button-loader');
+        
+        if (enterButton && buttonText && arrow && buttonLoader) {
+            // Add loading class to remove border
+            enterButton.classList.add('loading');
+            
+            // Hide text and arrow
+            buttonText.style.display = 'none';
+            arrow.style.display = 'none';
+            
+            // Show loader
+            buttonLoader.style.display = 'flex';
+            
+            // Disable button
+            enterButton.style.pointerEvents = 'none';
             enterButton.style.opacity = '0.7';
-            enterButton.style.transform = 'translateY(-2px) scale(0.98)';
             
-            const originalText = enterButton.innerHTML;
-            enterButton.innerHTML = '<span>Loading...</span><div class="arrow">...</div>';
-            
-            // Simulate loading time for smooth transition
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 800);
+            console.log('Button loader activated');
+        } else {
+            console.error('Button elements not found');
         }
     }
+
+    hideButtonLoader() {
+        if (!this.isLoading) return;
+        
+        console.log('Hiding button loader');
+        this.isLoading = false;
+        
+        const enterButton = document.getElementById('enter-button');
+        const buttonText = enterButton.querySelector('.button-text');
+        const arrow = enterButton.querySelector('.arrow');
+        const buttonLoader = document.getElementById('button-loader');
+        
+        if (enterButton && buttonText && arrow && buttonLoader) {
+            // Show text and arrow
+            buttonText.style.display = 'inline';
+            arrow.style.display = 'inline';
+            
+            // Hide loader
+            buttonLoader.style.display = 'none';
+            
+            // Enable button
+            enterButton.style.pointerEvents = 'auto';
+            enterButton.style.opacity = '1';
+            
+            console.log('Button loader deactivated');
+        }
+    }
+
 
     preloadDashboard() {
         // Preload the dashboard page for faster navigation

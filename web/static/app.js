@@ -15,6 +15,32 @@ class MotorsportsAnalytics {
             averageResponseTime: 0
         };
         
+        // Animated placeholder system
+        this.placeholders = [
+            "Analyze driver performance trends...",
+            "Show me the fastest lap times...",
+            "Compare team strategies...",
+            "What's the weather impact on lap times?",
+            "Find the most consistent drivers...",
+            "Analyze tire degradation patterns...",
+            "Show pit stop strategy analysis...",
+            "Compare qualifying vs race performance...",
+            "Analyze fuel consumption patterns...",
+            "Find the best overtaking opportunities..."
+        ];
+        this.currentPlaceholderIndex = 0;
+        this.placeholderInterval = null;
+        this.isInputFocused = false;
+        
+        // Loader system
+        this.loaderTimeout = null;
+        this.isLoading = false;
+        
+        // Floating Dock system
+        this.currentPage = 'dashboard';
+        this.isMobile = window.innerWidth <= 768;
+        
+        
         this.init();
     }
 
@@ -27,6 +53,7 @@ class MotorsportsAnalytics {
         await this.loadDataOverview();
         this.connectWebSocket();
         this.startStatusUpdater();
+        this.initAnimatedPlaceholder();
     }
 
     startStatusUpdater() {
@@ -65,36 +92,35 @@ class MotorsportsAnalytics {
             chatInput.style.height = chatInput.scrollHeight + 'px';
         });
 
-        // Data sources sidebar toggle
-        const dataSourcesToggle = document.getElementById('data-sources-toggle');
-        const dataSourcesSidebar = document.getElementById('data-sources-sidebar');
-        const closeDataSources = document.getElementById('close-data-sources');
-        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        // Animated placeholder events
+        chatInput.addEventListener('focus', () => {
+            this.isInputFocused = true;
+            this.stopPlaceholderAnimation();
+        });
 
-        if (dataSourcesToggle) {
-            dataSourcesToggle.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.toggleDataSourcesSidebar();
-            });
-        }
-
-        if (closeDataSources) {
-            closeDataSources.addEventListener('click', () => {
-                this.closeDataSourcesSidebar();
-            });
-        }
-
-        if (sidebarOverlay) {
-            sidebarOverlay.addEventListener('click', () => {
-                this.closeDataSourcesSidebar();
-            });
-        }
-
-        // Close sidebar on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && dataSourcesSidebar.classList.contains('open')) {
-                this.closeDataSourcesSidebar();
+        chatInput.addEventListener('blur', () => {
+            this.isInputFocused = false;
+            if (!chatInput.value.trim()) {
+                this.startPlaceholderAnimation();
             }
+        });
+
+        chatInput.addEventListener('input', () => {
+            if (chatInput.value.trim()) {
+                this.stopPlaceholderAnimation();
+            } else if (!this.isInputFocused) {
+                this.startPlaceholderAnimation();
+            }
+        });
+
+
+
+        // Floating Dock event listeners
+        this.setupFloatingDock();
+        
+        // Handle window resize for dock
+        window.addEventListener('resize', () => {
+            this.handleDockResize();
         });
     }
 
@@ -315,6 +341,9 @@ class MotorsportsAnalytics {
         chatInput.value = '';
         chatInput.style.height = 'auto';
         
+        // Restart placeholder animation
+        this.startPlaceholderAnimation();
+        
         // Show typing indicator
         this.showTypingIndicator();
         
@@ -528,6 +557,230 @@ class MotorsportsAnalytics {
         overlay.classList.remove('active');
         document.body.style.overflow = '';
     }
+
+    initAnimatedPlaceholder() {
+        const placeholderText = document.getElementById('placeholder-text');
+        if (placeholderText) {
+            this.startPlaceholderAnimation();
+        }
+    }
+
+    startPlaceholderAnimation() {
+        if (this.placeholderInterval) {
+            clearInterval(this.placeholderInterval);
+        }
+
+        const placeholderText = document.getElementById('placeholder-text');
+        if (!placeholderText) return;
+
+        // Show current placeholder immediately
+        this.showPlaceholder();
+
+        // Start cycling through placeholders
+        this.placeholderInterval = setInterval(() => {
+            if (!this.isInputFocused && !document.getElementById('chat-input').value.trim()) {
+                this.cyclePlaceholder();
+            }
+        }, 3000); // Change every 3 seconds
+    }
+
+    stopPlaceholderAnimation() {
+        if (this.placeholderInterval) {
+            clearInterval(this.placeholderInterval);
+            this.placeholderInterval = null;
+        }
+        
+        const placeholderText = document.getElementById('placeholder-text');
+        if (placeholderText) {
+            placeholderText.style.opacity = '0';
+        }
+    }
+
+    showPlaceholder() {
+        const placeholderText = document.getElementById('placeholder-text');
+        if (!placeholderText) return;
+
+        placeholderText.textContent = this.placeholders[this.currentPlaceholderIndex];
+        placeholderText.classList.remove('fade-out');
+        placeholderText.classList.add('fade-in', 'visible');
+    }
+
+    cyclePlaceholder() {
+        const placeholderText = document.getElementById('placeholder-text');
+        if (!placeholderText) return;
+
+        // Fade out current placeholder
+        placeholderText.classList.remove('fade-in');
+        placeholderText.classList.add('fade-out');
+
+        setTimeout(() => {
+            // Move to next placeholder
+            this.currentPlaceholderIndex = (this.currentPlaceholderIndex + 1) % this.placeholders.length;
+            placeholderText.textContent = this.placeholders[this.currentPlaceholderIndex];
+            
+            // Fade in new placeholder
+            placeholderText.classList.remove('fade-out');
+            placeholderText.classList.add('fade-in');
+        }, 300); // Wait for fade out to complete
+    }
+
+    showLoader(text = 'Loading...') {
+        if (this.isLoading) return;
+        
+        this.isLoading = true;
+        const loaderOverlay = document.getElementById('loader-overlay');
+        const loaderText = loaderOverlay.querySelector('.loader-text');
+        
+        if (loaderText) {
+            loaderText.textContent = text;
+        }
+        
+        loaderOverlay.classList.add('active');
+        
+        // Auto hide after 3 seconds if not manually hidden
+        this.loaderTimeout = setTimeout(() => {
+            this.hideLoader();
+        }, 3000);
+    }
+
+    hideLoader() {
+        if (!this.isLoading) return;
+        
+        this.isLoading = false;
+        const loaderOverlay = document.getElementById('loader-overlay');
+        
+        loaderOverlay.classList.remove('active');
+        
+        if (this.loaderTimeout) {
+            clearTimeout(this.loaderTimeout);
+            this.loaderTimeout = null;
+        }
+    }
+
+    showDashboardLoader() {
+        this.showLoader('Loading Dashboard');
+        
+        // Simulate dashboard loading
+        setTimeout(() => {
+            this.hideLoader();
+            console.log('Dashboard loaded successfully');
+        }, 2000);
+    }
+
+    setupFloatingDock() {
+        const dockItems = document.querySelectorAll('.dock-item');
+        const floatingDock = document.getElementById('floating-dock');
+        
+        // Add mobile class if needed
+        if (this.isMobile) {
+            floatingDock.classList.add('mobile');
+        }
+
+        dockItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleDockItemClick(item);
+            });
+
+            // Add hover animations
+            item.addEventListener('mouseenter', () => {
+                this.animateDockItem(item, 'enter');
+            });
+
+            item.addEventListener('mouseleave', () => {
+                this.animateDockItem(item, 'leave');
+            });
+        });
+    }
+
+    handleDockItemClick(item) {
+        const page = item.dataset.page;
+        const href = item.dataset.href;
+        
+        // Remove active class from all items
+        document.querySelectorAll('.dock-item').forEach(dockItem => {
+            dockItem.classList.remove('active');
+        });
+        
+        // Add active class to clicked item
+        item.classList.add('active');
+        this.currentPage = page;
+        
+        // Add bounce animation
+        item.classList.add('animate');
+        setTimeout(() => {
+            item.classList.remove('animate');
+        }, 600);
+        
+        // Handle specific actions
+        if (page === 'data-sources') {
+            // Navigate to data sources page
+            this.showLoader('Loading Data Sources');
+            setTimeout(() => {
+                window.location.href = 'data-sources.html';
+            }, 1500);
+        } else if (page === 'export') {
+            this.handleExport();
+        } else if (page === 'new-analysis') {
+            this.handleNewAnalysis();
+        } else if (page === 'dashboard') {
+            // Dashboard is already loaded, no loader needed
+        } else if (href && href !== '#') {
+            // Special case: Home navigation without loader
+            if (page === 'home') {
+                window.location.href = href;
+            } else {
+                // Show loader for other navigation
+                this.showLoader(`Loading ${page.charAt(0).toUpperCase() + page.slice(1)}`);
+                setTimeout(() => {
+                    window.location.href = href;
+                }, 1500);
+            }
+        }
+    }
+
+    animateDockItem(item, action) {
+        if (action === 'enter') {
+            // Add subtle glow effect
+            item.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.1)';
+        } else if (action === 'leave') {
+            // Remove glow effect
+            item.style.boxShadow = 'none';
+        }
+    }
+
+    handleExport() {
+        // Export functionality
+        this.showLoader('Exporting Data...');
+        setTimeout(() => {
+            this.hideLoader();
+            console.log('Export completed');
+        }, 2000);
+    }
+
+    handleNewAnalysis() {
+        // New analysis functionality
+        this.showLoader('Preparing Analysis...');
+        setTimeout(() => {
+            this.hideLoader();
+            console.log('New Analysis completed');
+        }, 2000);
+    }
+
+    handleDockResize() {
+        const wasMobile = this.isMobile;
+        this.isMobile = window.innerWidth <= 768;
+        const floatingDock = document.getElementById('floating-dock');
+        
+        if (wasMobile !== this.isMobile) {
+            if (this.isMobile) {
+                floatingDock.classList.add('mobile');
+            } else {
+                floatingDock.classList.remove('mobile');
+            }
+        }
+    }
+
 }
 
 // Add typing animation CSS
