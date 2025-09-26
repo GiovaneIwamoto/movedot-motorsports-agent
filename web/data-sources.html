@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arquivos CSV - MoveDot Motorsports Analytics</title>
+    <title>Datasets - MoveDot Motorsports Analytics</title>
     <link rel="stylesheet" href="static/styles.css">
     <link rel="stylesheet" href="static/effects.css">
     <link rel="stylesheet" href="static/framer-components.css">
@@ -13,20 +13,27 @@
 <body>
     <div id="app">
         <!-- Main Content -->
-        <main class="main-content csv-files-main">
-            <!-- CSV Files Content -->
-            <section class="csv-files-content">
-                <!-- Ultra Minimalist Header -->
-                <div class="page-header-ultra">
-                    <h1>Arquivos CSV</h1>
-                    <span class="file-count" id="file-count">7 arquivos</span>
+        <main class="datasets-main">
+            <!-- Datasets Card -->
+            <div class="datasets-card">
+                <!-- Card Header -->
+                <div class="card-header">
+                    <h1>Datasets</h1>
+                    <div class="header-controls">
+                        <span class="dataset-count" id="dataset-count">Loading...</span>
+                        <button class="refresh-btn" onclick="refreshDatasets()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
                 </div>
                 
-                <!-- CSV Files List -->
-                <div class="csv-files-list" id="csv-files-list">
-                    <!-- Files will be loaded here -->
+                <!-- Scrollable Content -->
+                <div class="card-content">
+                    <div class="datasets-list" id="all-datasets">
+                        <!-- All datasets will be loaded here -->
+                    </div>
                 </div>
-            </section>
+            </div>
         </main>
 
         <!-- Floating Dock -->
@@ -77,34 +84,34 @@
 
     <script src="static/app.js"></script>
     <script>
-        // Ultra Minimalist CSV Files Page
-        class CSVFilesManager {
+        // Simple Datasets Manager
+        class DatasetsManager {
             constructor() {
-                this.csvFiles = [];
+                this.datasets = [];
                 this.init();
             }
             
             async init() {
-                await this.loadCSVFiles();
-                this.renderFiles();
+                await this.loadDatasets();
+                this.renderDatasets();
             }
             
-            async loadCSVFiles() {
+            async loadDatasets() {
                 try {
                     const response = await fetch('/api/data/overview');
                     const data = await response.json();
                     
                     // Transform API data to our format
-                    this.csvFiles = data.available_datasets.map(file => ({
+                    this.datasets = data.available_datasets.map(file => ({
                         name: file.name,
                         size: this.formatFileSize(file.size),
-                        source: file.source
+                        source: file.source || 'OpenF1'
                     }));
                     
                 } catch (error) {
-                    console.error('Error loading CSV files:', error);
-                    // Fallback to hardcoded data from csv_memory.json
-                    this.csvFiles = [
+                    console.error('Error loading datasets:', error);
+                    // Fallback to hardcoded data
+                    this.datasets = [
                         { name: 'openf1_meetings_year_2023.csv', size: '3.7 KB', source: 'OpenF1' },
                         { name: 'openf1_sessions_country_name_Monaco_year_2023.csv', size: '827 B', source: 'OpenF1' },
                         { name: 'openf1_session_result_session_key_9094.csv', size: '1.1 KB', source: 'OpenF1' },
@@ -125,25 +132,45 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
             }
             
-            renderFiles() {
-                const container = document.getElementById('csv-files-list');
-                const countElement = document.getElementById('file-count');
+            renderDatasets() {
+                const countElement = document.getElementById('dataset-count');
+                const container = document.getElementById('all-datasets');
                 
                 // Update count
-                countElement.textContent = `${this.csvFiles.length} arquivos`;
+                countElement.textContent = `${this.datasets.length} datasets`;
                 
-                // Render files
-                container.innerHTML = this.csvFiles.map(file => `
-                    <div class="csv-file-item" onclick="analyzeFile('${file.name}')">
-                        <div class="file-icon">
+                if (this.datasets.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No datasets available</div>';
+                    return;
+                }
+                
+                // Render all datasets in a single list
+                container.innerHTML = this.datasets.map(dataset => `
+                    <div class="dataset-item" onclick="analyzeDataset('${dataset.name}')">
+                        <div class="dataset-icon">
                             <i class="fas fa-file-csv"></i>
                         </div>
-                        <div class="file-details">
-                            <h3>${file.name}</h3>
-                            <p>${file.size} • ${file.source}</p>
+                        <div class="dataset-details">
+                            <h4>${this.getDisplayName(dataset.name)}</h4>
+                            <div class="dataset-meta">
+                                <span class="dataset-size">${dataset.size}</span>
+                                <span class="dataset-source">${dataset.source}</span>
+                            </div>
+                        </div>
+                        <div class="dataset-action">
+                            <i class="fas fa-chevron-right"></i>
                         </div>
                     </div>
                 `).join('');
+            }
+            
+            getDisplayName(fileName) {
+                // Clean up the filename for display
+                return fileName
+                    .replace(/^openf1_/, '')
+                    .replace(/\.csv$/, '')
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w/g, l => l.toUpperCase());
             }
         }
         
@@ -152,16 +179,22 @@
             window.location.href = page;
         }
         
-        // Analyze file function
-        function analyzeFile(fileName) {
-            // Navigate to dashboard with file analysis
-            const message = `Analise o arquivo ${fileName}`;
+        // Analyze dataset function
+        function analyzeDataset(datasetName) {
+            const message = `Analyze the dataset ${datasetName}`;
             window.location.href = `index.html?analyze=${encodeURIComponent(message)}`;
+        }
+        
+        // Refresh datasets function
+        function refreshDatasets() {
+            if (window.datasetsManager) {
+                window.datasetsManager.init();
+            }
         }
         
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            window.csvFilesManager = new CSVFilesManager();
+            window.datasetsManager = new DatasetsManager();
         });
     </script>
 </body>

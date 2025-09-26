@@ -15,35 +15,20 @@
 
         <!-- Main Content -->
         <main class="main-content">
-        <!-- Sidebar -->
-        <aside class="sidebar framer-card framer-hover-lift particles">
-            <div class="sidebar-section">
-                <h3>Recent Analysis</h3>
-                <div class="recent-analysis" id="recent-analysis">
-                    <div class="analysis-item framer-hover-lift">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>Driver Performance</span>
-                    </div>
-                    <div class="analysis-item framer-hover-lift">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Lap Time Analysis</span>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-            <!-- Chat Interface -->
+            <!-- Chat Interface - Main Priority -->
             <section class="chat-section framer-card framer-hover-lift data-flow">
-                <div class="chat-header">
-                    <h2>Analytics Assistant</h2>
-                <div class="chat-status">
-                    <div class="status-indicator online glow-white" id="connection-status"></div>
-                    <span id="connection-text">Online</span>
-                    <div class="query-status" id="query-status" style="display: none;">
+                <div class="chat-header-minimal">
+                    <div class="chat-title">
+                        <h2>Analytics Assistant</h2>
+                        <div class="chat-status-minimal">
+                            <div class="status-indicator online glow-white" id="connection-status"></div>
+                            <span id="connection-text">Online</span>
+                        </div>
+                    </div>
+                    <div class="query-status-minimal" id="query-status" style="display: none;">
                         <div class="status-dot processing" id="status-dot"></div>
                         <span id="status-text">Processing...</span>
                     </div>
-                </div>
                 </div>
                 
                 <div class="chat-container">
@@ -63,25 +48,9 @@
                         </div>
                     </div>
                     
-                    <div class="chat-input-container">
-                        <div class="query-progress" id="query-progress" style="display: none;">
-                            <div class="query-progress-bar"></div>
-                        </div>
-                        <div class="chat-input-wrapper">
-                            <div class="placeholder-container">
-                                <input 
-                                    type="text" 
-                                    id="chat-input" 
-                                    class="chat-input animated-input framer-input"
-                                >
-                                <div class="placeholder-text" id="placeholder-text">
-                                    Ask your question about motorsports data...
-                                </div>
-                            </div>
-                            <button id="send-button" class="send-button">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </div>
+                    <div class="chat-input-container-minimal">
+                        
+                        <!-- Small suggestion chips above input -->
                         <div class="input-suggestions">
                             <button class="suggestion-chip framer-hover-lift" data-query="Analyze driver performance">
                                 <i class="fas fa-user"></i>
@@ -96,92 +65,136 @@
                                 Compare Teams
                             </button>
                         </div>
+                        
+                        <div class="vanish-input-container">
+                            <div class="vanish-input-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="chat-input" 
+                                    class="vanish-input"
+                                    placeholder=""
+                                >
+                                <div class="vanish-placeholder" id="vanish-placeholder">
+                                    <span class="placeholder-text">Ask your question about motorsports data...</span>
+                                </div>
+                            </div>
+                            <button id="send-button" class="send-button">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Dashboard Panel -->
-            <section class="dashboard-section framer-card framer-hover-lift">
-                <div class="dashboard-header">
-                    <h2>Dashboard</h2>
-                    <div class="dashboard-controls">
-                        <button class="btn-icon framer-hover-lift" title="Refresh">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                        <button class="btn-icon framer-hover-lift" title="Settings">
-                            <i class="fas fa-cog"></i>
-                        </button>
+            <!-- Analytics Panel Section -->
+            <section class="analytics-section framer-card framer-hover-lift data-flow" id="analytics-section">
+                <div class="analytics-header">
+                    <h2>Analytics Dashboard</h2>
+                    <div class="analytics-status">
+                        <div class="status-indicator online" id="analytics-connection-status"></div>
+                        <span id="analytics-connection-text">Ready for analysis</span>
                     </div>
                 </div>
                 
-                <div class="dashboard-content">
-                    <!-- Metrics Cards -->
-                    <div class="metrics-grid">
-                        <div class="metric-card framer-hover-lift framer-fade-in">
-                            <div class="metric-icon">
-                                <i class="fas fa-database"></i>
-                            </div>
-                            <div class="metric-content">
-                                <div class="metric-value" id="total-datasets">0</div>
-                                <div class="metric-label">Datasets</div>
-                            </div>
-                        </div>
-                        
-                        <div class="metric-card framer-hover-lift framer-fade-in">
-                            <div class="metric-icon">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div class="metric-content">
-                                <div class="metric-value" id="analysis-count">0</div>
-                                <div class="metric-label">Analyses</div>
-                            </div>
-                        </div>
-                        
-                        <div class="status-indicator-card">
-                            <div class="status-dot-indicator">
-                                <div class="status-dot online" id="update-status"></div>
-                                <span class="status-text" id="last-update">--</span>
-                            </div>
-                        </div>
-                        
-                        <div class="metric-card framer-hover-lift framer-fade-in">
-                            <div class="metric-icon">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="metric-content">
-                                <div class="metric-value" id="success-rate">0%</div>
-                                <div class="metric-label">Success Rate</div>
-                            </div>
-                        </div>
-                        
-                        <div class="metric-card framer-hover-lift framer-fade-in">
-                            <div class="metric-icon">
-                                <i class="fas fa-tachometer-alt"></i>
-                            </div>
-                            <div class="metric-content">
-                                <div class="metric-value" id="avg-response-time">0ms</div>
-                                <div class="metric-label">Avg Response</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Charts Section -->
-                    <div class="charts-section">
-                        <div class="chart-container">
-                            <h3>Recent Visualizations</h3>
-                            <div class="charts-grid" id="charts-grid">
-                                <div class="chart-placeholder">
-                                    <i class="fas fa-chart-area"></i>
-                                    <p>No visualizations yet</p>
-                                    <small>Ask a question to generate charts</small>
+                <div class="tab-header">
+                    <button class="tab-button active" data-tab="dashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </button>
+                    <button class="tab-button" data-tab="recent">
+                        <i class="fas fa-history"></i>
+                        Recent Analysis
+                    </button>
+                    <button class="tab-button" data-tab="charts">
+                        <i class="fas fa-chart-area"></i>
+                        Visualizations
+                    </button>
+                </div>
+                
+                <div class="tab-content">
+                    <!-- Dashboard Tab - Conversational Only -->
+                    <div class="tab-pane active" id="dashboard-tab">
+                        <div class="dashboard-welcome">
+                            <div class="welcome-content">
+                                <h3>Analytics Assistant</h3>
+                                <p>Chat with the motorsports data analysis assistant. Ask questions about driver performance, lap times, team strategies and much more.</p>
+                                <div class="assistant-status">
+                                    <div class="status-indicator online" id="dashboard-connection-status"></div>
+                                    <span id="dashboard-connection-text">Ready for analysis</span>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Recent Analysis Tab -->
+                    <div class="tab-pane" id="recent-tab">
+                        <div class="metrics-grid-compact">
+                            <div class="metric-card-compact framer-hover-lift framer-fade-in">
+                                <div class="metric-icon">
+                                    <i class="fas fa-database"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <div class="metric-value" id="total-datasets">0</div>
+                                    <div class="metric-label">Datasets</div>
+                                </div>
+                            </div>
+                            
+                            <div class="metric-card-compact framer-hover-lift framer-fade-in">
+                                <div class="metric-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <div class="metric-value" id="analysis-count">0</div>
+                                    <div class="metric-label">Analyses</div>
+                                </div>
+                            </div>
+                            
+                            <div class="metric-card-compact framer-hover-lift framer-fade-in">
+                                <div class="metric-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <div class="metric-value" id="success-rate">0%</div>
+                                    <div class="metric-label">Success Rate</div>
+                                </div>
+                            </div>
+                            
+                            <div class="metric-card-compact framer-hover-lift framer-fade-in">
+                                <div class="metric-icon">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <div class="metric-value" id="avg-response-time">0ms</div>
+                                    <div class="metric-label">Avg Response</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="recent-analysis" id="recent-analysis">
+                            <div class="analysis-item framer-hover-lift">
+                                <i class="fas fa-chart-bar"></i>
+                                <span>Driver Performance</span>
+                            </div>
+                            <div class="analysis-item framer-hover-lift">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span>Lap Time Analysis</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts Tab -->
+                    <div class="tab-pane" id="charts-tab">
+                        <div class="charts-grid" id="charts-grid">
+                            <div class="chart-placeholder">
+                                <i class="fas fa-chart-area"></i>
+                                <p>No visualizations yet</p>
+                                <small>Ask a question to generate charts</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
-        </main>
 
+        </main>
 
         <!-- Loader Overlay -->
         <div class="loader-overlay" id="loader-overlay">

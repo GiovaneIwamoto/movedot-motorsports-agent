@@ -39,6 +39,7 @@ class MotorsportsAnalytics {
         // Floating Dock system
         this.currentPage = 'dashboard';
         this.isMobile = window.innerWidth <= 768;
+        this.activeSection = 'chat'; // Track which section is currently active
         
         
         this.init();
@@ -118,10 +119,20 @@ class MotorsportsAnalytics {
         // Floating Dock event listeners
         this.setupFloatingDock();
         
+        // Tab system
+        this.setupTabSystem();
+        
         // Handle window resize for dock
         window.addEventListener('resize', () => {
             this.handleDockResize();
+            this.updateDynamicSpacing();
         });
+        
+        // Initialize dynamic spacing
+        this.updateDynamicSpacing();
+        
+        // Add scroll listener to detect section visibility
+        this.setupScrollListener();
     }
 
     async loadDataOverview() {
@@ -269,13 +280,37 @@ class MotorsportsAnalytics {
     updateConnectionStatus(connected) {
         const statusIndicator = document.getElementById('connection-status');
         const statusText = document.getElementById('connection-text');
+        const dashboardStatusIndicator = document.getElementById('dashboard-connection-status');
+        const dashboardStatusText = document.getElementById('dashboard-connection-text');
+        const analyticsStatusIndicator = document.getElementById('analytics-connection-status');
+        const analyticsStatusText = document.getElementById('analytics-connection-text');
         
         if (connected) {
             statusIndicator.className = 'status-indicator online';
             statusText.textContent = 'Online';
+            
+            if (dashboardStatusIndicator && dashboardStatusText) {
+                dashboardStatusIndicator.className = 'status-indicator online';
+                dashboardStatusText.textContent = 'Ready for analysis';
+            }
+            
+            if (analyticsStatusIndicator && analyticsStatusText) {
+                analyticsStatusIndicator.className = 'status-indicator online';
+                analyticsStatusText.textContent = 'Ready for analysis';
+            }
         } else {
             statusIndicator.className = 'status-indicator';
             statusText.textContent = 'Connecting...';
+            
+            if (dashboardStatusIndicator && dashboardStatusText) {
+                dashboardStatusIndicator.className = 'status-indicator';
+                dashboardStatusText.textContent = 'Connecting...';
+            }
+            
+            if (analyticsStatusIndicator && analyticsStatusText) {
+                analyticsStatusIndicator.className = 'status-indicator';
+                analyticsStatusText.textContent = 'Connecting...';
+            }
         }
     }
 
@@ -283,24 +318,20 @@ class MotorsportsAnalytics {
         const queryStatus = document.getElementById('query-status');
         const statusDot = document.getElementById('status-dot');
         const statusText = document.getElementById('status-text');
-        const progressBar = document.getElementById('query-progress');
         
         if (status === 'processing') {
             queryStatus.style.display = 'flex';
             statusDot.className = 'status-dot processing';
             statusText.textContent = message || 'Processing...';
-            progressBar.style.display = 'block';
         } else if (status === 'success') {
             statusDot.className = 'status-dot success';
             statusText.textContent = message || 'Completed';
-            progressBar.style.display = 'none';
             setTimeout(() => {
                 queryStatus.style.display = 'none';
             }, 2000);
         } else if (status === 'error') {
             statusDot.className = 'status-dot error';
             statusText.textContent = message || 'Error';
-            progressBar.style.display = 'none';
             setTimeout(() => {
                 queryStatus.style.display = 'none';
             }, 3000);
@@ -466,7 +497,7 @@ class MotorsportsAnalytics {
         typingElement.id = 'typing-indicator';
         typingElement.className = 'message agent-message';
         typingElement.innerHTML = `
-            <div class="message-avatar">
+            <div class="message-avatar loading">
                 <i class="fas fa-robot"></i>
             </div>
             <div class="message-content">
@@ -723,8 +754,12 @@ class MotorsportsAnalytics {
             this.handleExport();
         } else if (page === 'new-analysis') {
             this.handleNewAnalysis();
+        } else if (page === 'analytics') {
+            // Scroll to analytics section
+            this.scrollToAnalytics();
         } else if (page === 'dashboard') {
-            // Dashboard is already loaded, no loader needed
+            // Scroll to chat section
+            this.scrollToChat();
         } else if (href && href !== '#') {
             // Special case: Home navigation without loader
             if (page === 'home') {
@@ -777,6 +812,154 @@ class MotorsportsAnalytics {
                 floatingDock.classList.add('mobile');
             } else {
                 floatingDock.classList.remove('mobile');
+            }
+        }
+    }
+
+    setupTabSystem() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.dataset.tab;
+                
+                // Remove active class from all buttons and panes
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabPanes.forEach(pane => pane.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding pane
+                button.classList.add('active');
+                const targetPane = document.getElementById(`${targetTab}-tab`);
+                if (targetPane) {
+                    targetPane.classList.add('active');
+                }
+            });
+        });
+    }
+
+    scrollToAnalytics() {
+        const analyticsSection = document.getElementById('analytics-section');
+        if (analyticsSection) {
+            analyticsSection.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+            // Set active section to analytics
+            this.activeSection = 'analytics';
+            // Update spacing when navigating to analytics
+            setTimeout(() => {
+                this.updateDynamicSpacing();
+                this.updateBlurEffect();
+            }, 300);
+        }
+    }
+
+    scrollToChat() {
+        // Scroll to the very top of the page
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+        // Set active section to chat
+        this.activeSection = 'chat';
+        this.updateDynamicSpacing();
+        this.updateBlurEffect();
+    }
+
+    updateDynamicSpacing() {
+        const viewportHeight = window.innerHeight;
+        const dockHeight = 80; // Approximate dock height
+        const headerHeight = 80; // Approximate header height
+        const availableHeight = viewportHeight - headerHeight - dockHeight;
+        
+        // Calculate dynamic spacing based on active section and viewport height
+        let spacing;
+        let bottomSpacing;
+        
+        if (this.activeSection === 'chat') {
+            // When viewing chat - dock pushes analytics down
+            if (viewportHeight < 800) {
+                spacing = '2rem';
+                bottomSpacing = '6rem'; // More space for dock
+            } else if (viewportHeight < 1000) {
+                spacing = '3rem';
+                bottomSpacing = '7rem';
+            } else {
+                spacing = '4rem';
+                bottomSpacing = '8rem';
+            }
+        } else {
+            // When viewing analytics - cards closer together
+            if (viewportHeight < 800) {
+                spacing = '1rem';
+                bottomSpacing = '4rem';
+            } else if (viewportHeight < 1000) {
+                spacing = '1.5rem';
+                bottomSpacing = '5rem';
+            } else {
+                spacing = '2rem';
+                bottomSpacing = '6rem';
+            }
+        }
+        
+        // Apply dynamic spacing via CSS custom properties
+        document.documentElement.style.setProperty('--dynamic-spacing', spacing);
+        document.documentElement.style.setProperty('--dynamic-spacing-bottom', bottomSpacing);
+        
+        // Update chat section height dynamically
+        const chatSection = document.querySelector('.chat-section');
+        if (chatSection) {
+            const chatHeight = Math.min(availableHeight * 0.7, 750); // Max 70% of available height, increased to 750px
+            chatSection.style.height = `${chatHeight}px`;
+        }
+    }
+
+    setupScrollListener() {
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                this.detectActiveSection();
+            }, 100);
+        });
+    }
+
+    detectActiveSection() {
+        const analyticsSection = document.getElementById('analytics-section');
+        const chatSection = document.querySelector('.chat-section');
+        
+        if (analyticsSection && chatSection) {
+            const analyticsRect = analyticsSection.getBoundingClientRect();
+            const chatRect = chatSection.getBoundingClientRect();
+            
+            // If analytics section is in view and chat is not
+            if (analyticsRect.top < window.innerHeight * 0.5 && chatRect.bottom < window.innerHeight * 0.3) {
+                if (this.activeSection !== 'analytics') {
+                    this.activeSection = 'analytics';
+                    this.updateDynamicSpacing();
+                    this.updateBlurEffect();
+                }
+            } else if (chatRect.top < window.innerHeight * 0.5) {
+                if (this.activeSection !== 'chat') {
+                    this.activeSection = 'chat';
+                    this.updateDynamicSpacing();
+                    this.updateBlurEffect();
+                }
+            }
+        }
+    }
+
+    updateBlurEffect() {
+        const analyticsSection = document.getElementById('analytics-section');
+        
+        if (analyticsSection) {
+            if (this.activeSection === 'chat') {
+                // Add blur effect when viewing chat
+                analyticsSection.classList.add('blurred');
+            } else {
+                // Remove blur effect when viewing analytics
+                analyticsSection.classList.remove('blurred');
             }
         }
     }

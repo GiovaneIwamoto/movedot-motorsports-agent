@@ -14,10 +14,7 @@
 
 /* Removed framer card top border effect */
 
-.framer-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-xl);
-}
+/* Removed framer card hover animation */
 
 /* Framer Button Styles */
 .framer-btn {
@@ -187,10 +184,7 @@
     transition: var(--transition-normal);
 }
 
-.framer-hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-xl);
-}
+/* Removed framer hover lift animation */
 
 .framer-hover-glow {
     transition: var(--transition-normal);
