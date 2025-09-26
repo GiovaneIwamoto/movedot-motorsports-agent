@@ -87,6 +87,7 @@ Examples:
   python main.py                                    # Interactive mode
   python main.py -q "What data do I have available?" # Single query
   python main.py -q "Analyze driver performance"    # Single query
+  python main.py --web                              # Start web interface
         """
     )
     
@@ -95,6 +96,11 @@ Examples:
         help="Single query to process (exits after processing)"
     )
     
+    parser.add_argument(
+        "--web",
+        action="store_true",
+        help="Start web interface server"
+    )
     
     parser.add_argument(
         "-v", "--verbose",
@@ -117,7 +123,13 @@ Examples:
         sys.exit(1)
     
     # Run appropriate mode
-    if args.query:
+    if args.web:
+        print("Starting web interface...")
+        print("Web interface will be available at: http://localhost:8000")
+        print("Press Ctrl+C to stop the server")
+        import subprocess
+        subprocess.run([sys.executable, "web_server.py"])
+    elif args.query:
         single_query_mode(args.query)
     else:
         interactive_mode()

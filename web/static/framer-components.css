@@ -1,0 +1,319 @@
+/* Minimalist Dark Framer-Style Components for MoveDot Motorsports Analytics */
+
+/* Modern Card Components */
+.framer-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Removed framer card top border effect */
+
+.framer-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+/* Framer Button Styles */
+.framer-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+    font-size: 0.875rem;
+}
+
+.framer-btn-primary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+/* Removed button shimmer effect */
+
+.framer-btn-primary:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.framer-btn-secondary {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.framer-btn-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Framer Input Styles */
+.framer-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: var(--transition-normal);
+    outline: none;
+}
+
+.framer-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.framer-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Framer Badge Styles */
+.framer-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: var(--transition-normal);
+}
+
+.framer-badge-primary {
+    background: oklch(0.6500 0.2500 15.0000 / 0.1);
+    color: var(--primary);
+    border: 1px solid oklch(0.6500 0.2500 15.0000 / 0.2);
+}
+
+.framer-badge-success {
+    background: oklch(0.6500 0.2500 15.0000 / 0.1);
+    color: var(--primary);
+    border: 1px solid oklch(0.6500 0.2500 15.0000 / 0.2);
+}
+
+.framer-badge-warning {
+    background: oklch(0.6500 0.2500 15.0000 / 0.1);
+    color: var(--primary);
+    border: 1px solid oklch(0.6500 0.2500 15.0000 / 0.2);
+}
+
+/* Framer Status Indicators */
+.framer-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: var(--transition-normal);
+}
+
+.framer-status-online {
+    background: oklch(0.6500 0.2500 15.0000 / 0.1);
+    color: var(--primary);
+    border: 1px solid oklch(0.6500 0.2500 15.0000 / 0.2);
+}
+
+.framer-status-processing {
+    background: oklch(0.6500 0.2500 15.0000 / 0.1);
+    color: var(--primary);
+    border: 1px solid oklch(0.6500 0.2500 15.0000 / 0.2);
+}
+
+.framer-status-error {
+    background: oklch(0.6500 0.2500 15.0000 / 0.1);
+    color: var(--destructive);
+    border: 1px solid oklch(0.6500 0.2500 15.0000 / 0.2);
+}
+
+/* Framer Progress Bar */
+.framer-progress {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    position: relative;
+}
+
+.framer-progress-bar {
+    height: 100%;
+    background: var(--gradient-framer);
+    border-radius: var(--radius-full);
+    position: relative;
+    animation: framer-progress 2s infinite;
+}
+
+/* Removed progress bar shimmer effect */
+
+@keyframes framer-progress {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}
+
+/* Framer Glass Effect */
+.framer-glass {
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Framer Hover Effects */
+.framer-hover-lift {
+    transition: var(--transition-normal);
+}
+
+.framer-hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.framer-hover-glow {
+    transition: var(--transition-normal);
+}
+
+.framer-hover-glow:hover {
+    box-shadow: var(--shadow-glow);
+}
+
+/* Framer Animation Classes */
+.framer-fade-in {
+    animation: framer-fade-in 0.5s ease-out;
+}
+
+.framer-slide-up {
+    animation: framer-slide-up 0.5s ease-out;
+}
+
+.framer-scale-in {
+    animation: framer-scale-in 0.3s ease-out;
+}
+
+@keyframes framer-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes framer-slide-up {
+    from { 
+        opacity: 0; 
+        transform: translateY(20px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+@keyframes framer-scale-in {
+    from { 
+        opacity: 0; 
+        transform: scale(0.9); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+}
+
+/* Framer Grid System */
+.framer-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.framer-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.framer-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.framer-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+    .framer-grid-2,
+    .framer-grid-3,
+    .framer-grid-4 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Framer Typography */
+.framer-heading {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 1rem;
+}
+
+.framer-subheading {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+}
+
+.framer-text {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.framer-caption {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+/* Framer Spacing Utilities */
+.framer-mt-1 { margin-top: 0.25rem; }
+.framer-mt-2 { margin-top: 0.5rem; }
+.framer-mt-3 { margin-top: 0.75rem; }
+.framer-mt-4 { margin-top: 1rem; }
+.framer-mt-6 { margin-top: 1.5rem; }
+.framer-mt-8 { margin-top: 2rem; }
+
+.framer-mb-1 { margin-bottom: 0.25rem; }
+.framer-mb-2 { margin-bottom: 0.5rem; }
+.framer-mb-3 { margin-bottom: 0.75rem; }
+.framer-mb-4 { margin-bottom: 1rem; }
+.framer-mb-6 { margin-bottom: 1.5rem; }
+.framer-mb-8 { margin-bottom: 2rem; }
+
+.framer-p-1 { padding: 0.25rem; }
+.framer-p-2 { padding: 0.5rem; }
+.framer-p-3 { padding: 0.75rem; }
+.framer-p-4 { padding: 1rem; }
+.framer-p-6 { padding: 1.5rem; }
+.framer-p-8 { padding: 2rem; }

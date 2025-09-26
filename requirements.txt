@@ -21,3 +21,13 @@ pydantic-settings>=2.0.0
 
 # Utilities
 python-dotenv>=1.0.0
+
+# Web framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# CORS and static files
+python-multipart>=0.0.6
+
+# WebSocket support
+websockets>=12.0
