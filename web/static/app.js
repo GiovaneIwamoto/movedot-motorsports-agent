@@ -55,6 +55,14 @@ class MotorsportsAnalytics {
         this.connectWebSocket();
         this.startStatusUpdater();
         this.initAnimatedPlaceholder();
+        this.checkPendingDatasetAnalysis();
+        
+        // Also check on DOM ready as backup
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => this.checkPendingDatasetAnalysis(), 100);
+            });
+        }
     }
 
     startStatusUpdater() {
@@ -62,6 +70,56 @@ class MotorsportsAnalytics {
         setInterval(() => {
             this.updateStatusIndicator();
         }, 1000);
+    }
+
+    checkPendingDatasetAnalysis() {
+        // Check URL parameters first
+        const urlParams = new URLSearchParams(window.location.search);
+        const analyzeParam = urlParams.get('analyze');
+        
+        if (analyzeParam) {
+            console.log('Found analyze parameter in URL:', analyzeParam);
+            this.addTextToChatInput(analyzeParam);
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return;
+        }
+        
+        // Check if there's a pending dataset analysis from data sources page
+        const pendingDataset = localStorage.getItem('pendingDatasetAnalysis');
+        if (pendingDataset) {
+            console.log('Found pending dataset analysis:', pendingDataset);
+            
+            // Clear the pending analysis
+            localStorage.removeItem('pendingDatasetAnalysis');
+            
+            this.addTextToChatInput(`Analyze the dataset ${pendingDataset}`);
+        }
+    }
+    
+    addTextToChatInput(text) {
+        setTimeout(() => {
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                chatInput.value = text;
+                chatInput.focus();
+                // Trigger input event to update UI if needed
+                chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log('Text added to chat input:', chatInput.value);
+            } else {
+                console.error('Chat input not found');
+                // Retry after a bit more time
+                setTimeout(() => {
+                    const retryChatInput = document.getElementById('chat-input');
+                    if (retryChatInput) {
+                        retryChatInput.value = text;
+                        retryChatInput.focus();
+                        retryChatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        console.log('Text added to chat input (retry):', retryChatInput.value);
+                    }
+                }, 1000);
+            }
+        }, 500);
     }
 
     setupEventListeners() {

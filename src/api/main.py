@@ -7,11 +7,13 @@ from typing import List, Optional
 import asyncio
 import json
 import datetime
+import pandas as pd
+from io import StringIO
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel
 
 # Add src to path
@@ -19,7 +21,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from src.agents.analytics_agent import invoke_analytics_agent
-from src.tools.analysis_tools import list_available_data, quick_data_check
+from src.tools.analysis_tools import list_available_data, quick_data_check, load_dataframe_from_csv
+from src.utils import get_csv_memory
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +161,62 @@ async def get_data_overview():
     except Exception as e:
         logger.error(f"Error getting data overview: {e}")
         return DataOverview(available_datasets=[], total_datasets=0)
+
+@app.get("/api/data/preview/{dataset_name}")
+async def get_dataset_preview(dataset_name: str):
+    """Get preview of a specific dataset."""
+    try:
+        # Load the dataframe
+        df = load_dataframe_from_csv(dataset_name)
+        
+        if df is None or df.empty:
+            raise HTTPException(status_code=404, detail="Dataset not found or empty")
+        
+        # Get basic info
+        rows = len(df)
+        columns = len(df.columns)
+        
+        # Calculate approximate size
+        memory_usage = df.memory_usage(deep=True).sum()
+        size_str = f"{memory_usage / 1024:.1f} KB"
+        
+        # Get preview data (first 15 rows)
+        preview_data = df.head(15).to_dict('records')
+        
+        return {
+            "rows": rows,
+            "columns": columns,
+            "size": size_str,
+            "preview": preview_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting dataset preview for {dataset_name}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error loading dataset: {str(e)}")
+
+@app.get("/api/data/download/{dataset_name}")
+async def download_dataset(dataset_name: str):
+    """Download a specific dataset as CSV."""
+    try:
+        # Load the dataframe
+        df = load_dataframe_from_csv(dataset_name)
+        
+        if df is None or df.empty:
+            raise HTTPException(status_code=404, detail="Dataset not found or empty")
+        
+        # Convert to CSV
+        csv_content = df.to_csv(index=False)
+        
+        # Return as downloadable file
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={dataset_name}"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error downloading dataset {dataset_name}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error downloading dataset: {str(e)}")
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_with_agent(request: ChatMessage):

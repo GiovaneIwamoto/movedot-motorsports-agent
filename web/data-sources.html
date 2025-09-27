@@ -192,8 +192,295 @@
         
         // Analyze dataset function
         function analyzeDataset(datasetName) {
-            const message = `Show me the dataframe for ${datasetName}`;
-            window.location.href = `index.html?analyze=${encodeURIComponent(message)}`;
+            showDatasetVisualization(datasetName);
+        }
+        
+        // Show dataset visualization function
+        function showDatasetVisualization(datasetName) {
+            // Create modal overlay
+            const modalOverlay = document.createElement('div');
+            modalOverlay.className = 'dataset-modal-overlay';
+            modalOverlay.innerHTML = `
+                <div class="dataset-modal">
+                    <div class="modal-header">
+                        <div class="dataset-title-container">
+                            <h2 id="dataset-title">Dataset Preview</h2>
+                            <span id="dataset-original-name" class="dataset-original-name">${datasetName}</span>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn-minimal" onclick="analyzeDatasetInChat('${datasetName}')">
+                                <i class="fas fa-comments"></i>
+                                Analyze
+                            </button>
+                            <button class="btn-secondary" onclick="downloadDataset('${datasetName}')">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </button>
+                            <button class="close-modal" onclick="closeDatasetVisualization()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-content">
+                        <div class="loading-dataset">
+                            <div class="loader-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <p>Loading dataset...</p>
+                        </div>
+                        <div class="dataset-preview" style="display: none;">
+                            <div class="dataset-info-minimal">
+                                <span class="dataset-stats">
+                                    <span id="dataset-rows">-</span> rows • 
+                                    <span id="dataset-columns">-</span> cols • 
+                                    <span id="dataset-size">-</span>
+                                </span>
+                            </div>
+                            <div class="dataset-table-container">
+                                <table class="dataset-table" id="dataset-table">
+                                    <!-- Table content will be populated here -->
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modalOverlay);
+            
+            // Close modal when clicking outside
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    closeDatasetVisualization();
+                }
+            });
+            
+            // Close modal with Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeDatasetVisualization();
+                }
+            });
+            
+            // Load dataset data
+            loadDatasetData(datasetName);
+            
+            // Format dataset title
+            formatDatasetTitle(datasetName);
+            
+            // Setup scrollbar behavior
+            setupScrollbarBehavior(modalOverlay);
+        }
+        
+        // Format dataset title function
+        function formatDatasetTitle(datasetName) {
+            const titleElement = document.getElementById('dataset-title');
+            const originalNameElement = document.getElementById('dataset-original-name');
+            
+            if (titleElement && originalNameElement) {
+                // Format the dataset name to be more readable
+                let formattedName = datasetName
+                    .replace(/\.csv$/, '') // Remove .csv extension
+                    .replace(/_/g, ' ') // Replace underscores with spaces
+                    .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize first letter of each word
+                    .replace(/\bopenf1\b/g, 'OpenF1') // Special case for OpenF1
+                    .replace(/\bapi\b/g, 'API') // Special case for API
+                    .replace(/\bid\b/g, 'ID') // Special case for ID
+                    .replace(/\burl\b/g, 'URL'); // Special case for URL
+                
+                titleElement.textContent = formattedName;
+                originalNameElement.textContent = datasetName;
+            }
+        }
+        
+        // Setup scrollbar behavior function
+        function setupScrollbarBehavior(modalElement) {
+            const tableContainer = modalElement.querySelector('.dataset-table-container');
+            if (!tableContainer) return;
+            
+            let scrollTimeout;
+            
+            // Show scrollbars on interaction
+            function showScrollbars() {
+                tableContainer.style.scrollbarColor = '#6b7280 transparent';
+                tableContainer.style.setProperty('--scrollbar-thumb-bg', '#6b7280');
+            }
+            
+            // Hide scrollbars after delay
+            function hideScrollbars() {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    tableContainer.style.scrollbarColor = 'transparent transparent';
+                    tableContainer.style.setProperty('--scrollbar-thumb-bg', 'transparent');
+                }, 1000);
+            }
+            
+            // Event listeners for scrollbar visibility
+            tableContainer.addEventListener('mouseenter', showScrollbars);
+            tableContainer.addEventListener('mouseleave', hideScrollbars);
+            tableContainer.addEventListener('scroll', () => {
+                showScrollbars();
+                hideScrollbars();
+            });
+            tableContainer.addEventListener('focus', showScrollbars);
+            tableContainer.addEventListener('blur', hideScrollbars);
+            
+            // Initial state - hidden
+            hideScrollbars();
+        }
+        
+        // Load dataset data function
+        async function loadDatasetData(datasetName) {
+            try {
+                const response = await fetch(`/api/data/preview/${encodeURIComponent(datasetName)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                // Hide loading, show preview
+                document.querySelector('.loading-dataset').style.display = 'none';
+                const preview = document.querySelector('.dataset-preview');
+                preview.style.display = 'block';
+                
+                // Update dataset info
+                document.getElementById('dataset-rows').textContent = data.rows || '-';
+                document.getElementById('dataset-columns').textContent = data.columns || '-';
+                document.getElementById('dataset-size').textContent = data.size || '-';
+                
+                // Populate table with pandas DataFrame data
+                if (data.data && Array.isArray(data.data)) {
+                    populateDatasetTable(data.data);
+                } else if (data.preview && Array.isArray(data.preview)) {
+                    populateDatasetTable(data.preview);
+                } else {
+                    throw new Error('No valid data found in response');
+                }
+                
+            } catch (error) {
+                console.error('Error loading dataset:', error);
+                document.querySelector('.loading-dataset').innerHTML = `
+                    <div class="error-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <p>Error loading dataset: ${error.message}</p>
+                    <button class="btn-secondary" onclick="loadDatasetData('${datasetName}')" style="margin-top: 1rem;">
+                        <i class="fas fa-redo"></i>
+                        Try Again
+                    </button>
+                `;
+            }
+        }
+        
+        // Populate dataset table
+        function populateDatasetTable(data) {
+            const table = document.getElementById('dataset-table');
+            table.innerHTML = ''; // Clear existing content
+            
+            if (!data || data.length === 0) {
+                table.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 2rem; color: var(--text-muted);">No data available</td></tr>';
+                return;
+            }
+            
+            // Get headers from first row
+            const headers = Object.keys(data[0]);
+            if (headers.length === 0) {
+                table.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 2rem; color: var(--text-muted);">No columns found</td></tr>';
+                return;
+            }
+            
+            // Create header row
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                th.title = header; // Tooltip for long column names
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+            
+            // Create data rows (limit to 15 rows for preview)
+            const maxRows = Math.min(15, data.length);
+            for (let i = 0; i < maxRows; i++) {
+                const row = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    const value = data[i][header];
+                    
+                    // Handle different data types
+                    if (value === null || value === undefined) {
+                        td.textContent = '';
+                        td.style.color = 'var(--text-muted)';
+                        td.style.fontStyle = 'italic';
+                    } else if (typeof value === 'number') {
+                        // Format numbers nicely
+                        if (Number.isInteger(value)) {
+                            td.textContent = value.toLocaleString();
+                        } else {
+                            td.textContent = value.toFixed(4);
+                        }
+                    } else {
+                        // Convert to string and truncate if too long
+                        const stringValue = String(value);
+                        if (stringValue.length > 50) {
+                            td.textContent = stringValue.substring(0, 47) + '...';
+                            td.title = stringValue; // Show full value on hover
+                        } else {
+                            td.textContent = stringValue;
+                        }
+                    }
+                    
+                    row.appendChild(td);
+                });
+                table.appendChild(row);
+            }
+            
+            // Add "more rows" indicator if needed
+            if (data.length > maxRows) {
+                const moreRow = document.createElement('tr');
+                const moreCell = document.createElement('td');
+                moreCell.colSpan = headers.length;
+                moreCell.textContent = `... and ${data.length - maxRows} more rows`;
+                moreCell.style.textAlign = 'center';
+                moreCell.style.fontStyle = 'italic';
+                moreCell.style.color = 'var(--text-muted)';
+                moreCell.style.padding = '1rem';
+                moreRow.appendChild(moreCell);
+                table.appendChild(moreRow);
+            }
+        }
+        
+        // Close dataset visualization
+        function closeDatasetVisualization() {
+            const modal = document.querySelector('.dataset-modal-overlay');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // Analyze dataset in chat
+        function analyzeDatasetInChat(datasetName) {
+            // Close the modal first
+            closeDatasetVisualization();
+            
+            // Store the dataset name in localStorage for the chat page to use
+            localStorage.setItem('pendingDatasetAnalysis', datasetName);
+            console.log('Stored dataset in localStorage:', datasetName);
+            
+            // Redirect to chat page with query parameter as backup
+            window.location.href = `index.html?analyze=${encodeURIComponent(`Analyze the dataset ${datasetName}`)}`;
+        }
+        
+        // Download dataset
+        function downloadDataset(datasetName) {
+            const link = document.createElement('a');
+            link.href = `/api/data/download/${encodeURIComponent(datasetName)}`;
+            link.download = datasetName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
         
         // Refresh datasets function
