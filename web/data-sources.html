@@ -99,6 +99,9 @@
             async loadDatasets() {
                 try {
                     const response = await fetch('/api/data/overview');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
                     
                     // Transform API data to our format
@@ -110,17 +113,9 @@
                     
                 } catch (error) {
                     console.error('Error loading datasets:', error);
-                    // Fallback to hardcoded data
-                    this.datasets = [
-                        { name: 'openf1_meetings_year_2023.csv', size: '3.7 KB', source: 'OpenF1' },
-                        { name: 'openf1_sessions_country_name_Monaco_year_2023.csv', size: '827 B', source: 'OpenF1' },
-                        { name: 'openf1_session_result_session_key_9094.csv', size: '1.1 KB', source: 'OpenF1' },
-                        { name: 'openf1_drivers_session_key_9094.csv', size: '4.1 KB', source: 'OpenF1' },
-                        { name: 'openf1_sessions_country_name_Brazil_year_2023.csv', size: '836 B', source: 'OpenF1' },
-                        { name: 'openf1_meetings_country_name_Brazil_year_2023.csv', size: '324 B', source: 'OpenF1' },
-                        { name: 'openf1_laps_driver_number_1_session_key_9204.csv', size: '5.5 KB', source: 'OpenF1' },
-                        { name: 'openf1_laps_driver_number_14_session_key_9204.csv', size: '5.5 KB', source: 'OpenF1' }
-                    ];
+                    // Show error state instead of mock data
+                    this.datasets = [];
+                    this.showError('Failed to load datasets. Please check your connection and try again.');
                 }
             }
             
@@ -172,6 +167,22 @@
                     .replace(/_/g, ' ')
                     .replace(/\b\w/g, l => l.toUpperCase());
             }
+            
+            showError(message) {
+                const container = document.getElementById('all-datasets');
+                container.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h3>Error Loading Data</h3>
+                        <p>${message}</p>
+                        <button class="retry-btn" onclick="refreshDatasets()">
+                            <i class="fas fa-sync-alt"></i> Retry
+                        </button>
+                    </div>
+                `;
+            }
         }
         
         // Navigation function
@@ -181,7 +192,7 @@
         
         // Analyze dataset function
         function analyzeDataset(datasetName) {
-            const message = `Analyze the dataset ${datasetName}`;
+            const message = `Show me the dataframe for ${datasetName}`;
             window.location.href = `index.html?analyze=${encodeURIComponent(message)}`;
         }
         

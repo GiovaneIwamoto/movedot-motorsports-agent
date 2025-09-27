@@ -528,7 +528,7 @@ class MotorsportsAnalytics {
         typingElement.id = 'typing-indicator';
         typingElement.className = 'message agent-message';
         typingElement.innerHTML = `
-            <div class="message-avatar loading">
+            <div class="message-avatar">
                 <i class="fas fa-robot"></i>
             </div>
             <div class="message-content">
@@ -776,11 +776,8 @@ class MotorsportsAnalytics {
         
         // Handle specific actions
         if (page === 'data-sources') {
-            // Navigate to data sources page
-            this.showLoader('Loading Data Sources');
-            setTimeout(() => {
-                window.location.href = 'data-sources.html';
-            }, 1500);
+            // Navigate to data sources page without loader
+            window.location.href = 'data-sources.html';
         } else if (page === 'export') {
             this.handleExport();
         } else if (page === 'new-analysis') {
