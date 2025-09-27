@@ -122,6 +122,42 @@
     box-sizing: border-box;
 }
 
+/* Global Scrollbar Styling */
+html, body {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, calc(0.8 * var(--scrollbar-visible, 0))) transparent;
+    transition: scrollbar-color 0.3s ease;
+}
+
+html:hover, body:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.8) transparent;
+    transition: scrollbar-color 0.3s ease;
+}
+
+/* Webkit scrollbar styling for page */
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+    width: 8px;
+}
+
+html::-webkit-scrollbar-track, body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, calc(0.8 * var(--scrollbar-visible, 0)));
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+html:hover::-webkit-scrollbar-thumb, body:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.8);
+    transition: background 0.3s ease;
+}
+
+html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 1);
+}
+
 body {
     font-family: var(--font-sans);
     background: var(--background);
@@ -639,52 +675,66 @@ body::after {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    /* Hide scrollbar by default */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    /* Custom scrollbar styling - using menu color */
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease 1s;
 }
 
 .chat-messages::-webkit-scrollbar {
-    display: none; /* WebKit */
+    width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 4px;
+    transition: background 0.3s ease 1s;
+}
+
+.chat-messages:hover::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.3);
+    transition: background 0.3s ease;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.5);
 }
 
 /* Show scrollbar when scrolling */
 .chat-messages.scrolling {
-    scrollbar-width: thin; /* Firefox */
-    -ms-overflow-style: auto; /* Internet Explorer 10+ */
-}
-
-.chat-messages.scrolling::-webkit-scrollbar {
-    display: block; /* WebKit */
-    width: 6px;
-}
-
-.chat-messages.scrolling::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-    border-radius: 3px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+    transition: scrollbar-color 0.3s ease;
 }
 
 .chat-messages.scrolling::-webkit-scrollbar-thumb {
-    background: var(--text-muted);
-    border-radius: 3px;
-}
-
-.chat-messages.scrolling::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary);
+    background: rgba(156, 163, 175, 0.3);
+    transition: background 0.3s ease;
 }
 
 /* Compact Messages */
 .message {
     display: flex;
     gap: 0.5rem;
-    align-items: flex-start;
-    margin-bottom: 0.5rem;
+    align-items: flex-end;
+    margin-bottom: 0.8rem;
+    position: relative;
 }
 
 /* Agent messages align to left */
 .agent-message {
     justify-content: flex-start;
 }
+
+.message-avatar {
+    align-self: flex-start;
+    margin-top: 0.3rem;
+}
+
 
 /* User messages align to right */
 .user-message {
@@ -733,23 +783,28 @@ body::after {
 .message-content {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .message-text {
     background: var(--bg-tertiary);
-    padding: 0.5rem 0.8rem;
+    padding: 0.4rem 0.8rem;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
-    line-height: 1.5;
+    line-height: 1.4;
     word-wrap: break-word;
     backdrop-filter: blur(10px);
     position: relative;
     transition: var(--transition-normal);
     font-size: 0.9rem;
     max-width: 50%;
-    min-width: 60px;
+    min-width: auto;
     width: fit-content;
+    display: inline-block;
+    margin-bottom: 0.3rem;
 }
+
 
 .user-message .message-text {
     background: rgba(100, 100, 100, 0.8);
@@ -757,6 +812,7 @@ body::after {
     border-color: rgba(100, 100, 100, 0.3);
     text-align: right;
 }
+
 
 .user-message .message-avatar {
     background: rgba(100, 100, 100, 0.8);
@@ -842,8 +898,9 @@ body::after {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
     transition: all 0.2s ease;
+    min-height: 44px;
 }
 
 .chat-input-wrapper:focus-within {
@@ -858,7 +915,8 @@ body::after {
     outline: none;
     color: var(--text-primary);
     font-size: 0.875rem;
-    padding: 0.5rem 0;
+    padding: 0.75rem 0;
+    line-height: 1.5;
 }
 
 .chat-input::placeholder {
@@ -869,15 +927,18 @@ body::after {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-    padding: 0.5rem;
+    padding: 0.75rem;
     border-radius: var(--radius-md);
     cursor: pointer;
     transition: all 0.2s ease;
-    width: 36px;
-    height: 36px;
+    width: auto;
+    height: auto;
+    min-width: 44px;
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 0.875rem;
 }
 
 .send-button:hover {
@@ -3497,6 +3558,18 @@ body::after {
         min-width: 100px;
         max-width: 150px;
     }
+    
+    /* Mobile chat bubble adjustments */
+    .message-text {
+        max-width: 80%;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.85rem;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+    }
+    
     
     .modal-actions {
         flex-direction: column;

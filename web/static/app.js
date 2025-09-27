@@ -41,6 +41,10 @@ class MotorsportsAnalytics {
         this.isMobile = window.innerWidth <= 768;
         this.activeSection = 'chat'; // Track which section is currently active
         
+        // Scrollbar management
+        this.scrollTimeout = null;
+        this.scrollCooldown = 2000; // 2 seconds
+        
         
         this.init();
     }
@@ -56,6 +60,7 @@ class MotorsportsAnalytics {
         this.startStatusUpdater();
         this.initAnimatedPlaceholder();
         this.checkPendingDatasetAnalysis();
+        this.loadChatHistory();
         
         // Also check on DOM ready as backup
         if (document.readyState === 'loading') {
@@ -63,6 +68,19 @@ class MotorsportsAnalytics {
                 setTimeout(() => this.checkPendingDatasetAnalysis(), 100);
             });
         }
+        
+        // Save chat history before page unload
+        window.addEventListener('beforeunload', () => {
+            this.saveChatHistory();
+        });
+        
+        // Save chat history when navigating away
+        window.addEventListener('pagehide', () => {
+            this.saveChatHistory();
+        });
+        
+        // Setup scrollbar behavior
+        this.setupScrollbarBehavior();
     }
 
     startStatusUpdater() {
@@ -120,6 +138,122 @@ class MotorsportsAnalytics {
                 }, 1000);
             }
         }, 500);
+    }
+
+    saveChatHistory() {
+        const messagesContainer = document.getElementById('chat-messages');
+        if (messagesContainer) {
+            const messages = Array.from(messagesContainer.children).map(messageEl => {
+                return {
+                    innerHTML: messageEl.innerHTML,
+                    className: messageEl.className,
+                    id: messageEl.id
+                };
+            });
+            
+            localStorage.setItem('chatHistory', JSON.stringify(messages));
+            console.log('Chat history saved:', messages.length, 'messages');
+        }
+    }
+
+    loadChatHistory() {
+        const savedHistory = localStorage.getItem('chatHistory');
+        if (savedHistory) {
+            try {
+                const messages = JSON.parse(savedHistory);
+                const messagesContainer = document.getElementById('chat-messages');
+                
+                if (messagesContainer && messages.length > 0) {
+                    // Clear existing messages
+                    messagesContainer.innerHTML = '';
+                    
+                    // Restore messages
+                    messages.forEach(messageData => {
+                        const messageEl = document.createElement('div');
+                        messageEl.innerHTML = messageData.innerHTML;
+                        messageEl.className = messageData.className;
+                        if (messageData.id) {
+                            messageEl.id = messageData.id;
+                        }
+                        messagesContainer.appendChild(messageEl);
+                    });
+                    
+                    // Scroll to bottom
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    console.log('Chat history loaded:', messages.length, 'messages');
+                }
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+                localStorage.removeItem('chatHistory');
+            }
+        }
+    }
+
+    clearChatHistory() {
+        localStorage.removeItem('chatHistory');
+        const messagesContainer = document.getElementById('chat-messages');
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '';
+        }
+        console.log('Chat history cleared');
+    }
+
+    clearChat() {
+        // Clear the chat interface
+        const messagesContainer = document.getElementById('chat-messages');
+        if (messagesContainer) {
+            messagesContainer.innerHTML = '';
+        }
+        
+        // Clear from localStorage
+        this.clearChatHistory();
+        
+        console.log('Chat cleared completely');
+    }
+
+    setupScrollbarBehavior() {
+        // Setup for chat messages scrollbar
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            chatMessages.addEventListener('scroll', () => {
+                this.handleScrollEvent(chatMessages);
+            });
+        }
+        
+        // Setup for page scrollbar
+        window.addEventListener('scroll', () => {
+            this.handlePageScrollEvent();
+        });
+    }
+
+    handleScrollEvent(element) {
+        // Show scrollbar immediately
+        element.classList.add('scrolling');
+        
+        // Clear existing timeout
+        if (this.scrollTimeout) {
+            clearTimeout(this.scrollTimeout);
+        }
+        
+        // Hide scrollbar after cooldown
+        this.scrollTimeout = setTimeout(() => {
+            element.classList.remove('scrolling');
+        }, this.scrollCooldown);
+    }
+
+    handlePageScrollEvent() {
+        // Clear existing timeout
+        if (this.scrollTimeout) {
+            clearTimeout(this.scrollTimeout);
+        }
+        
+        // Show scrollbar immediately by adding hover effect
+        document.body.style.setProperty('--scrollbar-visible', '1');
+        
+        // Hide scrollbar after cooldown
+        this.scrollTimeout = setTimeout(() => {
+            document.body.style.setProperty('--scrollbar-visible', '0');
+        }, this.scrollCooldown);
     }
 
     setupEventListeners() {
@@ -564,6 +698,9 @@ class MotorsportsAnalytics {
         `;
         
         messagesContainer.appendChild(messageElement);
+        
+        // Save chat history after adding message
+        this.saveChatHistory();
         
         // Smooth scroll to bottom with animation
         messagesContainer.scrollTo({
