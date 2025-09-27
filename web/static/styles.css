@@ -593,13 +593,13 @@ body::after {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #10b981; /* Vibrant green */
+    background: #10d731; /* Vibrant green */
     box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
     animation: pulse 2s infinite;
 }
 
 .status-indicator.online {
-    background: #10b981; /* Vibrant green */
+    background: #15e45a; /* Vibrant green */
     box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
     animation: pulse 2s infinite;
 }
@@ -1797,12 +1797,21 @@ body::after {
     overflow: hidden;
 }
 
+/* Force dataset card styling to match chat-section */
+.datasets-main .datasets-card {
+    background: var(--bg-card) !important;
+}
+
+.datasets-main .card-header {
+    background: var(--bg-secondary) !important;
+}
+
 .datasets-card {
     width: 100%;
     max-width: 900px;
     height: calc(80vh - 4rem); /* Reduce height to avoid dock conflict */
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-lg);
     display: flex;
@@ -1825,8 +1834,8 @@ body::after {
     align-items: center;
     justify-content: space-between;
     padding: 1.5rem 2rem;
-    background: var(--secondary);
-    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
     transition: var(--transition-normal);
 }
@@ -1871,7 +1880,11 @@ body::after {
 .refresh-btn:hover {
     background: var(--accent);
     border-color: var(--ring);
+}
+
+.refresh-btn:hover i {
     transform: rotate(180deg);
+    transition: transform 0.3s ease;
 }
 
 /* Scrollable Card Content */
@@ -1893,8 +1906,8 @@ body::after {
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: var(--card) !important;
-    border: 1px solid var(--border);
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     cursor: pointer;
     transition: var(--transition-normal);
@@ -1920,7 +1933,7 @@ body::after {
 }
 
 .dataset-item:hover {
-    background: var(--secondary) !important;
+    background: var(--bg-hover) !important;
     border-color: var(--ring);
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
