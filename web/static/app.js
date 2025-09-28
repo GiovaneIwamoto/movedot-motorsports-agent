@@ -8,6 +8,7 @@ class MotorsportsAnalytics {
         this.analysisCount = 0;
         this.ws = null;
         this.queryStartTime = null;
+        this.isProcessingQuery = false; // Prevent multiple simultaneous queries
         this.queryMetrics = {
             totalQueries: 0,
             successfulQueries: 0,
@@ -36,14 +37,11 @@ class MotorsportsAnalytics {
         this.loaderTimeout = null;
         this.isLoading = false;
         
-        // Floating Dock system
+        // Floating Dock system - Simplified
         this.currentPage = 'dashboard';
         this.isMobile = window.innerWidth <= 768;
-        this.activeSection = 'chat'; // Track which section is currently active
+        this.activeSection = 'dashboard'; // Track which section is currently active
         
-        // Scrollbar management
-        this.scrollTimeout = null;
-        this.scrollCooldown = 2000; // 2 seconds
         
         
         this.init();
@@ -60,7 +58,13 @@ class MotorsportsAnalytics {
         this.startStatusUpdater();
         this.initAnimatedPlaceholder();
         this.checkPendingDatasetAnalysis();
-        this.loadChatHistory();
+        // Don't load chat history automatically - start fresh each time
+        // this.loadChatHistory();
+        
+        // Clear any existing chat history to start fresh
+        this.clearChatHistory();
+        
+        this.checkNavigationContext();
         
         // Also check on DOM ready as backup
         if (document.readyState === 'loading') {
@@ -79,8 +83,6 @@ class MotorsportsAnalytics {
             this.saveChatHistory();
         });
         
-        // Setup scrollbar behavior
-        this.setupScrollbarBehavior();
     }
 
     startStatusUpdater() {
@@ -211,55 +213,60 @@ class MotorsportsAnalytics {
         console.log('Chat cleared completely');
     }
 
-    setupScrollbarBehavior() {
-        // Setup for chat messages scrollbar
-        const chatMessages = document.getElementById('chat-messages');
-        if (chatMessages) {
-            chatMessages.addEventListener('scroll', () => {
-                this.handleScrollEvent(chatMessages);
-            });
+    checkNavigationContext() {
+        // Check if we're on data-sources page
+        const currentPath = window.location.pathname;
+        const urlHash = window.location.hash;
+        
+        if (currentPath.includes('data-sources')) {
+            // If on data-sources page, handle hash navigation
+            if (urlHash === '#prp-editor') {
+                // Stay on data-sources page, just scroll to PRP editor
+                setTimeout(() => {
+                    const prpSection = document.getElementById('prp-editor-section');
+                    if (prpSection) {
+                        prpSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }, 500);
+            } else if (urlHash === '#analytics') {
+                // Stay on data-sources page, just scroll to analytics
+                setTimeout(() => {
+                    const analyticsSection = document.getElementById('analytics-section');
+                    if (analyticsSection) {
+                        analyticsSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }, 500);
+            }
+            // Don't redirect to dashboard if on data-sources page
+            return;
         }
         
-        // Setup for page scrollbar
-        window.addEventListener('scroll', () => {
-            this.handlePageScrollEvent();
-        });
+        // Only handle hash navigation on main dashboard page
+        if (urlHash === '#prp-editor') {
+            setTimeout(() => {
+                this.showPRPEditor();
+            }, 500);
+        } else if (urlHash === '#analytics') {
+            setTimeout(() => {
+                this.scrollToSection('analytics');
+            }, 500);
+        }
     }
 
-    handleScrollEvent(element) {
-        // Show scrollbar immediately
-        element.classList.add('scrolling');
-        
-        // Clear existing timeout
-        if (this.scrollTimeout) {
-            clearTimeout(this.scrollTimeout);
-        }
-        
-        // Hide scrollbar after cooldown
-        this.scrollTimeout = setTimeout(() => {
-            element.classList.remove('scrolling');
-        }, this.scrollCooldown);
-    }
-
-    handlePageScrollEvent() {
-        // Clear existing timeout
-        if (this.scrollTimeout) {
-            clearTimeout(this.scrollTimeout);
-        }
-        
-        // Show scrollbar immediately by adding hover effect
-        document.body.style.setProperty('--scrollbar-visible', '1');
-        
-        // Hide scrollbar after cooldown
-        this.scrollTimeout = setTimeout(() => {
-            document.body.style.setProperty('--scrollbar-visible', '0');
-        }, this.scrollCooldown);
-    }
 
     setupEventListeners() {
         // Chat input
         const chatInput = document.getElementById('chat-input');
         const sendButton = document.getElementById('send-button');
+        
+        if (!chatInput || !sendButton) {
+            console.log('Chat elements not found, skipping chat event listeners');
+            return;
+        }
+        
+        // Store references for later use
+        this.chatInput = chatInput;
+        this.sendButton = sendButton;
         
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -320,14 +327,17 @@ class MotorsportsAnalytics {
             this.updateDynamicSpacing();
         });
         
-        // Initialize dynamic spacing
+        // Initialize magnetic dock system (gentle)
         this.updateDynamicSpacing();
         
-        // Add scroll listener to detect section visibility
+        // Add scroll listener to detect section visibility and magnetic alignment
         this.setupScrollListener();
         
-        // Setup dynamic chat scrollbar
-        this.setupChatScrollbar();
+        // Gentle initial alignment - only after page is fully loaded
+        setTimeout(() => {
+            this.calculateMagneticAlignment();
+        }, 2000); // Reasonable delay
+        
     }
 
     async loadDataOverview() {
@@ -583,6 +593,15 @@ class MotorsportsAnalytics {
         
         if (!message) return;
         
+        // Prevent multiple simultaneous queries
+        if (this.isProcessingQuery) {
+            this.showNotification('Please wait for the current query to complete.', 'warning');
+            return;
+        }
+        
+        // Set processing flag
+        this.isProcessingQuery = true;
+        
         // Start query tracking
         this.queryStartTime = Date.now();
         this.showQueryStatus('processing', 'Sending query...');
@@ -601,6 +620,9 @@ class MotorsportsAnalytics {
         // Show typing indicator
         this.showTypingIndicator();
         
+        // No timeout - let the agent take as long as needed
+        // The typing indicator will be cleared when response arrives
+        
         try {
             // Try WebSocket first, fallback to HTTP
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -614,6 +636,7 @@ class MotorsportsAnalytics {
             }
         } catch (error) {
             console.error('Error sending message:', error);
+            this.isProcessingQuery = false; // Reset processing flag
             this.addMessage('Error sending message. Please try again.', 'agent');
             this.hideTypingIndicator();
             this.showQueryStatus('error', 'Connection error');
@@ -639,12 +662,16 @@ class MotorsportsAnalytics {
             
         } catch (error) {
             console.error('HTTP request failed:', error);
+            this.isProcessingQuery = false; // Reset processing flag
+            this.hideTypingIndicator();
             this.addMessage('Connection error. Please check your internet.', 'agent');
+            this.showQueryStatus('error', 'Connection error');
         }
     }
 
     handleWebSocketMessage(data) {
         if (data.type === 'agent_response') {
+            this.isProcessingQuery = false; // Reset processing flag
             this.hideTypingIndicator();
             this.addMessage(data.response, 'agent');
             this.analysisCount++;
@@ -659,6 +686,7 @@ class MotorsportsAnalytics {
     }
 
     handleChatResponse(data) {
+        this.isProcessingQuery = false; // Reset processing flag
         this.hideTypingIndicator();
         this.addMessage(data.response, 'agent');
         this.analysisCount++;
@@ -928,6 +956,12 @@ class MotorsportsAnalytics {
         const dockItems = document.querySelectorAll('.dock-item');
         const floatingDock = document.getElementById('floating-dock');
         
+        
+        if (!floatingDock) {
+            console.log('No floating dock found, skipping dock setup');
+            return;
+        }
+        
         // Add mobile class if needed
         if (this.isMobile) {
             floatingDock.classList.add('mobile');
@@ -935,6 +969,13 @@ class MotorsportsAnalytics {
 
         dockItems.forEach(item => {
             item.addEventListener('click', (e) => {
+                // Check if the item has an onclick handler (like in data-sources.html)
+                if (item.hasAttribute('onclick')) {
+                    console.log('Item has onclick handler, letting it handle the click');
+                    // Let the onclick handler take precedence
+                    return;
+                }
+                
                 e.preventDefault();
                 this.handleDockItemClick(item);
             });
@@ -954,6 +995,11 @@ class MotorsportsAnalytics {
         const page = item.dataset.page;
         const href = item.dataset.href;
         
+        // Don't do anything if clicking the same active page
+        if (item.classList.contains('active') && this.currentPage === page) {
+            return;
+        }
+        
         // Remove active class from all items
         document.querySelectorAll('.dock-item').forEach(dockItem => {
             dockItem.classList.remove('active');
@@ -969,30 +1015,45 @@ class MotorsportsAnalytics {
             item.classList.remove('animate');
         }, 600);
         
-        // Handle specific actions
-        if (page === 'data-sources') {
-            // Navigate to data sources page without loader
+        // Check current page context
+        const currentPath = window.location.pathname;
+        const isDataSourcesPage = currentPath.includes('data-sources');
+        
+        // Simple navigation logic
+        if (page === 'home' && href && href !== '#') {
+            window.location.href = href;
+        } else if (page === 'data-sources') {
+            // Navigate to data sources page
+            if (!isDataSourcesPage) {
             window.location.href = 'data-sources.html';
-        } else if (page === 'export') {
-            this.handleExport();
-        } else if (page === 'new-analysis') {
-            this.handleNewAnalysis();
-        } else if (page === 'analytics') {
-            // Scroll to analytics section
-            this.scrollToAnalytics();
-        } else if (page === 'dashboard') {
-            // Scroll to chat section
-            this.scrollToChat();
-        } else if (href && href !== '#') {
-            // Special case: Home navigation without loader
-            if (page === 'home') {
-                window.location.href = href;
+            }
+            return;
+        } else if (page === 'prp-editor') {
+            if (isDataSourcesPage) {
+                // Stay on data-sources page, just scroll to PRP editor
+                const prpSection = document.getElementById('prp-editor-section');
+                if (prpSection) {
+                    prpSection.scrollIntoView({ behavior: 'smooth' });
+                }
             } else {
-                // Show loader for other navigation
-                this.showLoader(`Loading ${page.charAt(0).toUpperCase() + page.slice(1)}`);
-                setTimeout(() => {
-                    window.location.href = href;
-                }, 1500);
+            this.showPRPEditor();
+            }
+        } else if (page === 'analytics') {
+            if (isDataSourcesPage) {
+                // Stay on data-sources page, just scroll to analytics
+                const analyticsSection = document.getElementById('analytics-section');
+                if (analyticsSection) {
+                    analyticsSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            } else {
+                this.scrollToSection('analytics');
+            }
+        } else if (page === 'dashboard') {
+            if (isDataSourcesPage) {
+                // Go back to main dashboard page
+                window.location.href = 'index.html';
+            } else {
+                this.scrollToSection('dashboard');
             }
         }
     }
@@ -1007,23 +1068,6 @@ class MotorsportsAnalytics {
         }
     }
 
-    handleExport() {
-        // Export functionality
-        this.showLoader('Exporting Data...');
-        setTimeout(() => {
-            this.hideLoader();
-            console.log('Export completed');
-        }, 2000);
-    }
-
-    handleNewAnalysis() {
-        // New analysis functionality
-        this.showLoader('Preparing Analysis...');
-        setTimeout(() => {
-            this.hideLoader();
-            console.log('New Analysis completed');
-        }, 2000);
-    }
 
     handleDockResize() {
         const wasMobile = this.isMobile;
@@ -1043,6 +1087,11 @@ class MotorsportsAnalytics {
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabPanes = document.querySelectorAll('.tab-pane');
         
+        if (tabButtons.length === 0) {
+            console.log('No tab buttons found, skipping tab system setup');
+            return;
+        }
+        
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const targetTab = button.dataset.tab;
@@ -1061,90 +1110,182 @@ class MotorsportsAnalytics {
         });
     }
 
-    scrollToAnalytics() {
+    scrollToSection(section) {
+        const prpSection = document.getElementById('prp-editor-section');
+        const chatSection = document.querySelector('.chat-section');
         const analyticsSection = document.getElementById('analytics-section');
-        if (analyticsSection) {
-            analyticsSection.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-            // Set active section to analytics
-            this.activeSection = 'analytics';
-            // Update spacing when navigating to analytics
-            setTimeout(() => {
-                this.updateDynamicSpacing();
-                this.updateBlurEffect();
-            }, 300);
-        }
-    }
-
-    scrollToChat() {
-        // Scroll to the very top of the page
+        
+        // Always scroll to top first
         window.scrollTo({
             top: 0,
             behavior: 'smooth'
         });
-        // Set active section to chat
-        this.activeSection = 'chat';
-        this.updateDynamicSpacing();
-        this.updateBlurEffect();
+        
+        // Hide PRP Editor if visible
+        if (prpSection) {
+            prpSection.style.display = 'none';
+        }
+        
+        // Show both chat and analytics sections
+        if (chatSection) {
+            chatSection.style.display = 'block';
+            // Restore chat section state with a small delay to ensure DOM is ready
+            setTimeout(() => {
+                this.restoreChatSection();
+            }, 100);
+        }
+        if (analyticsSection) {
+            analyticsSection.style.display = 'block';
+        }
+        
+        // Navigate to specific section with magnetic alignment
+        if (section === 'analytics') {
+            // Scroll to analytics and trigger magnetic alignment
+            analyticsSection.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+            this.activeSection = 'analytics';
+            
+            // Trigger magnetic alignment after scroll
+            setTimeout(() => {
+                this.alignDockWithCard('analytics');
+            }, 500);
+            
+        } else if (section === 'dashboard') {
+            // Dashboard section (chat is at top)
+            this.activeSection = 'dashboard';
+            
+            // Trigger magnetic alignment after scroll
+            setTimeout(() => {
+                this.alignDockWithCard('chat');
+            }, 500);
+        }
+        
+        // Update effects
+        setTimeout(() => {
+                this.updateBlurEffect();
+            }, 300);
     }
 
     updateDynamicSpacing() {
-        const viewportHeight = window.innerHeight;
-        const dockHeight = 80; // Approximate dock height
-        const headerHeight = 80; // Approximate header height
-        const availableHeight = viewportHeight - headerHeight - dockHeight;
-        
-        // Calculate dynamic spacing based on active section and viewport height
-        let spacing;
-        let bottomSpacing;
-        
-        if (this.activeSection === 'chat') {
-            // When viewing chat - dock pushes analytics down
-            if (viewportHeight < 800) {
-                spacing = '2rem';
-                bottomSpacing = '6rem'; // More space for dock
-            } else if (viewportHeight < 1000) {
-                spacing = '3rem';
-                bottomSpacing = '7rem';
-            } else {
-                spacing = '4rem';
-                bottomSpacing = '8rem';
-            }
-        } else {
-            // When viewing analytics - cards closer together
-            if (viewportHeight < 800) {
-                spacing = '1rem';
-                bottomSpacing = '4rem';
-            } else if (viewportHeight < 1000) {
-                spacing = '1.5rem';
-                bottomSpacing = '5rem';
-            } else {
-                spacing = '2rem';
-                bottomSpacing = '6rem';
-            }
-        }
-        
-        // Apply dynamic spacing via CSS custom properties
-        document.documentElement.style.setProperty('--dynamic-spacing', spacing);
-        document.documentElement.style.setProperty('--dynamic-spacing-bottom', bottomSpacing);
-        
-        // Update chat section height dynamically
+        // Magnetic dock system - calculate optimal heights and positioning
+        this.calculateMagneticAlignment();
+    }
+
+    calculateMagneticAlignment() {
         const chatSection = document.querySelector('.chat-section');
-        if (chatSection) {
-            const chatHeight = Math.min(availableHeight * 0.7, 750); // Max 70% of available height, increased to 750px
-            chatSection.style.height = `${chatHeight}px`;
+        const analyticsSection = document.getElementById('analytics-section');
+        const dock = document.getElementById('floating-dock');
+        
+        if (!chatSection || !analyticsSection || !dock) {
+            console.log('Required sections not found, skipping magnetic alignment');
+            return;
         }
+
+        const chatRect = chatSection.getBoundingClientRect();
+        const analyticsRect = analyticsSection.getBoundingClientRect();
+        
+        // Calculate which card is more visible
+        const chatVisibility = this.calculateCardVisibility(chatRect);
+        const analyticsVisibility = this.calculateCardVisibility(analyticsRect);
+        
+        let activeCard = null;
+        if (chatVisibility > analyticsVisibility && chatVisibility > 0.4) {
+            activeCard = 'chat';
+        } else if (analyticsVisibility > 0.4) {
+            activeCard = 'analytics';
+        }
+        
+        // Align center of dock with bottom of active card
+        if (activeCard) {
+            this.alignDockWithCard(activeCard);
+        }
+    }
+
+    calculateCardVisibility(rect) {
+        const viewportHeight = window.innerHeight;
+        const cardTop = Math.max(0, rect.top);
+        const cardBottom = Math.min(viewportHeight, rect.bottom);
+        const visibleHeight = Math.max(0, cardBottom - cardTop);
+        return visibleHeight / rect.height;
+    }
+
+    alignDockWithCard(activeCard) {
+        const chatSection = document.querySelector('.chat-section');
+        const analyticsSection = document.getElementById('analytics-section');
+        const dock = document.getElementById('floating-dock');
+        
+        if (!dock) return;
+        
+        const dockRect = dock.getBoundingClientRect();
+        const dockCenterY = dockRect.top + (dockRect.height / 2);
+        
+        let cardBottomY;
+        if (activeCard === 'chat') {
+            const chatRect = chatSection.getBoundingClientRect();
+            cardBottomY = chatRect.bottom;
+        } else if (activeCard === 'analytics') {
+            const analyticsRect = analyticsSection.getBoundingClientRect();
+            cardBottomY = analyticsRect.bottom;
+        }
+        
+        if (cardBottomY) {
+            // Calculate how much we need to scroll to align dock center with card bottom
+            const scrollAdjustment = cardBottomY - dockCenterY;
+            
+            // Only make small adjustments to avoid jarring movements
+            if (Math.abs(scrollAdjustment) > 10 && Math.abs(scrollAdjustment) < 100) {
+                window.scrollBy({
+                    top: scrollAdjustment,
+                    behavior: 'smooth'
+                });
+            }
+        }
+        
+        // Activate dock magnetic state
+        dock.classList.add('magnetic-active');
+    }
+
+    smoothAlignToCard(cardElement) {
+        const dock = document.getElementById('floating-dock');
+        if (!dock) return;
+        
+        const dockRect = dock.getBoundingClientRect();
+        const cardRect = cardElement.getBoundingClientRect();
+        
+        // Calculate the scroll position needed to align card bottom with dock center
+        const dockCenterY = dockRect.top + (dockRect.height / 2);
+        const cardBottomY = cardRect.bottom;
+        
+        // Calculate target scroll position
+        const currentScrollY = window.scrollY;
+        const targetScrollY = currentScrollY + (cardBottomY - dockCenterY);
+        
+        // Smooth scroll to alignment
+        window.scrollTo({
+            top: targetScrollY,
+            behavior: 'smooth'
+        });
     }
 
     setupScrollListener() {
         let scrollTimeout;
+        let magneticTimeout;
+        
         window.addEventListener('scroll', () => {
             clearTimeout(scrollTimeout);
+            clearTimeout(magneticTimeout);
+            
+            // Only detect active section on scroll
             scrollTimeout = setTimeout(() => {
                 this.detectActiveSection();
             }, 100);
+            
+            // Magnetic alignment with reasonable delay
+            magneticTimeout = setTimeout(() => {
+                this.updateDynamicSpacing();
+            }, 800); // Balanced delay for responsiveness
         });
     }
 
@@ -1152,23 +1293,24 @@ class MotorsportsAnalytics {
         const analyticsSection = document.getElementById('analytics-section');
         const chatSection = document.querySelector('.chat-section');
         
-        if (analyticsSection && chatSection) {
+        if (!analyticsSection || !chatSection) {
+            console.log('Required sections not found, skipping active section detection');
+            return;
+        }
+        
             const analyticsRect = analyticsSection.getBoundingClientRect();
             const chatRect = chatSection.getBoundingClientRect();
             
-            // If analytics section is in view and chat is not
-            if (analyticsRect.top < window.innerHeight * 0.5 && chatRect.bottom < window.innerHeight * 0.3) {
+        // Simple detection: if analytics is mostly in view, it's active
+        if (analyticsRect.top < window.innerHeight * 0.3) {
                 if (this.activeSection !== 'analytics') {
                     this.activeSection = 'analytics';
-                    this.updateDynamicSpacing();
                     this.updateBlurEffect();
                 }
             } else if (chatRect.top < window.innerHeight * 0.5) {
-                if (this.activeSection !== 'chat') {
-                    this.activeSection = 'chat';
-                    this.updateDynamicSpacing();
+            if (this.activeSection !== 'dashboard') {
+                this.activeSection = 'dashboard';
                     this.updateBlurEffect();
-                }
             }
         }
     }
@@ -1176,35 +1318,462 @@ class MotorsportsAnalytics {
     updateBlurEffect() {
         const analyticsSection = document.getElementById('analytics-section');
         
-        if (analyticsSection) {
-            if (this.activeSection === 'chat') {
-                // Add blur effect when viewing chat
+        if (!analyticsSection) {
+            console.log('Analytics section not found, skipping blur effect update');
+            return;
+        }
+        
+        if (this.activeSection === 'dashboard') {
+            // Add blur effect when viewing dashboard (chat section)
                 analyticsSection.classList.add('blurred');
             } else {
                 // Remove blur effect when viewing analytics
                 analyticsSection.classList.remove('blurred');
             }
         }
+
+    restoreChatSection() {
+        // Restore chat input functionality
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const messagesContainer = document.getElementById('chat-messages');
+        const chatSection = document.querySelector('.chat-section');
+        const inputContainer = document.querySelector('.chat-input-container-minimal');
+        const vanishContainer = document.querySelector('.vanish-input-container');
+        
+        // Reset any inline styles that might be causing positioning issues
+        if (chatSection) {
+            chatSection.style.position = '';
+            chatSection.style.top = '';
+            chatSection.style.left = '';
+            chatSection.style.transform = '';
+        }
+        
+        if (inputContainer) {
+            inputContainer.style.position = '';
+            inputContainer.style.top = '';
+            inputContainer.style.left = '';
+            inputContainer.style.transform = '';
+        }
+        
+        if (vanishContainer) {
+            vanishContainer.style.position = '';
+            vanishContainer.style.top = '';
+            vanishContainer.style.left = '';
+            vanishContainer.style.transform = '';
+        }
+        
+        if (sendButton) {
+            sendButton.style.position = '';
+            sendButton.style.top = '';
+            sendButton.style.left = '';
+            sendButton.style.transform = '';
+        }
+        
+        // Restore preserved state
+        if (this.preservedChatInput && chatInput) {
+            chatInput.value = this.preservedChatInput;
+        }
+        
+        if (this.preservedChatMessages && messagesContainer) {
+            messagesContainer.innerHTML = this.preservedChatMessages;
+        }
+        
+        // Reinitialize all chat listeners
+        this.reinitializeChatListeners();
+        
+        // Restore placeholder animation
+        this.startPlaceholderAnimation();
+        
+        // Ensure WebSocket is connected
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            this.connectWebSocket();
+        }
+        
+        // Force re-render of chat section
+        this.forceChatSectionRerender();
+        
+        console.log('Chat section state restored');
     }
 
-    setupChatScrollbar() {
-        const chatMessages = document.querySelector('.chat-messages');
-        if (!chatMessages) return;
-
-        let scrollTimeout;
+    forceChatSectionRerender() {
+        const chatSection = document.querySelector('.chat-section');
+        if (chatSection) {
+            // Force a reflow to ensure proper positioning
+            chatSection.style.display = 'none';
+            chatSection.offsetHeight; // Trigger reflow
+            chatSection.style.display = 'flex';
+            
+            // Ensure proper flex layout
+            chatSection.style.flexDirection = 'column';
+            chatSection.style.position = 'relative';
+            chatSection.style.height = 'calc(100vh - 90px)';
+            chatSection.style.minHeight = '600px';
+        }
         
-        chatMessages.addEventListener('scroll', () => {
-            // Add scrolling class
-            chatMessages.classList.add('scrolling');
+        // Ensure input container is properly positioned
+        const inputContainer = document.querySelector('.chat-input-container-minimal');
+        if (inputContainer) {
+            inputContainer.style.position = 'relative';
+            inputContainer.style.bottom = '0';
+            inputContainer.style.padding = '1rem';
+        }
+        
+        // Ensure vanish container maintains proper layout
+        const vanishContainer = document.querySelector('.vanish-input-container');
+        if (vanishContainer) {
+            vanishContainer.style.display = 'flex';
+            vanishContainer.style.alignItems = 'center';
+            vanishContainer.style.gap = '0.75rem';
+            vanishContainer.style.position = 'relative';
+        }
+        
+        // Ensure send button is properly positioned
+        const sendButton = document.getElementById('send-button');
+        if (sendButton) {
+            sendButton.style.position = 'relative';
+            sendButton.style.display = 'flex';
+            sendButton.style.alignItems = 'center';
+            sendButton.style.justifyContent = 'center';
+        }
+        
+        console.log('Chat section re-rendered');
+    }
+
+    reinitializeChatListeners() {
+        // Re-setup all chat event listeners
+        if (this.chatInput && this.sendButton) {
+            // Remove existing listeners
+            this.chatInput.removeEventListener('keypress', this.handleKeyPress);
+            this.sendButton.removeEventListener('click', this.handleSendClick);
             
-            // Clear existing timeout
-            clearTimeout(scrollTimeout);
+            // Add new listeners
+            this.handleKeyPress = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            };
             
-            // Remove scrolling class after 1 second of no scrolling
-            scrollTimeout = setTimeout(() => {
-                chatMessages.classList.remove('scrolling');
-            }, 1000);
+            this.handleSendClick = () => this.sendMessage();
+            
+            this.chatInput.addEventListener('keypress', this.handleKeyPress);
+            this.sendButton.addEventListener('click', this.handleSendClick);
+            
+            // Auto-resize
+            this.handleInputResize = () => {
+                this.chatInput.style.height = 'auto';
+                this.chatInput.style.height = this.chatInput.scrollHeight + 'px';
+            };
+            
+            this.chatInput.addEventListener('input', this.handleInputResize);
+        }
+        
+        // Re-setup suggestion chips
+        document.querySelectorAll('.suggestion-chip').forEach(chip => {
+            chip.removeEventListener('click', this.handleChipClick);
+            this.handleChipClick = () => {
+                const query = chip.dataset.query;
+                this.chatInput.value = query;
+                this.sendMessage();
+            };
+            chip.addEventListener('click', this.handleChipClick);
         });
+        
+        console.log('Chat listeners reinitialized');
+    }
+
+    preserveChatSection() {
+        // Store current chat state
+        const chatInput = document.getElementById('chat-input');
+        const messagesContainer = document.getElementById('chat-messages');
+        
+        if (chatInput) {
+            this.preservedChatInput = chatInput.value;
+        }
+        
+        if (messagesContainer) {
+            this.preservedChatMessages = messagesContainer.innerHTML;
+        }
+        
+        console.log('Chat section state preserved');
+    }
+
+    // PRP Editor Methods
+    clearPRPContent() {
+        const textarea = document.getElementById('prp-editor-textarea');
+        if (textarea) {
+            textarea.value = '';
+            this.updateCharCount();
+            textarea.focus();
+            console.log('PRP content cleared');
+        } else {
+            console.error('Textarea not found');
+        }
+    }
+
+    showPRPEditor() {
+        // Hide other sections
+        const chatSection = document.querySelector('.chat-section');
+        const analyticsSection = document.getElementById('analytics-section');
+        const prpSection = document.getElementById('prp-editor-section');
+        
+        if (chatSection) {
+            // Preserve chat section state before hiding
+            this.preserveChatSection();
+            chatSection.style.display = 'none';
+        }
+        if (analyticsSection) {
+            analyticsSection.style.display = 'none';
+        }
+        
+        // Show PRP Editor section
+        if (prpSection) {
+        prpSection.style.display = 'block';
+            
+            // Scroll to top of page to show PRP section at the beginning
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        
+        // Load current PRP content
+        this.loadPRPContent();
+        
+        // Setup PRP Editor event listeners
+        this.setupPRPEditorListeners();
+        
+        // Update active section
+        this.activeSection = 'prp-editor';
+        
+        // Scroll to PRP Editor
+        prpSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    setupPRPEditorListeners() {
+        // Save PRP button
+        const saveBtn = document.getElementById('save-prp-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.savePRP());
+        }
+        
+        // Reset PRP button
+        const resetBtn = document.getElementById('reset-prp-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => this.resetPRP());
+        }
+        
+        
+        // Character count
+        const textarea = document.getElementById('prp-editor-textarea');
+        if (textarea) {
+            textarea.addEventListener('input', () => this.updateCharCount());
+        }
+        
+    }
+
+    async loadPRPContent() {
+        try {
+            const response = await fetch('/api/prp/content');
+            if (response.ok) {
+                const data = await response.json();
+                const textarea = document.getElementById('prp-editor-textarea');
+                if (textarea) {
+                    textarea.value = data.content || '';
+                    this.updateCharCount();
+                }
+            } else {
+                // Load default content if API fails
+                this.loadDefaultPRPContent();
+            }
+        } catch (error) {
+            console.error('Error loading PRP content:', error);
+            this.loadDefaultPRPContent();
+        }
+    }
+
+    loadDefaultPRPContent() {
+        const textarea = document.getElementById('prp-editor-textarea');
+        if (textarea) {
+            // Load the current product_requirement_prompt.md content
+            fetch('/api/prp/default')
+                .then(response => response.text())
+                .then(content => {
+                    textarea.value = content;
+                    this.updateCharCount();
+                })
+                .catch(error => {
+                    console.error('Error loading default PRP:', error);
+                    textarea.value = `# Motorsports Data Analysis Agent
+
+## API Endpoints
+Use these specific endpoints for data fetching:
+
+### Race Data
+- Endpoint: \`/v1/races\`
+- Parameters: year, circuit_name
+- Example: \`curl "https://api.openf1.org/v1/races?year=2023"\`
+
+### Driver Performance
+- Endpoint: \`/v1/drivers\`
+- Focus on: lap_times, positions, pit_stops
+
+## Analysis Patterns
+When analyzing data, always:
+1. Check data quality first
+2. Apply relevant filters
+3. Calculate key metrics
+4. Provide visualizations
+5. Explain insights clearly
+
+## Output Format
+Always provide:
+- Summary of findings
+- Key metrics
+- Visual charts when relevant
+- Actionable insights`;
+                    this.updateCharCount();
+                });
+        }
+    }
+
+    async savePRP() {
+        const textarea = document.getElementById('prp-editor-textarea');
+        const content = textarea.value.trim();
+        
+        if (!content) {
+            alert('Please enter some PRP content before saving.');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/prp/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: content })
+            });
+            
+            if (response.ok) {
+                // Show success message
+                this.showNotification('PRP saved successfully!', 'success');
+                
+                // Update agent with new PRP
+                await this.updateAgentPRP(content);
+            } else {
+                throw new Error('Failed to save PRP');
+            }
+        } catch (error) {
+            console.error('Error saving PRP:', error);
+            this.showNotification('Error saving PRP. Please try again.', 'error');
+        }
+    }
+
+    async updateAgentPRP(content) {
+        try {
+            const response = await fetch('/api/prp/update-agent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: content })
+            });
+            
+            if (response.ok) {
+                this.showNotification('Agent updated with new PRP!', 'success');
+            }
+        } catch (error) {
+            console.error('Error updating agent:', error);
+            this.showNotification('PRP saved but agent update failed.', 'warning');
+        }
+    }
+
+    resetPRP() {
+        if (confirm('Are you sure you want to reset the PRP to default? This will lose any customizations.')) {
+            this.loadDefaultPRPContent();
+            this.showNotification('PRP reset to default.', 'info');
+        }
+    }
+
+    updateCharCount() {
+        const textarea = document.getElementById('prp-editor-textarea');
+        const charCount = document.getElementById('char-count');
+        
+        if (textarea && charCount) {
+            charCount.textContent = textarea.value.length;
+        }
+    }
+
+
+    showNotification(message, type = 'info') {
+        // Remove existing notifications to prevent overlap
+        const existingNotifications = document.querySelectorAll('.minimal-notification');
+        existingNotifications.forEach(notif => notif.remove());
+        
+        // Create minimal notification element
+        const notification = document.createElement('div');
+        notification.className = `minimal-notification minimal-notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : type === 'warning' ? 'exclamation' : 'info'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        // Add minimal styles
+        notification.style.cssText = `
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: rgba(26, 26, 26, 0.95);
+            color: white;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            transform: translateX(100%);
+            transition: transform 0.2s ease;
+            max-width: 250px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        `;
+        
+        // Add CSS for notification content spacing
+        const style = document.createElement('style');
+        style.textContent = `
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+            .notification-content i {
+                font-size: 0.9rem;
+                opacity: 0.9;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Animate in
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 50);
+        
+        // Remove after 2 seconds
+        setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 200);
+        }, 2000);
     }
 
 }
@@ -1247,8 +1816,16 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Initialize the application
+// Global function for clear button
+function clearPRPContent() {
+    if (window.app) {
+        window.app.clearPRPContent();
+    }
+}
+
+// Initialize the application on all pages
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Initializing MotorsportsAnalytics on:', window.location.pathname);
     window.app = new MotorsportsAnalytics();
 });
 

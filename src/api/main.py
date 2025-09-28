@@ -1,14 +1,11 @@
 """FastAPI application for the motorsports analytics agent web interface."""
 
 import logging
-import os
 from pathlib import Path
 from typing import List, Optional
-import asyncio
 import json
 import datetime
 import pandas as pd
-from io import StringIO
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,9 +15,9 @@ from pydantic import BaseModel
 
 # Add src to path
 import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.agents.analytics_agent import invoke_analytics_agent
+from src.agents.analytics_agent import invoke_analytics_agent, reload_analytics_agent
 from src.tools.analysis_tools import list_available_data, quick_data_check, load_dataframe_from_csv
 from src.utils import get_csv_memory
 
@@ -180,8 +177,9 @@ async def get_dataset_preview(dataset_name: str):
         memory_usage = df.memory_usage(deep=True).sum()
         size_str = f"{memory_usage / 1024:.1f} KB"
         
-        # Get preview data (first 15 rows)
-        preview_data = df.head(15).to_dict('records')
+        # Get preview data (first 15 rows) - handle NaN values
+        preview_df = df.head(15).fillna('N/A')  # Replace NaN with 'N/A'
+        preview_data = preview_df.to_dict('records')
         
         return {
             "rows": rows,
@@ -280,6 +278,78 @@ async def websocket_chat(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         manager.disconnect(websocket)
+
+# PRP Editor API endpoints
+@app.get("/api/prp/content")
+async def get_prp_content():
+    """Get current PRP content."""
+    try:
+        prp_path = Path(__file__).parent.parent / "prompt" / "product_requirement_prompt.md"
+        if prp_path.exists():
+            content = prp_path.read_text(encoding='utf-8')
+            return {"content": content}
+        else:
+            return {"content": ""}
+    except Exception as e:
+        logger.error(f"Error reading PRP content: {e}")
+        return {"content": ""}
+
+@app.get("/api/prp/default")
+async def get_default_prp():
+    """Get default PRP content."""
+    try:
+        prp_path = Path(__file__).parent.parent / "prompt" / "product_requirement_prompt.md"
+        if prp_path.exists():
+            content = prp_path.read_text(encoding='utf-8')
+            return Response(content=content, media_type="text/plain")
+        else:
+            return Response(content="# Default PRP\nNo default content available.", media_type="text/plain")
+    except Exception as e:
+        logger.error(f"Error reading default PRP: {e}")
+        return Response(content="# Error\nCould not load default PRP.", media_type="text/plain")
+
+@app.post("/api/prp/save")
+async def save_prp(request: dict):
+    """Save custom PRP content."""
+    try:
+        content = request.get("content", "")
+        if not content:
+            raise HTTPException(status_code=400, detail="Content cannot be empty")
+        
+        # Save to main PRP file
+        prp_path = Path(__file__).parent.parent / "prompt" / "product_requirement_prompt.md"
+        prp_path.parent.mkdir(exist_ok=True)
+        prp_path.write_text(content, encoding='utf-8')
+        
+        logger.info(f"PRP saved successfully, {len(content)} characters")
+        return {"status": "success", "message": "PRP saved successfully"}
+        
+    except Exception as e:
+        logger.error(f"Error saving PRP: {e}")
+        raise HTTPException(status_code=500, detail=f"Error saving PRP: {str(e)}")
+
+@app.post("/api/prp/update-agent")
+async def update_agent_prp(request: dict):
+    """Update the agent with new PRP content."""
+    try:
+        content = request.get("content", "")
+        if not content:
+            raise HTTPException(status_code=400, detail="Content cannot be empty")
+        
+        # Update the product_requirement_prompt.md file
+        prp_path = Path(__file__).parent.parent / "prompt" / "product_requirement_prompt.md"
+        prp_path.parent.mkdir(exist_ok=True)
+        prp_path.write_text(content, encoding='utf-8')
+        
+        # Reload the analytics agent with new PRP content
+        reload_analytics_agent()
+        
+        logger.info(f"Agent PRP updated successfully, {len(content)} characters")
+        return {"status": "success", "message": "Agent updated with new PRP"}
+        
+    except Exception as e:
+        logger.error(f"Error updating agent PRP: {e}")
+        raise HTTPException(status_code=500, detail=f"Error updating agent PRP: {str(e)}")
 
 # Mount static files
 web_dir = Path(__file__).parent.parent.parent / "web"

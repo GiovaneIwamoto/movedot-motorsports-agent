@@ -1,11 +1,9 @@
 """Tools for the context agent."""
 
 import json
-import os
 import logging
 from typing import Dict, Any, Optional
 from pathlib import Path
-from io import StringIO
 
 import httpx
 import pandas as pd
@@ -25,9 +23,9 @@ def load_product_requirement_prompt() -> str:
     ALWAYS read this before constructing any API fetch.
     """
     try:
-        # Resolve path: src/tools -> src -> prompt/product_requirement_prompt.txt
+        # Resolve path: src/tools -> src -> prompt/product_requirement_prompt.md
         this_file = Path(__file__).resolve()
-        product_prompt_path = this_file.parents[1] / "prompt" / "product_requirement_prompt.txt"
+        product_prompt_path = this_file.parents[1] / "prompt" / "product_requirement_prompt.md"
 
         if not product_prompt_path.exists():
             return f"Product requirement prompt not found at: {product_prompt_path}"

@@ -18,7 +18,7 @@
             <div class="datasets-card">
                 <!-- Card Header -->
                 <div class="card-header">
-                    <h1>Datasets</h1>
+                    <h1 class="card-title">Datasets</h1>
                     <div class="header-controls">
                         <span class="dataset-count" id="dataset-count">Loading...</span>
                         <button class="refresh-btn" onclick="refreshDatasets()">
@@ -66,18 +66,11 @@
                 <div class="dock-item-tooltip">Data Sources</div>
             </button>
             
-            <button class="dock-item" data-page="export" onclick="exportData()">
+            <button class="dock-item" data-page="prp-editor" onclick="navigateTo('index.html')">
                 <div class="dock-item-icon">
-                    <i class="fas fa-download"></i>
+                    <i class="fas fa-code"></i>
                 </div>
-                <div class="dock-item-tooltip">Export</div>
-            </button>
-            
-            <button class="dock-item" data-page="new-analysis" onclick="navigateTo('index.html')">
-                <div class="dock-item-icon">
-                    <i class="fas fa-plus"></i>
-                </div>
-                <div class="dock-item-tooltip">New Analysis</div>
+                <div class="dock-item-tooltip">PRP Editor</div>
             </button>
         </nav>
     </div>
@@ -99,6 +92,7 @@
             async loadDatasets() {
                 try {
                     const response = await fetch('/api/data/overview');
+                    
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -115,7 +109,7 @@
                     console.error('Error loading datasets:', error);
                     // Show error state instead of mock data
                     this.datasets = [];
-                    this.showError('Failed to load datasets. Please check your connection and try again.');
+                    this.showError(`Failed to load datasets: ${error.message}. Please check your connection and try again.`);
                 }
             }
             
@@ -130,6 +124,11 @@
             renderDatasets() {
                 const countElement = document.getElementById('dataset-count');
                 const container = document.getElementById('all-datasets');
+                
+                if (!countElement || !container) {
+                    console.error('Required DOM elements not found');
+                    return;
+                }
                 
                 // Update count
                 countElement.textContent = `${this.datasets.length} datasets`;
@@ -170,6 +169,11 @@
             
             showError(message) {
                 const container = document.getElementById('all-datasets');
+                if (!container) {
+                    console.error('Container not found for error display');
+                    return;
+                }
+                
                 container.innerHTML = `
                     <div class="error-state">
                         <div class="error-icon">
@@ -270,8 +274,6 @@
             // Format dataset title
             formatDatasetTitle(datasetName);
             
-            // Setup scrollbar behavior
-            setupScrollbarBehavior(modalOverlay);
         }
         
         // Format dataset title function
@@ -295,46 +297,12 @@
             }
         }
         
-        // Setup scrollbar behavior function
-        function setupScrollbarBehavior(modalElement) {
-            const tableContainer = modalElement.querySelector('.dataset-table-container');
-            if (!tableContainer) return;
-            
-            let scrollTimeout;
-            
-            // Show scrollbars on interaction
-            function showScrollbars() {
-                tableContainer.style.scrollbarColor = '#6b7280 transparent';
-                tableContainer.style.setProperty('--scrollbar-thumb-bg', '#6b7280');
-            }
-            
-            // Hide scrollbars after delay
-            function hideScrollbars() {
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
-                    tableContainer.style.scrollbarColor = 'transparent transparent';
-                    tableContainer.style.setProperty('--scrollbar-thumb-bg', 'transparent');
-                }, 1000);
-            }
-            
-            // Event listeners for scrollbar visibility
-            tableContainer.addEventListener('mouseenter', showScrollbars);
-            tableContainer.addEventListener('mouseleave', hideScrollbars);
-            tableContainer.addEventListener('scroll', () => {
-                showScrollbars();
-                hideScrollbars();
-            });
-            tableContainer.addEventListener('focus', showScrollbars);
-            tableContainer.addEventListener('blur', hideScrollbars);
-            
-            // Initial state - hidden
-            hideScrollbars();
-        }
         
         // Load dataset data function
         async function loadDatasetData(datasetName) {
             try {
                 const response = await fetch(`/api/data/preview/${encodeURIComponent(datasetName)}`);
+                
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -377,6 +345,11 @@
         // Populate dataset table
         function populateDatasetTable(data) {
             const table = document.getElementById('dataset-table');
+            if (!table) {
+                console.error('Dataset table not found');
+                return;
+            }
+            
             table.innerHTML = ''; // Clear existing content
             
             if (!data || data.length === 0) {
@@ -467,7 +440,6 @@
             
             // Store the dataset name in localStorage for the chat page to use
             localStorage.setItem('pendingDatasetAnalysis', datasetName);
-            console.log('Stored dataset in localStorage:', datasetName);
             
             // Redirect to chat page with query parameter as backup
             window.location.href = `index.html?analyze=${encodeURIComponent(`Analyze the dataset ${datasetName}`)}`;
@@ -492,7 +464,11 @@
         
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            window.datasetsManager = new DatasetsManager();
+            try {
+                window.datasetsManager = new DatasetsManager();
+            } catch (error) {
+                console.error('Error initializing DatasetsManager:', error);
+            }
         });
     </script>
 </body>

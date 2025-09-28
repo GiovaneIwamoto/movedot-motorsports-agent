@@ -349,25 +349,7 @@
     box-shadow: 0 0 0 4px var(--bg-primary);
 }
 
-/* Advanced Scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--bg-tertiary);
-    border-radius: var(--radius-full);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--gradient-primary);
-    border-radius: var(--radius-full);
-    border: 2px solid var(--bg-tertiary);
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-hover);
-}
+/* Advanced Scrollbar - using standardized system from styles.css */
 
 /* Loading Skeleton */
 .skeleton {

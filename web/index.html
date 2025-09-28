@@ -89,7 +89,7 @@
             <!-- Analytics Panel Section -->
             <section class="analytics-section framer-card framer-hover-lift data-flow" id="analytics-section">
                 <div class="analytics-header">
-                    <h2>Analytics Dashboard</h2>
+                    <h2 class="card-title">Analytics Dashboard</h2>
                     <div class="analytics-status">
                         <div class="status-indicator online" id="analytics-connection-status"></div>
                         <span id="analytics-connection-text">Ready for analysis</span>
@@ -194,6 +194,84 @@
                 </div>
             </section>
 
+            <!-- PRP Editor Section -->
+            <section class="prp-editor-section framer-card framer-hover-lift data-flow" id="prp-editor-section" style="display: none;">
+                
+                <div class="prp-editor-content">
+                    <div class="prp-info-panel">
+                        <div class="info-card">
+                            <div class="info-icon">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                            <div class="info-content">
+                                <h3>What is Product Requirements Prompt Editor?</h3>
+                                <p>Product Requirements Prompt Editor is a <strong>Context Engineering</strong> technique that provides comprehensive instructions to the AI agent about how to interact with APIs and fetch data.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="info-card">
+                            <div class="info-icon">
+                                <i class="fas fa-cogs"></i>
+                            </div>
+                            <div class="info-content">
+                                <h3>Customize Your Agent</h3>
+                                <p>Edit this prompt to guide your AI agent on specific API endpoints, data formats, and analysis patterns. This makes your agent smarter and more context-aware.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="info-card">
+                            <div class="info-icon">
+                                <i class="fas fa-rocket"></i>
+                            </div>
+                            <div class="info-content">
+                                <h3>Better Results</h3>
+                                <p>Well-crafted PRPs lead to more accurate API calls, better data analysis, and more relevant insights from your motorsports data.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="prp-editor-panel">
+                        <!-- Header -->
+                        <div class="editor-header">
+                            <h3 class="card-title">Product Requirements Prompt Editor</h3>
+                            <div class="editor-actions">
+                                <button class="clear-btn" onclick="clearPRPContent()" title="Clear all content">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button class="action-btn" id="reset-prp-btn" title="Reset to default">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                                <button class="action-btn primary" id="save-prp-btn">
+                                    <i class="fas fa-save"></i>
+                                    Save PRP
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Divider -->
+                        <div class="editor-divider"></div>
+                        
+                        <!-- Textarea -->
+                        <div class="editor-textarea-container">
+                            <textarea 
+                                id="prp-editor-textarea"
+                                class="prp-editor-textarea"
+                                placeholder="Enter your Product Requirements Prompt here..."
+                                spellcheck="false"
+                            ></textarea>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div class="editor-footer">
+                            <div class="char-count">
+                                <span id="char-count">0</span> characters
+                            </div>
+                            <div class="format-indicator">Markdown</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
         </main>
 
         <!-- Loader Overlay -->
@@ -239,21 +317,16 @@
                 <div class="dock-item-tooltip">Data Sources</div>
             </button>
             
-            <button class="dock-item" data-page="export" id="export-btn">
-                <div class="dock-item-icon">
-                    <i class="fas fa-download"></i>
-                </div>
-                <div class="dock-item-tooltip">Export</div>
-            </button>
             
-            <button class="dock-item" data-page="new-analysis" id="new-analysis-btn">
+            <button class="dock-item" data-page="prp-editor" id="prp-editor-btn">
                 <div class="dock-item-icon">
-                    <i class="fas fa-plus"></i>
+                    <i class="fas fa-code"></i>
                 </div>
-                <div class="dock-item-tooltip">New Analysis</div>
+                <div class="dock-item-tooltip">PRP Editor</div>
             </button>
         </nav>
     </div>
+
 
     <script src="static/app.js"></script>
 </body>
