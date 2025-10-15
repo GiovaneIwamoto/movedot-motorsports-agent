@@ -1,104 +1,205 @@
 """Tools for the analysis agent."""
 
 import logging
-from typing import Optional
-from io import StringIO
 import os
+import time
+import base64
+from typing import Optional
 
-import pandas as pd
-import matplotlib
-import matplotlib.pyplot as plt
-from langchain_core.tools import tool, BaseTool
-from langchain.agents.agent_types import AgentType
-from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-from typing import Optional, Type
-from pydantic import BaseModel, Field
+from langchain_core.tools import tool
 
-from ..config import get_openai_client
+from ..config import get_settings
 from ..utils import get_csv_memory
 
 logger = logging.getLogger(__name__)
 
-# Configure matplotlib to use non-interactive backend
-matplotlib.use('Agg')
+# Global E2B sandbox instance for the pandas agent
+_e2b_sandbox = None
+_sandbox_csv_data = {}
 
 
-class PlotCaptureInput(BaseModel):
-    """Input for the plot capture tool."""
-    plot_name: str = Field(default="plot", description="Name for the plot file")
-
-
-class PlotCaptureTool(BaseTool):
-    """Custom tool to capture and save matplotlib plots from the REPL."""
+class E2BPythonREPL:
+    """Custom Python REPL that executes code in E2B sandbox."""
     
-    name: str = "save_plot"
-    description: str = "Save the current matplotlib figure to a file. ONLY use this when you have created a meaningful visualization that adds analytical value - not for simple data summaries or basic statistics."
-    args_schema: Type[BaseModel] = PlotCaptureInput
+    def __init__(self, sandbox, csv_names: list):
+        """
+        Initialize E2B Python REPL.
+        
+        Args:
+            sandbox: Active E2B sandbox instance
+            csv_names: List of CSV file names available in sandbox /data/ directory
+        """
+        self.sandbox = sandbox
+        self.csv_names = csv_names
+        logger.info(f"E2B REPL initialized with {len(csv_names)} CSV files")
     
-    def _run(self, plot_name: str = "plot") -> str:
-        """Save the current matplotlib figure to a file."""
+    def run(self, code: str) -> str:
+        """
+        Execute Python code in E2B sandbox.
+        
+        Args:
+            code: Python code to execute
+            
+        Returns:
+            String output from code execution
+        """
         try:
-            # Create plots directory if it doesn't exist
-            plots_dir = "plots"
-            if not os.path.exists(plots_dir):
-                os.makedirs(plots_dir)
-                logger.info(f"Created plots directory: {plots_dir}")
+            logger.info(f"Executing code in E2B sandbox:\n{code[:200]}...")
             
-            # Check if there are any figures to save
-            if not plt.get_fignums():
-                return "No plots to save. Create a plot first using matplotlib."
+            # Execute code in sandbox
+            execution = self.sandbox.run_code(code)
             
-            # Save the current figure
-            import time
-            timestamp = int(time.time())
-            filename = f"{plot_name}_{timestamp}.png"
-            filepath = os.path.join(plots_dir, filename)
+            result_parts = []
             
-            plt.savefig(filepath, dpi=300, bbox_inches='tight')
-            plt.close()  # Close the figure to free memory
-            logger.info(f"Saved plot: {filepath}")
+            # Collect text output (stdout)
+            if execution.text:
+                result_parts.append(execution.text)
             
-            return f"Plot saved successfully: {filepath}"
+            # Handle errors
+            if execution.error:
+                error_msg = f"{execution.error.name}: {execution.error.value}"
+                logger.error(f"E2B execution error: {error_msg}")
+                return error_msg
+            
+            # Collect results (return values)
+            if execution.results:
+                for res in execution.results:
+                    if hasattr(res, 'text') and res.text:
+                        result_parts.append(str(res.text))
+            
+            # Handle plots/images
+            if hasattr(execution, 'results'):
+                for idx, result in enumerate(execution.results):
+                    # Check if result contains image data
+                    if hasattr(result, 'formats') and callable(result.formats) and 'png' in result.formats():
+                        # Save plot to local plots directory
+                        plots_dir = "plots"
+                        if not os.path.exists(plots_dir):
+                            os.makedirs(plots_dir)
+                        
+                        timestamp = int(time.time())
+                        filename = f"e2b_plot_{timestamp}_{idx}.png"
+                        filepath = os.path.join(plots_dir, filename)
+                        
+                        # Get PNG data and save
+                        png_data = result.png
+                        with open(filepath, 'wb') as f:
+                            f.write(base64.b64decode(png_data))
+                        
+                        result_parts.append(f"[Plot saved: {filepath}]")
+                        logger.info(f"Saved plot: {filepath}")
+            
+            output = "\n".join(result_parts) if result_parts else ""
+            return output
             
         except Exception as e:
-            logger.error(f"Error saving plot: {str(e)}")
-            return f"Error saving plot: {str(e)}"
+            error_msg = f"E2B execution error: {str(e)}"
+            logger.error(error_msg)
+            return error_msg
 
 
-def load_dataframe_from_csv(csv_name: str) -> pd.DataFrame:
-    """Load DataFrame from CSV data stored in persistent file."""
-    # Get CSV content from persistent storage (now with caching)
-    csv_memory = get_csv_memory()
-    csv_content = csv_memory.get_csv_data(csv_name)
-    if csv_content is None:
-        raise ValueError(f"CSV '{csv_name}' not found in persistent storage")
+def _get_or_create_e2b_sandbox(csv_list: list, csv_memory):
+    """
+    Get or create E2B sandbox with CSVs uploaded to filesystem.
+    Following E2B best practices: upload files to sandbox filesystem instead of loading in memory.
+    """
+    global _e2b_sandbox, _sandbox_csv_data
     
-    # Load DataFrame from CSV content
-    df = pd.read_csv(StringIO(csv_content))
+    settings = get_settings()
+    if not settings.e2b_api_key:
+        raise ValueError("E2B API key not configured. Please set E2B_API_KEY environment variable.")
     
-    logger.info(f"DataFrame loaded: {csv_name} ({df.shape[0]} rows, {df.shape[1]} columns)")
-    return df
+    # Import E2B
+    try:
+        from e2b_code_interpreter import Sandbox
+    except ImportError:
+        raise ImportError("E2B Code Interpreter not installed. Run: pip install e2b-code-interpreter")
+    
+    # Set E2B API key as environment variable (E2B reads from env)
+    import os
+    os.environ['E2B_API_KEY'] = settings.e2b_api_key
+    
+    # Check if we need to create a new sandbox
+    need_new_sandbox = (
+        _e2b_sandbox is None or 
+        set(csv_list) != set(_sandbox_csv_data.keys())
+    )
+    
+    if need_new_sandbox:
+        # Close existing sandbox if any
+        if _e2b_sandbox is not None:
+            try:
+                _e2b_sandbox.kill()
+                logger.info("Killed previous E2B sandbox")
+            except Exception as e:
+                logger.warning(f"Error killing sandbox: {e}")
+        
+        # Create new sandbox
+        logger.info("Creating new E2B sandbox...")
+        _e2b_sandbox = Sandbox.create()
+        _sandbox_csv_data = {}
+        
+        # Upload CSVs to sandbox filesystem (E2B best practice)
+        logger.info(f"Uploading {len(csv_list)} CSV files to sandbox filesystem...")
+        for csv_name in csv_list:
+            csv_content = csv_memory.get_csv_data(csv_name)
+            if csv_content:
+                # Upload CSV to /data/ directory in sandbox filesystem
+                file_path = f"/data/{csv_name}"
+                _e2b_sandbox.files.write(file_path, csv_content)
+                _sandbox_csv_data[csv_name] = file_path
+                logger.info(f"Uploaded {csv_name} to {file_path}")
+        
+        logger.info(f"E2B sandbox ready with {len(_sandbox_csv_data)} CSV files in /data/")
+    
+    return _e2b_sandbox, list(_sandbox_csv_data.keys())
+
+
+def _cleanup_e2b_sandbox():
+    """Clean up E2B sandbox."""
+    global _e2b_sandbox, _sandbox_csv_data
+    if _e2b_sandbox is not None:
+        try:
+            _e2b_sandbox.kill()
+            logger.info("E2B sandbox killed")
+        except Exception as e:
+            logger.warning(f"Error killing sandbox: {e}")
+        finally:
+            _e2b_sandbox = None
+            _sandbox_csv_data = {}
 
 
 @tool
-def analyze_data_with_pandas(analysis_query: str, csv_names: Optional[str] = None) -> str:
+def analyze_data_with_pandas(python_code: str, csv_names: Optional[str] = None) -> str:
     """
-    Analyze CSV datasets using a Pandas DataFrame agent.
-    This tool loads CSV data from persistent storage and allows natural language queries 
-    on the datasets by leveraging a Pandas agent that executes LLM-generated Python code.
-    It can work with multiple DataFrames simultaneously for comparative analysis.
+    Execute Python code for data analysis in E2B sandbox with CSV files available.
+    
+    CSV files are uploaded to the sandbox filesystem at /data/<filename>.
+    Use pandas normally to read and analyze the data.
     
     Args:
-        analysis_query: The analysis query in natural language
-        csv_names: Comma-separated list of CSV names to analyze. If None, analyzes all available CSVs.
+        python_code: Python code to execute for data analysis.
+                    CSV files are available at /data/ directory.
+                    Example: "df = pd.read_csv('/data/openf1_sessions.csv'); df.head()"
+        csv_names: Optional comma-separated list of specific CSVs to load into sandbox.
+                   If None, loads all available CSVs.
+        
+    Returns:
+        Results of code execution including output, plots, and any errors.
+        The response will list which CSV files are available in the sandbox.
+        
+    Examples:
+        - analyze_data_with_pandas("import pandas as pd; df = pd.read_csv('/data/openf1_sessions_meeting_key_1224.csv'); df.head()")
+        - analyze_data_with_pandas("import pandas as pd; df = pd.read_csv('/data/openf1_laps.csv'); df['lap_duration'].mean()")
+        - analyze_data_with_pandas("import pandas as pd; import matplotlib.pyplot as plt; df = pd.read_csv('/data/openf1_laps.csv'); plt.hist(df['lap_duration']); plt.show()")
+        
+    Available libraries: pandas, numpy, matplotlib, seaborn, scipy
     """
     try:
-        logger.info(f"Starting data analysis: {analysis_query[:100]}...")
-        if csv_names:
-            logger.info(f"Analyzing specific CSVs: {csv_names}")
-        else:
-            logger.info("Analyzing all available CSVs")
-        # Get list of available CSVs (single check with caching)
+        logger.info(f"Executing Python code in E2B sandbox...")
+        logger.info(f"Code: {python_code[:200]}...")
+        
+        # Get list of available CSVs
         csv_memory = get_csv_memory()
         available_csvs = csv_memory.list_available_csvs()
         
@@ -111,7 +212,6 @@ def analyze_data_with_pandas(analysis_query: str, csv_names: Optional[str] = Non
         # Determine which CSVs to analyze
         if csv_names:
             csv_list = [name.strip() for name in csv_names.split(',')]
-            # Filter to only include available CSVs
             csv_list = [name for name in csv_list if name in available_names]
         else:
             csv_list = available_names
@@ -119,73 +219,31 @@ def analyze_data_with_pandas(analysis_query: str, csv_names: Optional[str] = Non
         if not csv_list:
             return "No valid CSV names provided or no CSVs available."
         
-        # Load DataFrames directly from persistent storage
-        dataframes_list = []
-        dataframe_names = []
+        # Get or create E2B sandbox with CSVs uploaded to filesystem
+        try:
+            sandbox, loaded_csvs = _get_or_create_e2b_sandbox(csv_list, csv_memory)
+        except Exception as e:
+            logger.error(f"Failed to create E2B sandbox: {e}")
+            return f"E2B sandbox error: {str(e)}. Make sure E2B_API_KEY is configured."
         
-        for csv_name in csv_list:
-            try:
-                # Load DataFrame using helper function (now with caching)
-                df = load_dataframe_from_csv(csv_name)
-                
-                # Create a clean name for the DataFrame
-                clean_name = csv_name.replace('.csv', '').replace('openf1_', '')
-                dataframes_list.append(df)
-                dataframe_names.append(f"df_{clean_name}")
-                
-            except Exception as e:
-                logger.warning(f"Could not load {csv_name}: {e}")
-                continue
+        # Execute code in E2B sandbox
+        e2b_repl = E2BPythonREPL(sandbox, loaded_csvs)  # Pass CSV names for reference
+        result = e2b_repl.run(python_code)
         
-        if not dataframes_list:
-            return "No DataFrames could be loaded successfully."
-        
-        # Create custom plot capture tool
-        plot_capture_tool = PlotCaptureTool()
-        
-        # Create pandas agent with all dataframes and custom tools
-        llm_worker = get_openai_client()
-        agent = create_pandas_dataframe_agent(
-            llm_worker,
-            dataframes_list,
-            verbose=True,
-            agent_type=AgentType.OPENAI_FUNCTIONS,
-            allow_dangerous_code=True,
-            extra_tools=[plot_capture_tool]  # Add our custom plot capture tool
-        )
-        
-        # Enhanced query with specific instructions for plotting
-        enhanced_query = f"""
-        {analysis_query}
-        
-        CRITICAL PLOTTING GUIDELINES - ONLY CREATE PLOTS WHEN:
-        1. The user explicitly requests a visualization, chart, or graph
-        2. You discover meaningful correlations, trends, or patterns that require visual representation
-        3. The data analysis reveals insights that would be better communicated through visualization
-        4. You need to compare multiple datasets or show relationships between variables
-        
-        DO NOT CREATE PLOTS FOR:
-        - Simple data summaries or basic statistics
-        - Single value results or counts
-        - Data that doesn't show patterns, trends, or relationships
-        - Exploratory analysis without clear insights
-        - When the user only asks for numerical analysis
-        
-        IF YOU DO CREATE A PLOT:
-        - Use matplotlib.pyplot for visualization
-        - After creating the plot, call the 'save_plot' tool to save it
-        - Add meaningful titles, labels, and formatting
-        - Explain why the visualization adds value to the analysis
-        
-        Focus primarily on numerical analysis and insights. Only visualize when it truly enhances understanding.
-        """
-        
-        result = agent.invoke(enhanced_query)        
-        return f"Analysis of {len(dataframes_list)} CSV datasets:\n\n{result}"
+        # Return result with clear CSV file listing
+        csv_files_list = "\n".join([f"  • /data/{csv}" for csv in loaded_csvs])
+        return f"""
+Available CSV files ({len(loaded_csvs)}):
+{csv_files_list}
+
+Result:
+{result}"""
         
     except Exception as e:
-        logger.error(f"Analysis error: {str(e)}")
-        return f"Analysis error: {str(e)}"
+        logger.error(f"E2B analysis error: {str(e)}")
+        # Cleanup sandbox on error
+        _cleanup_e2b_sandbox()
+        return f"E2B analysis error: {str(e)}"
 
 
 @tool
@@ -280,12 +338,27 @@ def clear_csv_cache() -> str:
         return f"Error clearing cache: {str(e)}"
 
 
+@tool
+def cleanup_e2b_sandbox() -> str:
+    """
+    Clean up and close the E2B sandbox.
+    Use this when you're done with analysis or if you need to reset the sandbox.
+    """
+    try:
+        _cleanup_e2b_sandbox()
+        return "E2B sandbox cleaned up successfully"
+    except Exception as e:
+        logger.error(f"Error cleaning up E2B sandbox: {str(e)}")
+        return f"Error cleaning up sandbox: {str(e)}"
+
+
 def get_analysis_tools():
     """Get all analysis tools."""
     return [
-        analyze_data_with_pandas,
+        analyze_data_with_pandas,  # Now uses E2B sandbox for secure execution
         quick_data_check,
         list_available_data,
         debug_csv_storage,
-        clear_csv_cache
+        clear_csv_cache,
+        cleanup_e2b_sandbox
     ]

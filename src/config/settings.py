@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     
     # API Keys
     openai_api_key: str = Field(..., env="OPENAI_API_KEY")
+    e2b_api_key: Optional[str] = Field(default=None, env="E2B_API_KEY")
     
     # Model configurations
     agent_model: str = Field(default="gpt-4o-mini", env="AGENT_MODEL")

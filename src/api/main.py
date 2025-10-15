@@ -18,10 +18,24 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.agents.analytics_agent import invoke_analytics_agent, reload_analytics_agent
-from src.tools.analysis_tools import list_available_data, quick_data_check, load_dataframe_from_csv
+from src.tools.analysis_tools import list_available_data, quick_data_check
 from src.utils import get_csv_memory
 
 logger = logging.getLogger(__name__)
+
+
+# Helper function to load DataFrames for API endpoints (preview, download)
+def _load_dataframe_from_csv(csv_name: str):
+    """Load DataFrame from CSV data for API preview/download."""
+    from io import StringIO
+    import pandas as pd
+    
+    csv_memory = get_csv_memory()
+    csv_content = csv_memory.get_csv_data(csv_name)
+    if csv_content is None:
+        return None
+    
+    return pd.read_csv(StringIO(csv_content))
 
 # Create FastAPI app
 app = FastAPI(
@@ -164,7 +178,7 @@ async def get_dataset_preview(dataset_name: str):
     """Get preview of a specific dataset."""
     try:
         # Load the dataframe
-        df = load_dataframe_from_csv(dataset_name)
+        df = _load_dataframe_from_csv(dataset_name)
         
         if df is None or df.empty:
             raise HTTPException(status_code=404, detail="Dataset not found or empty")
@@ -197,7 +211,7 @@ async def download_dataset(dataset_name: str):
     """Download a specific dataset as CSV."""
     try:
         # Load the dataframe
-        df = load_dataframe_from_csv(dataset_name)
+        df = _load_dataframe_from_csv(dataset_name)
         
         if df is None or df.empty:
             raise HTTPException(status_code=404, detail="Dataset not found or empty")

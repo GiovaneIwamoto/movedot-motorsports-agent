@@ -57,8 +57,12 @@ def invoke_analytics_agent(message: str, config: dict = None) -> str:
         Agent response
     """
     if config is None:
-        config = {"configurable": {"thread_id": "analytics_agent_session"}}
-    
+        config = {
+            "configurable": {"thread_id": "analytics_agent_session"},
+            "recursion_limit": 50  # Increased from default 25 to handle complex queries
+        }
+    elif "recursion_limit" not in config:
+        config["recursion_limit"] = 50
     
     agent = get_analytics_agent()
     response = agent.invoke(
