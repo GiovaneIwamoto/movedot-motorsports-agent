@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import List, Optional
 import json
 import datetime
-import pandas as pd
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,8 +17,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.agents.analytics_agent import invoke_analytics_agent, reload_analytics_agent
-from src.tools.analysis_tools import list_available_data, quick_data_check
-from src.utils import get_csv_memory
+from src.core import get_csv_memory
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +34,37 @@ def _load_dataframe_from_csv(csv_name: str):
         return None
     
     return pd.read_csv(StringIO(csv_content))
+
+# Helper function to serve HTML pages
+def _serve_html_page(page_name: str) -> HTMLResponse:
+    """Serve HTML page with error handling."""
+    html_path = Path(__file__).parent.parent.parent / "web" / f"{page_name}.html"
+    if html_path.exists():
+        return HTMLResponse(content=html_path.read_text(), media_type="text/html")
+    else:
+        raise HTTPException(status_code=404, detail=f"{page_name.title()} page not found")
+
+# Helper function for PRP operations
+def _get_prp_path() -> Path:
+    """Get the PRP file path."""
+    return Path(__file__).parent.parent / "prompt" / "product_requirement_prompt.md"
+
+def _read_prp_content() -> str:
+    """Read PRP content from file."""
+    try:
+        prp_path = _get_prp_path()
+        if prp_path.exists():
+            return prp_path.read_text(encoding='utf-8')
+        return ""
+    except Exception as e:
+        logger.error(f"Error reading PRP content: {e}")
+        return ""
+
+def _write_prp_content(content: str) -> None:
+    """Write PRP content to file."""
+    prp_path = _get_prp_path()
+    prp_path.parent.mkdir(exist_ok=True)
+    prp_path.write_text(content, encoding='utf-8')
 
 # Create FastAPI app
 app = FastAPI(
@@ -101,38 +130,25 @@ manager = ConnectionManager()
 @app.get("/")
 async def read_root():
     """Serve the home page."""
-    html_path = Path(__file__).parent.parent.parent / "web" / "home.html"
-    if html_path.exists():
-        return HTMLResponse(content=html_path.read_text(), media_type="text/html")
-    else:
+    try:
+        return _serve_html_page("home")
+    except HTTPException:
         return {"message": "MoveDot Motorsports Analytics Agent API", "status": "running"}
 
 @app.get("/home.html")
 async def read_home():
     """Serve the home page."""
-    html_path = Path(__file__).parent.parent.parent / "web" / "home.html"
-    if html_path.exists():
-        return HTMLResponse(content=html_path.read_text(), media_type="text/html")
-    else:
-        raise HTTPException(status_code=404, detail="Home page not found")
+    return _serve_html_page("home")
 
 @app.get("/index.html")
 async def read_dashboard():
     """Serve the dashboard page."""
-    html_path = Path(__file__).parent.parent.parent / "web" / "index.html"
-    if html_path.exists():
-        return HTMLResponse(content=html_path.read_text(), media_type="text/html")
-    else:
-        raise HTTPException(status_code=404, detail="Dashboard page not found")
+    return _serve_html_page("index")
 
 @app.get("/data-sources.html")
 async def read_data_sources():
     """Serve the data sources page."""
-    html_path = Path(__file__).parent.parent.parent / "web" / "data-sources.html"
-    if html_path.exists():
-        return HTMLResponse(content=html_path.read_text(), media_type="text/html")
-    else:
-        raise HTTPException(status_code=404, detail="Data sources page not found")
+    return _serve_html_page("data-sources")
 
 @app.get("/api/health")
 async def health_check():
@@ -143,26 +159,17 @@ async def health_check():
 async def get_data_overview():
     """Get overview of available data sources."""
     try:
-        # Get available data
-        data_info = list_available_data.invoke({})
+        # Get available data directly from memory
+        csv_memory = get_csv_memory()
+        csv_data = csv_memory.load_csv_memory().get("csv_data", {})
         
-        # Parse the data info to extract datasets
         datasets = []
-        if "CSV Storage:" in data_info:
-            lines = data_info.split('\n')
-            for line in lines:
-                if line.strip().startswith('- '):
-                    # Parse line like "   - dataset_name: 1234 chars, source: openf1"
-                    parts = line.strip()[2:].split(': ')
-                    if len(parts) >= 2:
-                        name = parts[0]
-                        size_info = parts[1].split(' chars')[0]
-                        source = parts[1].split('source: ')[1] if 'source: ' in parts[1] else 'unknown'
-                        try:
-                            size = int(size_info)
-                            datasets.append(DataSource(name=name, size=size, source=source))
-                        except ValueError:
-                            continue
+        for name, data in csv_data.items():
+            datasets.append(DataSource(
+                name=name,
+                size=data.get("size", 0),
+                source=data.get("source", "unknown")
+            ))
         
         return DataOverview(
             available_datasets=datasets,
@@ -234,8 +241,6 @@ async def download_dataset(dataset_name: str):
 async def chat_with_agent(request: ChatMessage):
     """Chat with the analytics agent."""
     try:
-        import datetime
-        
         # Generate session ID if not provided
         session_id = request.session_id or f"session_{int(datetime.datetime.now().timestamp())}"
         
@@ -297,73 +302,40 @@ async def websocket_chat(websocket: WebSocket):
 @app.get("/api/prp/content")
 async def get_prp_content():
     """Get current PRP content."""
-    try:
-        prp_path = Path(__file__).parent.parent / "prompt" / "product_requirement_prompt.md"
-        if prp_path.exists():
-            content = prp_path.read_text(encoding='utf-8')
-            return {"content": content}
-        else:
-            return {"content": ""}
-    except Exception as e:
-        logger.error(f"Error reading PRP content: {e}")
-        return {"content": ""}
+    content = _read_prp_content()
+    return {"content": content}
 
 @app.get("/api/prp/default")
 async def get_default_prp():
     """Get default PRP content."""
-    try:
-        prp_path = Path(__file__).parent.parent / "prompt" / "product_requirement_prompt.md"
-        if prp_path.exists():
-            content = prp_path.read_text(encoding='utf-8')
-            return Response(content=content, media_type="text/plain")
-        else:
-            return Response(content="# Default PRP\nNo default content available.", media_type="text/plain")
-    except Exception as e:
-        logger.error(f"Error reading default PRP: {e}")
-        return Response(content="# Error\nCould not load default PRP.", media_type="text/plain")
+    content = _read_prp_content()
+    if not content:
+        content = "# Default PRP\nNo default content available."
+    return Response(content=content, media_type="text/plain")
 
 @app.post("/api/prp/save")
 async def save_prp(request: dict):
     """Save custom PRP content."""
-    try:
-        content = request.get("content", "")
-        if not content:
-            raise HTTPException(status_code=400, detail="Content cannot be empty")
-        
-        # Save to main PRP file
-        prp_path = Path(__file__).parent.parent / "prompt" / "product_requirement_prompt.md"
-        prp_path.parent.mkdir(exist_ok=True)
-        prp_path.write_text(content, encoding='utf-8')
-        
-        logger.info(f"PRP saved successfully, {len(content)} characters")
-        return {"status": "success", "message": "PRP saved successfully"}
-        
-    except Exception as e:
-        logger.error(f"Error saving PRP: {e}")
-        raise HTTPException(status_code=500, detail=f"Error saving PRP: {str(e)}")
+    content = request.get("content", "")
+    if not content:
+        raise HTTPException(status_code=400, detail="Content cannot be empty")
+    
+    _write_prp_content(content)
+    logger.info(f"PRP saved successfully, {len(content)} characters")
+    return {"status": "success", "message": "PRP saved successfully"}
 
 @app.post("/api/prp/update-agent")
 async def update_agent_prp(request: dict):
     """Update the agent with new PRP content."""
-    try:
-        content = request.get("content", "")
-        if not content:
-            raise HTTPException(status_code=400, detail="Content cannot be empty")
-        
-        # Update the product_requirement_prompt.md file
-        prp_path = Path(__file__).parent.parent / "prompt" / "product_requirement_prompt.md"
-        prp_path.parent.mkdir(exist_ok=True)
-        prp_path.write_text(content, encoding='utf-8')
-        
-        # Reload the analytics agent with new PRP content
-        reload_analytics_agent()
-        
-        logger.info(f"Agent PRP updated successfully, {len(content)} characters")
-        return {"status": "success", "message": "Agent updated with new PRP"}
-        
-    except Exception as e:
-        logger.error(f"Error updating agent PRP: {e}")
-        raise HTTPException(status_code=500, detail=f"Error updating agent PRP: {str(e)}")
+    content = request.get("content", "")
+    if not content:
+        raise HTTPException(status_code=400, detail="Content cannot be empty")
+    
+    _write_prp_content(content)
+    reload_analytics_agent()
+    
+    logger.info(f"Agent PRP updated successfully, {len(content)} characters")
+    return {"status": "success", "message": "Agent updated with new PRP"}
 
 # Mount static files
 web_dir = Path(__file__).parent.parent.parent / "web"

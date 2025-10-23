@@ -5,7 +5,6 @@ from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import get_openai_client
-from ..tools import get_all_tools
 from ..prompt.analytics_agent_prompt import ANALYTICS_AGENT_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -14,35 +13,33 @@ logger = logging.getLogger(__name__)
 _analytics_agent = None
 
 
-def get_analytics_agent():
+def get_analytics_agent(force_reload=False):
     """Get or create the analytics agent."""
     global _analytics_agent
-    if _analytics_agent is None:
-        _analytics_agent = _create_analytics_agent()
-        logger.info("Analytics agent created")
-    return _analytics_agent
-
-
-def _create_analytics_agent():
-    """Create the analytics ReAct agent with all tools."""
-    llm = get_openai_client()
-    tools = get_all_tools()
     
-    return create_react_agent(
-        model=llm,
-        tools=tools,
-        prompt=ANALYTICS_AGENT_PROMPT,
-        checkpointer=InMemorySaver(),
-        name="analytics_agent"
-    )
+    if _analytics_agent is None or force_reload:
+        from ..tools import get_all_tools
+        
+        llm = get_openai_client()
+        tools = get_all_tools()
+        
+        _analytics_agent = create_react_agent(
+            model=llm,
+            tools=tools,
+            prompt=ANALYTICS_AGENT_PROMPT,
+            checkpointer=InMemorySaver(),
+            name="analytics_agent"
+        )
+        
+        action = "reloaded" if force_reload else "created"
+        logger.info(f"Analytics agent {action}")
+    
+    return _analytics_agent
 
 
 def reload_analytics_agent():
     """Reload the analytics agent."""
-    global _analytics_agent
-    _analytics_agent = None
-    logger.info("Analytics agent reloaded")
-    return get_analytics_agent()
+    return get_analytics_agent(force_reload=True)
 
 
 def invoke_analytics_agent(message: str, config: dict = None) -> str:
@@ -57,12 +54,10 @@ def invoke_analytics_agent(message: str, config: dict = None) -> str:
         Agent response
     """
     if config is None:
-        config = {
-            "configurable": {"thread_id": "analytics_agent_session"},
-            "recursion_limit": 50  # Increased from default 25 to handle complex queries
-        }
-    elif "recursion_limit" not in config:
-        config["recursion_limit"] = 50
+        config = {"configurable": {"thread_id": "analytics_agent_session"}}
+    
+    # Ensure recursion_limit is set
+    config.setdefault("recursion_limit", 50)
     
     agent = get_analytics_agent()
     response = agent.invoke(

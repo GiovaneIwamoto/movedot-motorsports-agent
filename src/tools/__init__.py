@@ -12,6 +12,7 @@ from .analysis_tools import (
     list_available_data,
     quick_data_check,
     clear_csv_cache,
+    cleanup_e2b_sandbox_tool,
     get_analysis_tools
 )
 
@@ -33,6 +34,7 @@ __all__ = [
     "list_available_data",
     "quick_data_check",
     "clear_csv_cache",
+    "cleanup_e2b_sandbox_tool",
     "get_analysis_tools",
     
     # Combined function
