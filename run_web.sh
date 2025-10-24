@@ -64,4 +64,4 @@ echo "Press Ctrl+C to stop the server"
 echo "============================================================"
 
 # Start the server
-python src/api/main.py
+python3 -m src.api.main
