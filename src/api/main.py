@@ -1,33 +1,32 @@
 """FastAPI application for the motorsports analytics agent web interface."""
 
-import logging
-from pathlib import Path
-from typing import List, Optional
 import json
 import datetime
+import pandas as pd
+
+from pathlib import Path
+from typing import List, Optional
+from pydantic import BaseModel
+from io import StringIO
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, Response
-from pydantic import BaseModel
 
-# Add src to path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.agents.analytics_agent import invoke_analytics_agent, reload_analytics_agent
-from src.core import get_csv_memory
+from src.core.memory import get_csv_memory
 
+import logging
 logger = logging.getLogger(__name__)
 
 
 # Helper function to load DataFrames for API endpoints (preview, download)
 def _load_dataframe_from_csv(csv_name: str):
     """Load DataFrame from CSV data for API preview/download."""
-    from io import StringIO
-    import pandas as pd
-    
     csv_memory = get_csv_memory()
     csv_content = csv_memory.get_csv_data(csv_name)
     if csv_content is None:
@@ -65,6 +64,13 @@ def _write_prp_content(content: str) -> None:
     prp_path = _get_prp_path()
     prp_path.parent.mkdir(exist_ok=True)
     prp_path.write_text(content, encoding='utf-8')
+
+def _validate_dataset_exists(dataset_name: str) -> pd.DataFrame:
+    """Validate dataset exists and return DataFrame."""
+    df = _load_dataframe_from_csv(dataset_name)
+    if df is None or df.empty:
+        raise HTTPException(status_code=404, detail="Dataset not found or empty")
+    return df
 
 # Create FastAPI app
 app = FastAPI(
@@ -112,18 +118,11 @@ class ConnectionManager:
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
 
-    async def send_personal_message(self, message: str, websocket: WebSocket):
+    async def send_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            try:
-                await connection.send_text(message)
-            except:
-                # Remove broken connections
-                self.active_connections.remove(connection)
 
 manager = ConnectionManager()
 
@@ -184,11 +183,7 @@ async def get_data_overview():
 async def get_dataset_preview(dataset_name: str):
     """Get preview of a specific dataset."""
     try:
-        # Load the dataframe
-        df = _load_dataframe_from_csv(dataset_name)
-        
-        if df is None or df.empty:
-            raise HTTPException(status_code=404, detail="Dataset not found or empty")
+        df = _validate_dataset_exists(dataset_name)
         
         # Get basic info
         rows = len(df)
@@ -209,6 +204,8 @@ async def get_dataset_preview(dataset_name: str):
             "preview": preview_data
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting dataset preview for {dataset_name}: {e}")
         raise HTTPException(status_code=500, detail=f"Error loading dataset: {str(e)}")
@@ -217,11 +214,7 @@ async def get_dataset_preview(dataset_name: str):
 async def download_dataset(dataset_name: str):
     """Download a specific dataset as CSV."""
     try:
-        # Load the dataframe
-        df = _load_dataframe_from_csv(dataset_name)
-        
-        if df is None or df.empty:
-            raise HTTPException(status_code=404, detail="Dataset not found or empty")
+        df = _validate_dataset_exists(dataset_name)
         
         # Convert to CSV
         csv_content = df.to_csv(index=False)
@@ -233,6 +226,8 @@ async def download_dataset(dataset_name: str):
             headers={"Content-Disposition": f"attachment; filename={dataset_name}"}
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error downloading dataset {dataset_name}: {e}")
         raise HTTPException(status_code=500, detail=f"Error downloading dataset: {str(e)}")
@@ -287,7 +282,7 @@ async def websocket_chat(websocket: WebSocket):
                 "timestamp": datetime.datetime.now().isoformat()
             }
             
-            await manager.send_personal_message(
+            await manager.send_message(
                 json.dumps(response_data), 
                 websocket
             )
@@ -307,7 +302,7 @@ async def get_prp_content():
 
 @app.get("/api/prp/default")
 async def get_default_prp():
-    """Get default PRP content."""
+    """Get default PRP content as plain text."""
     content = _read_prp_content()
     if not content:
         content = "# Default PRP\nNo default content available."

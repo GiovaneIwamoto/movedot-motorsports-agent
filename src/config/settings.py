@@ -1,6 +1,5 @@
 """Application settings and configuration management."""
 
-import os
 from typing import Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -21,7 +20,6 @@ class Settings(BaseSettings):
     
     # File paths
     data_dir: str = Field(default="data", env="DATA_DIR")
-    memory_file: str = Field(default="scratchpad_memory.json", env="MEMORY_FILE")
     csv_memory_file: str = Field(default="csv_memory.json", env="CSV_MEMORY_FILE")
     api_endpoints_file: str = Field(default="_api_endpoints.txt", env="API_ENDPOINTS_FILE")
     

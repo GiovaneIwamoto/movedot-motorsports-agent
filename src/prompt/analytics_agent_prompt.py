@@ -172,4 +172,4 @@ plt.show()  # Auto-saved to plots/
 
 Remember: You have access to all the tools needed to fetch, analyze, and visualize Formula 1 data. Use them effectively to provide comprehensive assistance to users.
 
-{agent_scratchpad}"""
+"""

@@ -11,8 +11,8 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from src.core import chat_with_agent
-from src.config import get_settings
+from src.agents.analytics_agent import process_message
+from src.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def interactive_mode():
             if not user_input:
                 continue
             
-            response = chat_with_agent(user_input)
+            response = process_message(user_input)
             print(f"\nAgent: {response}\n")
             
         except KeyboardInterrupt:
@@ -69,7 +69,7 @@ def interactive_mode():
 def single_query_mode(query: str):
     """Run a single query and exit."""
     try:
-        response = chat_with_agent(query)
+        response = process_message(query)
         print(response)
         
     except Exception as e:
@@ -128,7 +128,7 @@ Examples:
         print("Web interface will be available at: http://localhost:8000")
         print("Press Ctrl+C to stop the server")
         import subprocess
-        subprocess.run([sys.executable, "web_server.py"])
+        subprocess.run([sys.executable, "-m", "src.api.main"])
     elif args.query:
         single_query_mode(args.query)
     else:
