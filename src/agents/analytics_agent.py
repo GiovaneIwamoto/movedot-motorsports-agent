@@ -1,6 +1,7 @@
 """Analytics agent that combines all functionality for data analysis and insights."""
 
 import logging
+import os
 from typing import Optional, Dict, Any
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
@@ -44,6 +45,9 @@ class AnalyticsAgentManager:
         if self._agent is None or force_reload:
             from ..tools import get_all_tools
             
+            # Setup LangSmith tracing (simple approach)
+            self._setup_langsmith_tracing()
+            
             llm = get_openai_client()
             tools = get_all_tools()
             
@@ -56,9 +60,22 @@ class AnalyticsAgentManager:
             )
             
             action = "reloaded" if force_reload else "created"
-            logger.info(f"Analytics agent {action}")
+            logger.info(f"Analytics agent {action} with LangSmith tracing")
         
         return self._agent
+    
+    def _setup_langsmith_tracing(self):
+        """Setup LangSmith tracing with environment variables."""
+        settings = get_settings()
+        
+        if settings.langsmith_api_key:
+            # Set environment variables for LangSmith
+            os.environ["LANGSMITH_TRACING"] = "true"
+            os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
+            os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project
+            logger.info(f"LangSmith tracing enabled for project: {settings.langsmith_project}")
+        else:
+            logger.warning("LangSmith API key not configured. Tracing disabled.")
     
     def reload_agent(self) -> Any:
         """Reload the analytics agent."""
