@@ -83,7 +83,7 @@ def fetch_api_data(endpoint: str, parameters: Optional[Dict[str, Any]] = None) -
             csv_name = generate_csv_name(endpoint, parameters)
             existing_csv = csv_memory.get_csv_data(csv_name)
             if existing_csv:
-                return f"CSV data already exists in memory as '{csv_name}' from {endpoint}\n\nData preview (first 5 lines):\n{existing_csv.split(chr(10))[:5]}\n\nNo new API call needed - using cached data."
+                return f"CSV data already exists in memory as '{csv_name}' from {endpoint}"
         
         # Make the HTTP request
         with httpx.Client() as client:
@@ -96,7 +96,7 @@ def fetch_api_data(endpoint: str, parameters: Optional[Dict[str, Any]] = None) -
                 csv_memory = get_csv_memory()
                 csv_name = generate_csv_name(endpoint, parameters)
                 csv_memory.store_csv_data(csv_name, response.text, "OpenF1")
-                return f"CSV data fetched and stored as '{csv_name}' from {endpoint}\n\nData preview (first 5 lines):\n{response.text.split(chr(10))[:5]}"
+                return f"CSV data fetched and stored as '{csv_name}' from {endpoint}"
             
             # For other APIs, try JSON first, then fall back to text
             try:
