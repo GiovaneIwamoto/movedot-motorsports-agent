@@ -116,10 +116,22 @@ def get_or_create_e2b_sandbox(csv_list: list, csv_memory):
     import os
     os.environ['E2B_API_KEY'] = settings.e2b_api_key
     
+    # Get ALL available CSVs from memory, not just the requested ones
+    all_available_csvs = csv_memory.list_available_csvs()
+    if "message" in all_available_csvs:
+        # No CSVs available, use only requested ones
+        all_csv_names = csv_list
+    else:
+        # Get all available CSV names and combine with requested ones
+        all_csv_names = list(set(csv_list + list(all_available_csvs["available_datasets"].keys())))
+    
+    logger.info(f"Requested CSVs: {csv_list}")
+    logger.info(f"All available CSVs: {all_csv_names}")
+    
     # Check if we need to create a new sandbox
     need_new_sandbox = (
         _e2b_sandbox is None or 
-        set(csv_list) != set(_sandbox_csv_data.keys())
+        not all(csv in _sandbox_csv_data for csv in all_csv_names)
     )
     
     if need_new_sandbox:
@@ -137,8 +149,8 @@ def get_or_create_e2b_sandbox(csv_list: list, csv_memory):
         _sandbox_csv_data = {}
         
         # Upload CSVs to sandbox filesystem (E2B best practice)
-        logger.info(f"Uploading {len(csv_list)} CSV files to sandbox filesystem...")
-        for csv_name in csv_list:
+        logger.info(f"Uploading {len(all_csv_names)} CSV files to sandbox filesystem...")
+        for csv_name in all_csv_names:
             csv_content = csv_memory.get_csv_data(csv_name)
             if csv_content:
                 # Upload CSV to /data/ directory in sandbox filesystem
@@ -146,8 +158,16 @@ def get_or_create_e2b_sandbox(csv_list: list, csv_memory):
                 _e2b_sandbox.files.write(file_path, csv_content)
                 _sandbox_csv_data[csv_name] = file_path
                 logger.info(f"Uploaded {csv_name} to {file_path}")
+            else:
+                logger.warning(f"CSV content not found for {csv_name}")
         
         logger.info(f"E2B sandbox ready with {len(_sandbox_csv_data)} CSV files in /data/")
+    
+    # Verify that all requested CSVs are available
+    missing_csvs = [csv for csv in csv_list if csv not in _sandbox_csv_data]
+    if missing_csvs:
+        logger.error(f"Missing CSVs in sandbox: {missing_csvs}")
+        logger.error(f"Available CSVs: {list(_sandbox_csv_data.keys())}")
     
     return _e2b_sandbox, list(_sandbox_csv_data.keys())
 
