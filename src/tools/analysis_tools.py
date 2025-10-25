@@ -107,7 +107,7 @@ def debug_csv_storage() -> str:
         csv_data = csv_memory.load_csv_memory().get("csv_data", {})
         result += f"Persistent CSV storage: {len(csv_data)} items\n"
         for name, data in csv_data.items():
-            result += f"  - {name}: {data['size']} chars, source: {data['source']}\n"
+            result += f"  - {name}\n"
         
         # Check cache status
         result += f"\nCache status:\n"
@@ -137,7 +137,7 @@ def list_available_data() -> str:
         csv_data = csv_memory.load_csv_memory().get("csv_data", {})
         if csv_data:
             for name, data in csv_data.items():
-                result += f"   - {name}: {data['size']} chars, source: {data['source']}\n"
+                result += f"   - {name}\n"
         else:
             result += "   - No CSV data available\n"
         
