@@ -2,6 +2,7 @@
 
 import logging
 import os
+from datetime import datetime
 from typing import Optional, Dict, Any
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
@@ -10,8 +11,8 @@ from ..config import get_openai_client, get_settings
 from ..prompt.analytics_agent_prompt import ANALYTICS_AGENT_PROMPT
 
 # Constants
-DEFAULT_THREAD_ID = "analytics_agent_session"
 DEFAULT_RECURSION_LIMIT = 50
+DEFAULT_THREAD_ID = "analytics_agent_session"
 DEFAULT_AGENT_NAME = "analytics_agent"
 
 logger = logging.getLogger(__name__)
@@ -45,8 +46,14 @@ class AnalyticsAgentManager:
         if self._agent is None or force_reload:
             from ..tools import get_all_tools
             
-            # Setup LangSmith tracing (simple approach)
+            # Setup LangSmith tracing
             self._setup_langsmith_tracing()
+            
+            # Get current date for temporal context
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            
+            # Format the prompt with temporal context
+            formatted_prompt = ANALYTICS_AGENT_PROMPT.format(current_date=current_date)
             
             llm = get_openai_client()
             tools = get_all_tools()
@@ -54,13 +61,13 @@ class AnalyticsAgentManager:
             self._agent = create_react_agent(
                 model=llm,
                 tools=tools,
-                prompt=ANALYTICS_AGENT_PROMPT,
+                prompt=formatted_prompt,
                 checkpointer=InMemorySaver(),
                 name=DEFAULT_AGENT_NAME
             )
             
             action = "reloaded" if force_reload else "created"
-            logger.info(f"Analytics agent {action} with LangSmith tracing")
+            logger.info(f"Analytics agent {action} with LangSmith tracing and current date: {current_date}")
         
         return self._agent
     
@@ -127,6 +134,7 @@ def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None
     
     try:
         agent = get_analytics_agent()
+        
         response = agent.invoke(
             {"messages": [{"role": "user", "content": message}]},
             config
