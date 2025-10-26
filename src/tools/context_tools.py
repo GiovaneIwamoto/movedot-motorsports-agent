@@ -16,31 +16,98 @@ from ..utils import generate_csv_name
 logger = logging.getLogger(__name__)
 
 
-@tool
-def load_product_requirement_prompt() -> str:
-    """
-    Load the product requirement prompt content from the repository.
-    This file contains authoritative, detailed guidance on how to use the OpenF1 API.
-    ALWAYS read this before constructing any API fetch.
-    """
+def _load_endpoint_documentation(endpoint_name: str) -> str:
+    """Helper function to load endpoint-specific documentation."""
     try:
-        # Resolve path: src/tools -> src -> prompt/product_requirement_prompt.md
         this_file = Path(__file__).resolve()
-        product_prompt_path = this_file.parents[1] / "prompt" / "product_requirement_prompt.md"
-
-        if not product_prompt_path.exists():
-            return f"Product requirement prompt not found at: {product_prompt_path}"
-
-        with open(product_prompt_path, "r", encoding="utf-8") as f:
+        doc_path = this_file.parents[1] / "docs" / f"prp_{endpoint_name}.md"
+        
+        if not doc_path.exists():
+            return f"Documentation for {endpoint_name} not found at: {doc_path}"
+        
+        with open(doc_path, "r", encoding="utf-8") as f:
             content = f.read()
-
+        
         if not content.strip():
-            return "Product requirement prompt file is empty."
-
+            return f"Documentation file for {endpoint_name} is empty."
+        
         return content
     except Exception as e:
-        logger.error(f"Error loading product requirement prompt: {str(e)}")
-        return f"Error loading product requirement prompt: {str(e)}"
+        logger.error(f"Error loading {endpoint_name} documentation: {str(e)}")
+        return f"Error loading {endpoint_name} documentation: {str(e)}"
+
+
+@tool
+def get_meetings_documentation() -> str:
+    """Get detailed documentation for meetings endpoint (Grand Prix events)."""
+    return _load_endpoint_documentation("meetings")
+
+
+@tool
+def get_sessions_documentation() -> str:
+    """Get detailed documentation for sessions endpoint (Practice, Qualifying, Race)."""
+    return _load_endpoint_documentation("sessions")
+
+
+@tool
+def get_drivers_documentation() -> str:
+    """Get detailed documentation for drivers endpoint (driver information)."""
+    return _load_endpoint_documentation("drivers")
+
+
+@tool
+def get_car_data_documentation() -> str:
+    """Get detailed documentation for car_data endpoint (telemetry data)."""
+    return _load_endpoint_documentation("car_data")
+
+
+@tool
+def get_laps_documentation() -> str:
+    """Get detailed documentation for laps endpoint (lap-by-lap performance)."""
+    return _load_endpoint_documentation("laps")
+
+
+@tool
+def get_positions_documentation() -> str:
+    """Get detailed documentation for position endpoint (track positions)."""
+    return _load_endpoint_documentation("positions")
+
+
+@tool
+def get_pit_stops_documentation() -> str:
+    """Get detailed documentation for pit endpoint (pit stop information)."""
+    return _load_endpoint_documentation("pit_stops")
+
+
+@tool
+def get_intervals_documentation() -> str:
+    """Get detailed documentation for intervals endpoint (time gaps between cars)."""
+    return _load_endpoint_documentation("intervals")
+
+
+@tool
+def get_stints_documentation() -> str:
+    """Get detailed documentation for stints endpoint (tire strategy)."""
+    return _load_endpoint_documentation("stints")
+
+
+@tool
+def get_weather_documentation() -> str:
+    """Get detailed documentation for weather endpoint (track conditions)."""
+    return _load_endpoint_documentation("weather")
+
+
+@tool
+def get_race_control_documentation() -> str:
+    """Get detailed documentation for race_control endpoint (flags, incidents)."""
+    return _load_endpoint_documentation("race_control")
+
+
+@tool
+def get_team_radio_documentation() -> str:
+    """Get detailed documentation for team_radio endpoint (driver-team communications)."""
+    return _load_endpoint_documentation("team_radio")
+
 
 @tool
 def fetch_api_data(endpoint: str, parameters: Optional[Dict[str, Any]] = None) -> str:
@@ -116,6 +183,19 @@ def fetch_api_data(endpoint: str, parameters: Optional[Dict[str, Any]] = None) -
 def get_context_tools():
     """Get all context tools."""
     return [
-        load_product_requirement_prompt,
+        # Documentation tools
+        get_meetings_documentation,
+        get_sessions_documentation,
+        get_drivers_documentation,
+        get_car_data_documentation,
+        get_laps_documentation,
+        get_positions_documentation,
+        get_pit_stops_documentation,
+        get_intervals_documentation,
+        get_stints_documentation,
+        get_weather_documentation,
+        get_race_control_documentation,
+        get_team_radio_documentation,
+        # API tools
         fetch_api_data,
     ]

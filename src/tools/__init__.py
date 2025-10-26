@@ -1,7 +1,20 @@
 """Tools for the agent system."""
 
 from .context_tools import (
-    load_product_requirement_prompt,
+    # Documentation tools
+    get_meetings_documentation,
+    get_sessions_documentation,
+    get_drivers_documentation,
+    get_car_data_documentation,
+    get_laps_documentation,
+    get_positions_documentation,
+    get_pit_stops_documentation,
+    get_intervals_documentation,
+    get_stints_documentation,
+    get_weather_documentation,
+    get_race_control_documentation,
+    get_team_radio_documentation,
+    # API tools
     fetch_api_data,
     get_context_tools
 )
@@ -23,8 +36,20 @@ def get_all_tools():
     return context_tools + analysis_tools
 
 __all__ = [
+    # Documentation tools
+    "get_meetings_documentation",
+    "get_sessions_documentation",
+    "get_drivers_documentation",
+    "get_car_data_documentation",
+    "get_laps_documentation",
+    "get_positions_documentation",
+    "get_pit_stops_documentation",
+    "get_intervals_documentation",
+    "get_stints_documentation",
+    "get_weather_documentation",
+    "get_race_control_documentation",
+    "get_team_radio_documentation",
     # Context tools
-    "load_product_requirement_prompt",
     "fetch_api_data",
     "get_context_tools",
     
