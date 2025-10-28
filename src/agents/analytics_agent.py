@@ -150,6 +150,60 @@ def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None
         raise RuntimeError(f"Agent invocation failed: {str(e)}") from e
 
 
+async def stream_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None):
+    """
+    Stream the analytics agent response token by token.
+    
+    Args:
+        message: User message
+        config: Configuration for the agent
+        
+    Yields:
+        Tuple of (event_type, data) for SSE streaming
+        
+    Raises:
+        ValueError: If message is empty or invalid
+        RuntimeError: If agent fails to process the message
+    """
+    if not message or not message.strip():
+        raise ValueError("Message cannot be empty")
+    
+    if config is None:
+        config = {"configurable": {"thread_id": DEFAULT_THREAD_ID}}
+    
+    # Ensure recursion_limit is set
+    config.setdefault("recursion_limit", DEFAULT_RECURSION_LIMIT)
+    
+    try:
+        agent = get_analytics_agent()
+        
+        # Stream using LangGraph's astream with messages mode
+        async for chunk, metadata in agent.astream(
+            {"messages": [{"role": "user", "content": message}]},
+            config,
+            stream_mode="messages"
+        ):
+            # Check if this is a content chunk from the LLM
+            if hasattr(chunk, 'content') and chunk.content:
+                # Yield token event for SSE
+                yield ("token", {"content": chunk.content})
+            elif isinstance(chunk, dict) and "messages" in chunk:
+                # Handle message chunks
+                for msg in chunk["messages"]:
+                    if hasattr(msg, 'content') and msg.content:
+                        yield ("token", {"content": msg.content})
+        
+        # Yield completion event
+        yield ("complete", {
+            "status": "done", 
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to stream analytics agent: {str(e)}")
+        yield ("error", {"error": f"Agent streaming failed: {str(e)}"})
+
+
 def process_message(message: str, config: Optional[Dict[str, Any]] = None) -> str:
     """
     Process a message using the analytics agent.

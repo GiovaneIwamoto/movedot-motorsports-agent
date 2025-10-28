@@ -3,10 +3,9 @@
 class MotorsportsAnalytics {
     constructor() {
         this.apiBase = '/api';
-        this.wsUrl = `ws://${window.location.host}/ws/chat`;
         this.sessionId = this.generateSessionId();
         this.analysisCount = 0;
-        this.ws = null;
+        this.currentEventSource = null;
         this.queryStartTime = null;
         this.isProcessingQuery = false; // Prevent multiple simultaneous queries
         this.queryMetrics = {
@@ -54,15 +53,15 @@ class MotorsportsAnalytics {
     async init() {
         this.setupEventListeners();
         await this.loadDataOverview();
-        this.connectWebSocket();
         this.startStatusUpdater();
+        this.updateConnectionStatus(true); // SSE is always available
         this.initAnimatedPlaceholder();
         this.checkPendingDatasetAnalysis();
         // Don't load chat history automatically - start fresh each time
         // this.loadChatHistory();
         
-        // Clear any existing chat history to start fresh
-        this.clearChatHistory();
+        // Don't clear chat history - preserve messages between interactions
+        // this.clearChatHistory();
         
         this.checkNavigationContext();
         
@@ -478,37 +477,6 @@ class MotorsportsAnalytics {
         return `${truncated}...${extension ? '.' + extension : ''}`;
     }
 
-    connectWebSocket() {
-        try {
-            this.ws = new WebSocket(this.wsUrl);
-            
-            this.ws.onopen = () => {
-                console.log('WebSocket connected');
-                this.updateConnectionStatus(true);
-            };
-            
-            this.ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                this.handleWebSocketMessage(data);
-            };
-            
-            this.ws.onclose = () => {
-                console.log('WebSocket disconnected');
-                this.updateConnectionStatus(false);
-                // Reconnect after 3 seconds
-                setTimeout(() => this.connectWebSocket(), 3000);
-            };
-            
-            this.ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                this.updateConnectionStatus(false);
-            };
-            
-        } catch (error) {
-            console.error('Error connecting WebSocket:', error);
-            this.updateConnectionStatus(false);
-        }
-    }
 
     updateConnectionStatus(connected) {
         const statusIndicator = document.getElementById('connection-status');
@@ -624,16 +592,8 @@ class MotorsportsAnalytics {
         // The typing indicator will be cleared when response arrives
         
         try {
-            // Try WebSocket first, fallback to HTTP
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.ws.send(JSON.stringify({
-                    message: message,
-                    session_id: this.sessionId
-                }));
-            } else {
-                // Fallback to HTTP API
-                await this.sendMessageHTTP(message);
-            }
+            // Use SSE for streaming response
+            await this.sendMessageSSE(message);
         } catch (error) {
             console.error('Error sending message:', error);
             this.isProcessingQuery = false; // Reset processing flag
@@ -644,36 +604,150 @@ class MotorsportsAnalytics {
         }
     }
 
-    async sendMessageHTTP(message) {
+    cleanupStreamingState() {
+        // Remove only the streaming message container (not individual text elements)
+        const existingStreamingMessage = document.getElementById('streaming-message');
+        if (existingStreamingMessage) {
+            existingStreamingMessage.remove();
+        }
+        
+        // Hide any typing indicator
+        this.hideTypingIndicator();
+    }
+
+    async sendMessageSSE(message) {
         try {
-            const response = await fetch(`${this.apiBase}/chat`, {
+            // Clean up any previous streaming state
+            this.cleanupStreamingState();
+            
+            // Close any existing EventSource
+            if (this.currentEventSource) {
+                this.currentEventSource.close();
+            }
+            
+            // Create new agent message element for streaming
+            const messagesContainer = document.getElementById('chat-messages');
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message agent-message framer-fade-in';
+            messageElement.id = 'streaming-message';
+            
+            const time = new Date().toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            messageElement.innerHTML = `
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-text" id="streaming-text"></div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageElement);
+            
+            // Scroll to bottom
+            messagesContainer.scrollTo({
+                top: messagesContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+            
+            // Hide typing indicator
+            this.hideTypingIndicator();
+            
+            // Create EventSource for SSE
+            const url = `${this.apiBase}/chat/stream`;
+            const requestBody = JSON.stringify({
+                message: message,
+                session_id: this.sessionId
+            });
+            
+            // Use POST with EventSource (we'll need to modify this approach)
+            // For now, let's use a different approach with fetch and ReadableStream
+            await this.streamWithFetch(url, requestBody);
+            
+        } catch (error) {
+            console.error('Error in SSE:', error);
+            throw error;
+        }
+    }
+    
+    async streamWithFetch(url, requestBody) {
+        try {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    message: message,
-                    session_id: this.sessionId
-                })
+                body: requestBody
             });
             
-            const data = await response.json();
-            this.handleChatResponse(data);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let currentEventType = '';
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+                
+                buffer += decoder.decode(value, { stream: true });
+                
+                // Process complete events
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // Keep incomplete line in buffer
+                
+                for (const line of lines) {
+                    if (line.startsWith('event: ')) {
+                        currentEventType = line.substring(7).trim();
+                        continue;
+                    }
+                    
+                    if (line.startsWith('data: ')) {
+                        const data = line.substring(6);
+                        if (data.trim()) {
+                            try {
+                                const parsedData = JSON.parse(data);
+                                await this.handleSSEEvent(currentEventType, parsedData);
+                            } catch (e) {
+                                console.error('Error parsing SSE data:', e);
+                            }
+                        }
+                    }
+                }
+            }
             
         } catch (error) {
-            console.error('HTTP request failed:', error);
-            this.isProcessingQuery = false; // Reset processing flag
-            this.hideTypingIndicator();
-            this.addMessage('Connection error. Please check your internet.', 'agent');
-            this.showQueryStatus('error', 'Connection error');
+            console.error('Error in fetch streaming:', error);
+            throw error;
         }
     }
-
-    handleWebSocketMessage(data) {
-        if (data.type === 'agent_response') {
-            this.isProcessingQuery = false; // Reset processing flag
-            this.hideTypingIndicator();
-            this.addMessage(data.response, 'agent');
+    
+    async handleSSEEvent(eventType, data) {
+        const streamingText = document.getElementById('streaming-text');
+        
+        if (eventType === 'token' && streamingText) {
+            // Append token to streaming message
+            streamingText.textContent += data.content;
+            
+            // Scroll to bottom
+            const messagesContainer = document.getElementById('chat-messages');
+            messagesContainer.scrollTo({
+                top: messagesContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+            
+        } else if (eventType === 'complete') {
+            // Mark streaming as complete
+            this.isProcessingQuery = false;
             this.analysisCount++;
             this.updateMetrics(document.getElementById('total-datasets').textContent);
             
@@ -681,9 +755,47 @@ class MotorsportsAnalytics {
             const responseTime = Date.now() - this.queryStartTime;
             this.showQueryStatus('success', `Completed in ${responseTime}ms`);
             this.updateQueryMetrics(responseTime, true);
-            this.updateStatusIndicator(); // Update status after completion
+            this.updateStatusIndicator();
+            
+            // Remove streaming ID to prevent future conflicts, but keep the message
+            const streamingMessage = document.getElementById('streaming-message');
+            if (streamingMessage) {
+                streamingMessage.removeAttribute('id');
+                // Also remove the streaming-text ID to prevent conflicts
+                const streamingText = streamingMessage.querySelector('#streaming-text');
+                if (streamingText) {
+                    streamingText.removeAttribute('id');
+                }
+            }
+            
+            // Save chat history
+            this.saveChatHistory();
+            
+        } else if (eventType === 'error') {
+            // Handle error
+            this.isProcessingQuery = false;
+            this.hideTypingIndicator();
+            
+            if (streamingText) {
+                streamingText.textContent = 'Error: ' + data.error;
+            }
+            
+            // Remove streaming ID to prevent future conflicts, but keep the message
+            const streamingMessage = document.getElementById('streaming-message');
+            if (streamingMessage) {
+                streamingMessage.removeAttribute('id');
+                // Also remove the streaming-text ID to prevent conflicts
+                const streamingText = streamingMessage.querySelector('#streaming-text');
+                if (streamingText) {
+                    streamingText.removeAttribute('id');
+                }
+            }
+            
+            this.showQueryStatus('error', 'Streaming error');
+            this.updateQueryMetrics(Date.now() - this.queryStartTime, false);
         }
     }
+
 
     handleChatResponse(data) {
         this.isProcessingQuery = false; // Reset processing flag

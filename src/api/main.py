@@ -9,15 +9,15 @@ from typing import List, Optional
 from pydantic import BaseModel
 from io import StringIO
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, Response, StreamingResponse
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.agents.analytics_agent import invoke_analytics_agent, reload_analytics_agent
+from src.agents.analytics_agent import invoke_analytics_agent, reload_analytics_agent, stream_analytics_agent
 from src.core.memory import get_csv_memory
 
 import logging
@@ -108,23 +108,9 @@ class DataOverview(BaseModel):
     available_datasets: List[DataSource]
     total_datasets: int
 
-# WebSocket connection manager
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
-
-    async def send_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
-
-manager = ConnectionManager()
+# SSE streaming imports
+import asyncio
+import json
 
 @app.get("/")
 async def read_root():
@@ -262,36 +248,55 @@ async def chat_with_agent(request: ChatMessage):
         logger.error(f"Error in chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.websocket("/ws/chat")
-async def websocket_chat(websocket: WebSocket):
-    """WebSocket endpoint for real-time chat."""
-    await manager.connect(websocket)
+@app.post("/api/chat/stream")
+async def stream_chat_with_agent(request: ChatMessage):
+    """Stream chat with the analytics agent using Server-Sent Events."""
     try:
-        while True:
-            # Receive message from client
-            data = await websocket.receive_text()
-            message_data = json.loads(data)
-            
-            # Process with agent
-            response = invoke_analytics_agent(message_data.get("message", ""))
-            
-            # Send response back
-            response_data = {
-                "type": "agent_response",
-                "response": response,
-                "timestamp": datetime.datetime.now().isoformat()
+        # Generate session ID if not provided
+        session_id = request.session_id or f"session_{int(datetime.datetime.now().timestamp())}"
+        
+        # Configuration for the agent
+        config = {"configurable": {"thread_id": session_id}}
+        
+        async def generate_sse_stream():
+            """Generate SSE stream from agent response."""
+            try:
+                # Stream tokens from the agent
+                async for event_type, data in stream_analytics_agent(request.message, config):
+                    if event_type == "token":
+                        # Send token event
+                        yield f"event: token\n"
+                        yield f"data: {json.dumps(data)}\n\n"
+                    elif event_type == "complete":
+                        # Send completion event
+                        yield f"event: complete\n"
+                        yield f"data: {json.dumps(data)}\n\n"
+                        break
+                    elif event_type == "error":
+                        # Send error event
+                        yield f"event: error\n"
+                        yield f"data: {json.dumps(data)}\n\n"
+                        break
+                        
+            except Exception as e:
+                logger.error(f"Error in SSE stream: {e}")
+                yield f"event: error\n"
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        
+        return StreamingResponse(
+            generate_sse_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Cache-Control"
             }
-            
-            await manager.send_message(
-                json.dumps(response_data), 
-                websocket
-            )
-            
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        )
+        
     except Exception as e:
-        logger.error(f"WebSocket error: {e}")
-        manager.disconnect(websocket)
+        logger.error(f"Error in SSE chat endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # PRP Editor API endpoints
 @app.get("/api/prp/content")
