@@ -153,6 +153,7 @@ def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None
 async def stream_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None):
     """
     Stream the analytics agent response token by token.
+    Only streams the final LLM response, filtering out tool outputs and intermediate steps.
     
     Args:
         message: User message
@@ -177,21 +178,25 @@ async def stream_analytics_agent(message: str, config: Optional[Dict[str, Any]] 
     try:
         agent = get_analytics_agent()
         
-        # Stream using LangGraph's astream with messages mode
+        # Stream only messages mode to get LLM tokens
+        # This approach filters out tool outputs and intermediate steps
         async for chunk, metadata in agent.astream(
             {"messages": [{"role": "user", "content": message}]},
             config,
             stream_mode="messages"
         ):
-            # Check if this is a content chunk from the LLM
+            # Only stream content from LLM responses, not tool outputs
             if hasattr(chunk, 'content') and chunk.content:
-                # Yield token event for SSE
-                yield ("token", {"content": chunk.content})
-            elif isinstance(chunk, dict) and "messages" in chunk:
-                # Handle message chunks
-                for msg in chunk["messages"]:
-                    if hasattr(msg, 'content') and msg.content:
-                        yield ("token", {"content": msg.content})
+                # Get the node name from metadata
+                node_name = metadata.get("langgraph_node", "")
+                
+                # Filter to only include final agent responses
+                # Skip tool execution nodes and intermediate steps
+                # The main agent node typically has names like "agent", "analytics_agent", or is empty
+                if (not node_name or  # Empty node name often indicates main agent
+                    node_name in ["agent", "analytics_agent", DEFAULT_AGENT_NAME] or
+                    "agent" in node_name.lower()):
+                    yield ("token", {"content": chunk.content})
         
         # Yield completion event
         yield ("complete", {
