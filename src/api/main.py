@@ -135,6 +135,7 @@ async def read_data_sources():
     """Serve the data sources page."""
     return _serve_html_page("data-sources")
 
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""

@@ -384,13 +384,19 @@ class MotorsportsAnalytics {
     updateDataSources(datasets) {
         const container = document.getElementById('data-sources');
         const countElement = document.getElementById('data-count');
+
+        // If not on data-sources page, safely skip
+        if (!container) {
+            console.warn('Data sources container not found; skipping update');
+            return;
+        }
         
         // Update count
         if (countElement) {
             countElement.textContent = `${datasets.length} dataset${datasets.length !== 1 ? 's' : ''}`;
         }
         
-        if (datasets.length === 0) {
+        if (!Array.isArray(datasets) || datasets.length === 0) {
             container.innerHTML = '<div class="loading">No datasets available</div>';
             return;
         }
@@ -605,6 +611,12 @@ class MotorsportsAnalytics {
     }
 
     cleanupStreamingState() {
+        // Clear streaming markdown renderer
+        if (this.streamingMarkdownRenderer) {
+            this.streamingMarkdownRenderer.clear();
+            this.streamingMarkdownRenderer = null;
+        }
+        
         // Remove only the streaming message container (not individual text elements)
         const existingStreamingMessage = document.getElementById('streaming-message');
         if (existingStreamingMessage) {
@@ -614,6 +626,8 @@ class MotorsportsAnalytics {
         // Hide any typing indicator
         this.hideTypingIndicator();
     }
+
+    // Using MarkdownRenderer for streaming markdown
 
     async sendMessageSSE(message) {
         try {
@@ -646,6 +660,17 @@ class MotorsportsAnalytics {
                     <div class="message-time">${time}</div>
                 </div>
             `;
+            
+            // Initialize renderer for streaming
+            const streamingTextElement = messageElement.querySelector('#streaming-text');
+            if (window.MarkdownRenderer) {
+                this.streamingMarkdownRenderer = new window.MarkdownRenderer(streamingTextElement, {
+                    parseIncompleteMarkdown: false,
+                    className: 'minimalist-markdown',
+                    enableSyntaxHighlighting: false,
+                    streamingSpeed: 8
+                });
+            }
             
             messagesContainer.appendChild(messageElement);
             
@@ -735,8 +760,11 @@ class MotorsportsAnalytics {
         const streamingText = document.getElementById('streaming-text');
         
         if (eventType === 'token' && streamingText) {
-            // Append token to streaming message
-            streamingText.textContent += data.content;
+            if (this.streamingMarkdownRenderer) {
+                this.streamingMarkdownRenderer.appendToken(data.content);
+            } else {
+                streamingText.textContent += data.content;
+            }
             
             // Scroll to bottom
             const messagesContainer = document.getElementById('chat-messages');
@@ -746,6 +774,12 @@ class MotorsportsAnalytics {
             });
             
         } else if (eventType === 'complete') {
+            // Finish streaming markdown
+            if (this.streamingMarkdownRenderer) {
+                this.streamingMarkdownRenderer.finishStreaming();
+                this.streamingMarkdownRenderer = null;
+            }
+            
             // Mark streaming as complete
             this.isProcessingQuery = false;
             this.analysisCount++;
@@ -775,6 +809,12 @@ class MotorsportsAnalytics {
             // Handle error
             this.isProcessingQuery = false;
             this.hideTypingIndicator();
+            
+            // Clear streaming markdown renderer
+            if (this.streamingMarkdownRenderer) {
+                this.streamingMarkdownRenderer.clear();
+                this.streamingMarkdownRenderer = null;
+            }
             
             if (streamingText) {
                 streamingText.textContent = 'Error: ' + data.error;
@@ -816,7 +856,7 @@ class MotorsportsAnalytics {
         }
     }
 
-    addMessage(content, sender) {
+    async addMessage(content, sender) {
         const messagesContainer = document.getElementById('chat-messages');
         const messageElement = document.createElement('div');
         messageElement.className = `message ${sender}-message framer-fade-in`;
@@ -832,12 +872,24 @@ class MotorsportsAnalytics {
                 <i class="${avatar}"></i>
             </div>
             <div class="message-content">
-                <div class="message-text">${this.formatMessage(content)}</div>
+                <div class="message-text"></div>
                 <div class="message-time">${time}</div>
             </div>
         `;
         
         messagesContainer.appendChild(messageElement);
+        
+        // Render markdown using MarkdownRenderer if available
+        const messageTextEl = messageElement.querySelector('.message-text');
+        if (window.MarkdownRenderer && messageTextEl) {
+            const tempRenderer = new window.MarkdownRenderer(messageTextEl, {
+                enableSyntaxHighlighting: false,
+                className: 'minimalist-markdown'
+            });
+            await tempRenderer.setContent(content);
+        } else if (messageTextEl) {
+            messageTextEl.innerHTML = this.basicFormatFallback(content);
+        }
         
         // Save chat history after adding message
         this.saveChatHistory();
@@ -849,8 +901,7 @@ class MotorsportsAnalytics {
         });
     }
 
-    formatMessage(content) {
-        // Basic markdown-like formatting
+    basicFormatFallback(content) {
         return content
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
