@@ -580,50 +580,50 @@ body::after {
 }
 
 .message-text {
-    background: var(--bg-tertiary);
-    padding: 0.4rem 0.8rem;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-color);
     line-height: 1.4;
     word-wrap: break-word;
-    backdrop-filter: blur(10px);
-    position: relative;
-    transition: var(--transition-normal);
     font-size: 0.9rem;
-    max-width: 50%;
-    min-width: auto;
-    width: fit-content;
-    display: block;
     margin-bottom: 0.3rem;
 }
 
-
-.user-message .message-text {
-    background: rgba(100, 100, 100, 0.8);
-    color: var(--text-primary);
-    border-color: rgba(100, 100, 100, 0.3);
-    text-align: right;
-    width: fit-content;
-    max-width: 70%;
-    margin-left: auto;
-}
-
-
-.user-message .message-avatar {
-    background: rgba(100, 100, 100, 0.8);
-    color: var(--text-primary);
-    border: 1px solid rgba(100, 100, 100, 0.3);
-}
-
-/* Agent message text styling */
+/* Minimalist speech bubble styles */
 .agent-message .message-text {
-    background: var(--bg-tertiary);
     color: var(--text-primary);
-    border-color: var(--border-color);
     text-align: left;
-    width: fit-content;
     max-width: 70%;
     margin-right: auto;
+    background: #252525;
+    border: 1px solid rgba(51, 51, 51, 0.5);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+}
+
+.user-message .message-text {
+    color: var(--text-primary);
+    text-align: right;
+    max-width: 70%;
+    margin-left: auto;
+    background: rgba(42, 42, 42, 0.6);
+    border: 1px solid rgba(51, 51, 51, 0.5);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+}
+
+/* Ensure markdown messages also have bubble styles */
+.agent-message .message-text.minimalist-markdown {
+    background: #252525 !important;
+    border: 1px solid rgba(51, 51, 51, 0.5) !important;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: none !important;
+}
+
+.user-message .message-text.minimalist-markdown {
+    background: rgba(42, 42, 42, 0.6) !important;
+    border: 1px solid rgba(51, 51, 51, 0.5) !important;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: none !important;
 }
 
 .message-time {
@@ -2217,10 +2217,10 @@ body::after {
         max-width: 150px;
     }
     
-    /* Mobile chat bubble adjustments */
+    /* Mobile message adjustments */
     .message-text {
         max-width: 80%;
-        padding: 0.3rem 0.6rem;
+        padding: 0;
         font-size: 0.85rem;
     }
     

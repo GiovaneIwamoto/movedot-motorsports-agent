@@ -28,7 +28,14 @@ class MarkdownRenderer {
     }
     
     initContainer() {
-        this.container.className = this.options.className;
+        // CRITICAL: Preserve existing classes, especially 'message-text'
+        const existingClasses = this.container.className.split(' ').filter(cls => cls && cls !== this.options.className);
+        const classList = [...existingClasses, this.options.className];
+        // Ensure message-text is always present
+        if (!classList.includes('message-text')) {
+            classList.push('message-text');
+        }
+        this.container.className = classList.join(' ');
         this.container.innerHTML = '';
         this.container.setAttribute('data-markdown-renderer', 'true');
     }
@@ -54,6 +61,11 @@ class MarkdownRenderer {
     word-wrap: break-word;
     overflow-wrap: break-word;
     font-size: 0.9rem;
+}
+
+/* Message text styling - simple text without containers */
+.message-text.minimalist-markdown {
+    /* Plain text styling only */
 }
 
 /* Clear visual hierarchy - Headings */

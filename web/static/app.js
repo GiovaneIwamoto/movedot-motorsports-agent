@@ -663,13 +663,19 @@ class MotorsportsAnalytics {
             
             // Initialize renderer for streaming
             const streamingTextElement = messageElement.querySelector('#streaming-text');
-            if (window.MarkdownRenderer) {
+            if (window.MarkdownRenderer && streamingTextElement) {
+                // Ensure message-text class is preserved
+                if (!streamingTextElement.classList.contains('message-text')) {
+                    streamingTextElement.classList.add('message-text');
+                }
                 this.streamingMarkdownRenderer = new window.MarkdownRenderer(streamingTextElement, {
                     parseIncompleteMarkdown: false,
                     className: 'minimalist-markdown',
                     enableSyntaxHighlighting: false,
                     streamingSpeed: 8
                 });
+                // Ensure message-text class is preserved after renderer init
+                streamingTextElement.classList.add('message-text');
             }
             
             messagesContainer.appendChild(messageElement);
@@ -882,11 +888,17 @@ class MotorsportsAnalytics {
         // Render markdown using MarkdownRenderer if available
         const messageTextEl = messageElement.querySelector('.message-text');
         if (window.MarkdownRenderer && messageTextEl) {
+            // Ensure message-text class is preserved
+            if (!messageTextEl.classList.contains('message-text')) {
+                messageTextEl.classList.add('message-text');
+            }
             const tempRenderer = new window.MarkdownRenderer(messageTextEl, {
                 enableSyntaxHighlighting: false,
                 className: 'minimalist-markdown'
             });
             await tempRenderer.setContent(content);
+            // Ensure styles are preserved after markdown render
+            messageTextEl.classList.add('message-text');
         } else if (messageTextEl) {
             messageTextEl.innerHTML = this.basicFormatFallback(content);
         }
