@@ -513,7 +513,7 @@ body::after {
     display: flex;
     gap: 0.5rem;
     align-items: flex-end;
-    margin-bottom: 0.8rem;
+    margin-bottom: 1.2rem;
     position: relative;
 }
 
@@ -580,10 +580,10 @@ body::after {
 }
 
 .message-text {
-    line-height: 1.4;
+    line-height: 1.6;
     word-wrap: break-word;
     font-size: 0.9rem;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.5rem;
 }
 
 /* Minimalist speech bubble styles */

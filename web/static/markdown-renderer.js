@@ -55,7 +55,7 @@ class MarkdownRenderer {
 /* Minimalist Markdown Renderer - MoveDot Motorsports theme */
 .minimalist-markdown {
     font-family: var(--font-sans);
-    line-height: 1.4;
+    line-height: 1.6;
     color: var(--text-primary);
     max-width: 100%;
     word-wrap: break-word;
@@ -72,11 +72,11 @@ class MarkdownRenderer {
 .minimalist-markdown h1 {
     font-size: 1.4rem;
     font-weight: 700;
-    line-height: 1.2;
-    margin: 0.8rem 0 0.4rem 0;
+    line-height: 1.4;
+    margin: 1rem 0 0.6rem 0;
     color: var(--text-primary);
     border-bottom: 2px solid var(--border-color);
-    padding-bottom: 0.3rem;
+    padding-bottom: 0.4rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -84,43 +84,43 @@ class MarkdownRenderer {
 .minimalist-markdown h2 {
     font-size: 1.2rem;
     font-weight: 600;
-    line-height: 1.2;
-    margin: 0.6rem 0 0.3rem 0;
+    line-height: 1.4;
+    margin: 0.8rem 0 0.5rem 0;
     color: var(--text-primary);
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.2rem;
+    padding-bottom: 0.3rem;
 }
 
 .minimalist-markdown h3 {
     font-size: 1.1rem;
     font-weight: 600;
-    line-height: 1.2;
-    margin: 0.5rem 0 0.25rem 0;
+    line-height: 1.4;
+    margin: 0.7rem 0 0.4rem 0;
     color: var(--text-primary);
 }
 
 .minimalist-markdown h4 {
     font-size: 1rem;
     font-weight: 600;
-    line-height: 1.2;
-    margin: 0.4rem 0 0.2rem 0;
+    line-height: 1.4;
+    margin: 0.6rem 0 0.35rem 0;
     color: var(--text-primary);
 }
 
 .minimalist-markdown h5, .minimalist-markdown h6 {
     font-size: 0.9rem;
     font-weight: 600;
-    line-height: 1.2;
-    margin: 0.3rem 0 0.15rem 0;
+    line-height: 1.4;
+    margin: 0.5rem 0 0.3rem 0;
     color: var(--text-primary);
 }
 
 /* Paragraphs with compact spacing */
 .minimalist-markdown p {
-    margin: 0.3rem 0;
+    margin: 0.5rem 0;
     color: var(--text-primary);
     font-size: 0.9rem;
-    line-height: 1.4;
+    line-height: 1.6;
 }
 
 .minimalist-markdown p:first-child {
@@ -158,7 +158,7 @@ class MarkdownRenderer {
     border: 1px solid var(--border-color);
     border-radius: 0.3rem;
     padding: 0.5rem;
-    margin: 0.3rem 0;
+    margin: 0.6rem 0;
     overflow-x: auto;
 }
 
@@ -168,20 +168,20 @@ class MarkdownRenderer {
     padding: 0;
     color: var(--text-primary);
     font-size: 0.8rem;
-    line-height: 1.4;
+    line-height: 1.6;
 }
 
 /* Lists spacing */
 .minimalist-markdown ul,
 .minimalist-markdown ol {
-    margin: 0.3rem 0;
+    margin: 0.6rem 0;
     padding-left: 1.2rem;
     color: var(--text-primary);
 }
 
 .minimalist-markdown li {
-    margin: 0.1rem 0;
-    line-height: 1.3;
+    margin: 0.3rem 0;
+    line-height: 1.6;
     color: var(--text-primary);
 }
 
@@ -215,13 +215,14 @@ class MarkdownRenderer {
 
 /* Blockquotes */
 .minimalist-markdown blockquote {
-    margin: 0.5rem 0;
-    padding: 0.5rem 0.8rem;
+    margin: 0.8rem 0;
+    padding: 0.6rem 0.9rem;
     background: var(--bg-secondary);
     border-left: 3px solid var(--border-color);
     border-radius: 0 0.3rem 0.3rem 0;
     color: var(--text-primary);
     font-style: italic;
+    line-height: 1.6;
 }
 
 .minimalist-markdown blockquote p {
@@ -232,7 +233,7 @@ class MarkdownRenderer {
 .minimalist-markdown table {
     width: 100%;
     border-collapse: collapse;
-    margin: 0.5rem 0;
+    margin: 0.8rem 0;
     background: var(--bg-secondary);
     border-radius: 0.4rem;
     overflow: hidden;
@@ -241,9 +242,10 @@ class MarkdownRenderer {
 
 .minimalist-markdown th,
 .minimalist-markdown td {
-    padding: 0.4rem 0.6rem;
+    padding: 0.5rem 0.7rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
+    line-height: 1.6;
 }
 
 .minimalist-markdown th {

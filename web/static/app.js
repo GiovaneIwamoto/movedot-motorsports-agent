@@ -772,12 +772,18 @@ class MotorsportsAnalytics {
                 streamingText.textContent += data.content;
             }
             
-            // Scroll to bottom
+            // Only auto-scroll if user is already near the bottom (within 150px)
+            // This prevents forcing the user to watch the streaming if they scrolled up
             const messagesContainer = document.getElementById('chat-messages');
-            messagesContainer.scrollTo({
-                top: messagesContainer.scrollHeight,
-                behavior: 'smooth'
-            });
+            const scrollThreshold = 150;
+            const isNearBottom = (messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight) <= scrollThreshold;
+            
+            if (isNearBottom) {
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight,
+                    behavior: 'auto' // Use 'auto' instead of 'smooth' for less intrusive scrolling
+                });
+            }
             
         } else if (eventType === 'complete') {
             // Finish streaming markdown
@@ -806,6 +812,20 @@ class MotorsportsAnalytics {
                 if (streamingText) {
                     streamingText.removeAttribute('id');
                 }
+            }
+            
+            // Optional scroll to bottom when complete, only if user is near bottom
+            const messagesContainer = document.getElementById('chat-messages');
+            const scrollThreshold = 150;
+            const isNearBottom = (messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight) <= scrollThreshold;
+            
+            if (isNearBottom) {
+                setTimeout(() => {
+                    messagesContainer.scrollTo({
+                        top: messagesContainer.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }, 100);
             }
             
             // Save chat history
