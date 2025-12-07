@@ -1,0 +1,185 @@
+"""SQLite database helpers for users, sessions, conversations, and messages."""
+
+from __future__ import annotations
+
+import sqlite3
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional, Iterable
+from datetime import datetime, timedelta
+
+from src.config.settings import get_settings
+
+
+def _connect() -> sqlite3.Connection:
+    settings = get_settings()
+    db_path = Path(settings.app_db_path)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db() -> None:
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                google_sub TEXT UNIQUE NOT NULL,
+                email TEXT,
+                name TEXT,
+                picture TEXT,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sessions (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS conversations (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                title TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS messages (
+                id TEXT PRIMARY KEY,
+                conversation_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(conversation_id) REFERENCES conversations(id)
+            )
+            """
+        )
+        conn.commit()
+
+
+def upsert_user(google_sub: str, email: Optional[str], name: Optional[str], picture: Optional[str]) -> int:
+    now = datetime.utcnow().isoformat()
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM users WHERE google_sub = ?", (google_sub,))
+        row = cur.fetchone()
+        if row:
+            user_id = int(row["id"])
+            cur.execute(
+                "UPDATE users SET email = ?, name = ?, picture = ? WHERE id = ?",
+                (email, name, picture, user_id),
+            )
+        else:
+            cur.execute(
+                "INSERT INTO users (google_sub, email, name, picture, created_at) VALUES (?, ?, ?, ?, ?)",
+                (google_sub, email, name, picture, now),
+            )
+            user_id = cur.lastrowid
+        conn.commit()
+        return int(user_id)
+
+
+def create_session(session_id: str, user_id: int, ttl_days: int = 7) -> None:
+    now = datetime.utcnow()
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT OR REPLACE INTO sessions (id, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+            (session_id, user_id, now.isoformat(), (now + timedelta(days=ttl_days)).isoformat()),
+        )
+        conn.commit()
+
+
+def get_session_user(session_id: str) -> Optional[sqlite3.Row]:
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT users.* FROM sessions
+            JOIN users ON users.id = sessions.user_id
+            WHERE sessions.id = ? AND sessions.expires_at > ?
+            """,
+            (session_id, datetime.utcnow().isoformat()),
+        )
+        return cur.fetchone()
+
+
+def delete_session(session_id: str) -> None:
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+        conn.commit()
+
+
+def ensure_conversation(user_id: int, conversation_id: Optional[str], title: Optional[str] = None) -> str:
+    from uuid import uuid4
+    now = datetime.utcnow().isoformat()
+    with _connect() as conn:
+        cur = conn.cursor()
+        if conversation_id:
+            cur.execute("SELECT id FROM conversations WHERE id = ? AND user_id = ?", (conversation_id, user_id))
+            if cur.fetchone():
+                return conversation_id
+        new_id = str(uuid4())
+        cur.execute(
+            "INSERT INTO conversations (id, user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+            (new_id, user_id, title or "Conversation", now, now),
+        )
+        conn.commit()
+        return new_id
+
+
+def list_conversations(user_id: int) -> list[dict]:
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, title, created_at, updated_at FROM conversations WHERE user_id = ? ORDER BY updated_at DESC",
+            (user_id,),
+        )
+        return [dict(r) for r in cur.fetchall()]
+
+
+def get_messages(conversation_id: str, limit: int = 200) -> list[dict]:
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, role, content, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC LIMIT ?",
+            (conversation_id, limit),
+        )
+        return [dict(r) for r in cur.fetchall()]
+
+
+def add_message(conversation_id: str, role: str, content: str) -> str:
+    from uuid import uuid4
+    now = datetime.utcnow().isoformat()
+    msg_id = str(uuid4())
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO messages (id, conversation_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)",
+            (msg_id, conversation_id, role, content, now),
+        )
+        cur.execute("UPDATE conversations SET updated_at = ? WHERE id = ?", (now, conversation_id))
+        conn.commit()
+    return msg_id
+
+
+
+
+
