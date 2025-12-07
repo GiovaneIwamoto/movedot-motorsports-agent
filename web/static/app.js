@@ -78,20 +78,6 @@ class MotorsportsAnalytics {
                     }
                 });
             }
-            const nameDs = document.getElementById('user-name-ds');
-            const btnDs = document.getElementById('sign-out-btn-ds');
-            if (nameDs && this.currentUser && this.currentUser.name) {
-                nameDs.textContent = this.currentUser.name;
-            }
-            if (btnDs) {
-                btnDs.addEventListener('click', async () => {
-                    try {
-                        await fetch(`${this.apiBase}/auth/logout`, { method: 'POST', credentials: 'include' });
-                    } finally {
-                        window.location.href = `${this.apiBase}/auth/login`;
-                    }
-                });
-            }
         } catch (e) {
             console.warn('Auth UI setup error', e);
         }
@@ -150,9 +136,15 @@ class MotorsportsAnalytics {
         this.startStatusUpdater();
         this.updateConnectionStatus(true); // SSE is always available
         this.initAnimatedPlaceholder();
-        await this.ensureAuthenticated();
-        this.setupAuthUI();
-        await this.bootstrapConversation();
+        
+        // Only require authentication on pages that need it (not data-sources.html)
+        const isDataSourcesPage = window.location.pathname.includes('data-sources.html');
+        if (!isDataSourcesPage) {
+            await this.ensureAuthenticated();
+            this.setupAuthUI();
+            await this.bootstrapConversation();
+        }
+        
         this.checkPendingDatasetAnalysis();
         this.checkNavigationContext();
         
