@@ -138,5 +138,5 @@ Thumbs.db
 # CSV Memory
 csv_memory.json
 
-# Scratchpad Memory
-scratchpad_memory.json
+# Data
+data/
