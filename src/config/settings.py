@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # App database
     app_db_path: str = Field(default="data/app.db", env="APP_DB_PATH")
     
+    # E2B Sandbox timeout (in seconds, default 30 minutes)
+    e2b_sandbox_timeout: int = Field(default=1800, env="E2B_SANDBOX_TIMEOUT")
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

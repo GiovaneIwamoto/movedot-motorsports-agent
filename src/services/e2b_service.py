@@ -90,7 +90,17 @@ class E2BPythonREPL:
             return output
             
         except Exception as e:
-            error_msg = f"E2B execution error: {str(e)}"
+            error_str = str(e)
+            # Check if sandbox expired or was not found
+            if "sandbox was not found" in error_str or "502" in error_str or "timeout" in error_str.lower():
+                logger.warning(f"E2B sandbox expired or not found: {error_str}")
+                logger.info("This usually means the sandbox timed out. It will be recreated on next use.")
+                # Mark sandbox as invalid so it gets recreated
+                global _e2b_sandbox, _sandbox_csv_data
+                _e2b_sandbox = None
+                _sandbox_csv_data = {}
+                return f"E2B sandbox timeout error: The sandbox expired during execution. Please try again - a new sandbox will be created."
+            error_msg = f"E2B execution error: {error_str}"
             logger.error(error_msg)
             return error_msg
 
@@ -129,10 +139,24 @@ def get_or_create_e2b_sandbox(csv_list: list, csv_memory):
     logger.info(f"All available CSVs: {all_csv_names}")
     
     # Check if we need to create a new sandbox
+    # Also verify if existing sandbox is still valid
     need_new_sandbox = (
         _e2b_sandbox is None or 
         not all(csv in _sandbox_csv_data for csv in all_csv_names)
     )
+    
+    # If sandbox exists, verify it's still active
+    if _e2b_sandbox is not None and not need_new_sandbox:
+        try:
+            # Try a simple operation to verify sandbox is still alive
+            _e2b_sandbox.run_code("1 + 1")
+        except Exception as e:
+            error_str = str(e)
+            if "sandbox was not found" in error_str or "502" in error_str:
+                logger.warning("Existing E2B sandbox expired, will create new one")
+                need_new_sandbox = True
+                _e2b_sandbox = None
+                _sandbox_csv_data = {}
     
     if need_new_sandbox:
         # Close existing sandbox if any
@@ -143,9 +167,11 @@ def get_or_create_e2b_sandbox(csv_list: list, csv_memory):
             except Exception as e:
                 logger.warning(f"Error killing sandbox: {e}")
         
-        # Create new sandbox
+        # Create new sandbox with timeout
         logger.info("Creating new E2B sandbox...")
-        _e2b_sandbox = Sandbox.create()
+        timeout_seconds = settings.e2b_sandbox_timeout
+        logger.info(f"E2B sandbox timeout set to {timeout_seconds} seconds ({timeout_seconds // 60} minutes)")
+        _e2b_sandbox = Sandbox.create(timeout=timeout_seconds)
         _sandbox_csv_data = {}
         
         # Upload CSVs to sandbox filesystem (E2B best practice)
