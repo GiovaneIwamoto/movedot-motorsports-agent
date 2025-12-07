@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     
     # Logging
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
+
+    # Google OAuth
+    google_client_id: str | None = Field(default=None, env="GOOGLE_CLIENT_ID")
+    google_client_secret: str | None = Field(default=None, env="GOOGLE_CLIENT_SECRET")
+    google_redirect_uri: str | None = Field(default=None, env="GOOGLE_REDIRECT_URI")
+
+    # App database
+    app_db_path: str = Field(default="data/app.db", env="APP_DB_PATH")
     
     class Config:
         env_file = ".env"

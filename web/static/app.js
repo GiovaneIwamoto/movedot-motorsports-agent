@@ -5,9 +5,9 @@ class MotorsportsAnalytics {
         this.apiBase = '/api';
         this.sessionId = this.generateSessionId();
         this.analysisCount = 0;
-        this.currentEventSource = null;
         this.queryStartTime = null;
         this.isProcessingQuery = false; // Prevent multiple simultaneous queries
+        this.conversationId = null;
         this.queryMetrics = {
             totalQueries: 0,
             successfulQueries: 0,
@@ -41,9 +41,103 @@ class MotorsportsAnalytics {
         this.isMobile = window.innerWidth <= 768;
         this.activeSection = 'dashboard'; // Track which section is currently active
         
+        this.notificationStyleInjected = false;
         
         
         this.init();
+    }
+
+    // -----------------
+    // Auth & Conversations
+    // -----------------
+    async ensureAuthenticated() {
+        try {
+            const res = await fetch(`${this.apiBase}/auth/me`, { credentials: 'include' });
+            if (!res.ok) throw new Error('Not authenticated');
+            this.currentUser = await res.json();
+        } catch (e) {
+            window.location.href = `${this.apiBase}/auth/login`;
+            throw e;
+        }
+    }
+
+    setupAuthUI() {
+        // Populate user name and wire sign out on both pages if present
+        try {
+            const nameEl = document.getElementById('user-name');
+            const btn = document.getElementById('sign-out-btn');
+            if (nameEl && this.currentUser && this.currentUser.name) {
+                nameEl.textContent = this.currentUser.name;
+            }
+            if (btn) {
+                btn.addEventListener('click', async () => {
+                    try {
+                        await fetch(`${this.apiBase}/auth/logout`, { method: 'POST', credentials: 'include' });
+                    } finally {
+                        window.location.href = `${this.apiBase}/auth/login`;
+                    }
+                });
+            }
+            const nameDs = document.getElementById('user-name-ds');
+            const btnDs = document.getElementById('sign-out-btn-ds');
+            if (nameDs && this.currentUser && this.currentUser.name) {
+                nameDs.textContent = this.currentUser.name;
+            }
+            if (btnDs) {
+                btnDs.addEventListener('click', async () => {
+                    try {
+                        await fetch(`${this.apiBase}/auth/logout`, { method: 'POST', credentials: 'include' });
+                    } finally {
+                        window.location.href = `${this.apiBase}/auth/login`;
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('Auth UI setup error', e);
+        }
+    }
+
+    async bootstrapConversation() {
+        try {
+            const res = await fetch(`${this.apiBase}/chat/conversations`, { credentials: 'include' });
+            if (res.ok) {
+                const list = await res.json();
+                if (Array.isArray(list) && list.length > 0) {
+                    this.conversationId = list[0].id;
+                    await this.loadConversationMessages(this.conversationId);
+                    return;
+                }
+            }
+            const createRes = await fetch(`${this.apiBase}/chat/conversations`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ title: 'Conversation' })
+            });
+            if (createRes.ok) {
+                const data = await createRes.json();
+                this.conversationId = data.id;
+            }
+        } catch (e) {
+            console.error('Error bootstrapping conversation', e);
+        }
+    }
+
+    async loadConversationMessages(conversationId) {
+        try {
+            const res = await fetch(`${this.apiBase}/chat/conversations/${conversationId}`, { credentials: 'include' });
+            if (!res.ok) return;
+            const data = await res.json();
+            const messages = data.messages || [];
+            const messagesContainer = document.getElementById('chat-messages');
+            if (!messagesContainer) return;
+            messagesContainer.innerHTML = '';
+            for (const m of messages) {
+                await this.addMessage(m.content, m.role === 'user' ? 'user' : 'agent');
+            }
+        } catch (e) {
+            console.error('Error loading conversation messages', e);
+        }
     }
 
     generateSessionId() {
@@ -56,13 +150,10 @@ class MotorsportsAnalytics {
         this.startStatusUpdater();
         this.updateConnectionStatus(true); // SSE is always available
         this.initAnimatedPlaceholder();
+        await this.ensureAuthenticated();
+        this.setupAuthUI();
+        await this.bootstrapConversation();
         this.checkPendingDatasetAnalysis();
-        // Don't load chat history automatically - start fresh each time
-        // this.loadChatHistory();
-        
-        // Don't clear chat history - preserve messages between interactions
-        // this.clearChatHistory();
-        
         this.checkNavigationContext();
         
         // Also check on DOM ready as backup
@@ -71,17 +162,7 @@ class MotorsportsAnalytics {
                 setTimeout(() => this.checkPendingDatasetAnalysis(), 100);
             });
         }
-        
-        // Save chat history before page unload
-        window.addEventListener('beforeunload', () => {
-            this.saveChatHistory();
-        });
-        
-        // Save chat history when navigating away
-        window.addEventListener('pagehide', () => {
-            this.saveChatHistory();
-        });
-        
+        // Server-side history persistence; no unload handlers needed
     }
 
     startStatusUpdater() {
@@ -97,7 +178,6 @@ class MotorsportsAnalytics {
         const analyzeParam = urlParams.get('analyze');
         
         if (analyzeParam) {
-            console.log('Found analyze parameter in URL:', analyzeParam);
             this.addTextToChatInput(analyzeParam);
             // Clean URL
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -107,8 +187,6 @@ class MotorsportsAnalytics {
         // Check if there's a pending dataset analysis from data sources page
         const pendingDataset = localStorage.getItem('pendingDatasetAnalysis');
         if (pendingDataset) {
-            console.log('Found pending dataset analysis:', pendingDataset);
-            
             // Clear the pending analysis
             localStorage.removeItem('pendingDatasetAnalysis');
             
@@ -124,7 +202,6 @@ class MotorsportsAnalytics {
                 chatInput.focus();
                 // Trigger input event to update UI if needed
                 chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-                console.log('Text added to chat input:', chatInput.value);
             } else {
                 console.error('Chat input not found');
                 // Retry after a bit more time
@@ -134,70 +211,13 @@ class MotorsportsAnalytics {
                         retryChatInput.value = text;
                         retryChatInput.focus();
                         retryChatInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        console.log('Text added to chat input (retry):', retryChatInput.value);
                     }
                 }, 1000);
             }
         }, 500);
     }
 
-    saveChatHistory() {
-        const messagesContainer = document.getElementById('chat-messages');
-        if (messagesContainer) {
-            const messages = Array.from(messagesContainer.children).map(messageEl => {
-                return {
-                    innerHTML: messageEl.innerHTML,
-                    className: messageEl.className,
-                    id: messageEl.id
-                };
-            });
-            
-            localStorage.setItem('chatHistory', JSON.stringify(messages));
-            console.log('Chat history saved:', messages.length, 'messages');
-        }
-    }
-
-    loadChatHistory() {
-        const savedHistory = localStorage.getItem('chatHistory');
-        if (savedHistory) {
-            try {
-                const messages = JSON.parse(savedHistory);
-                const messagesContainer = document.getElementById('chat-messages');
-                
-                if (messagesContainer && messages.length > 0) {
-                    // Clear existing messages
-                    messagesContainer.innerHTML = '';
-                    
-                    // Restore messages
-                    messages.forEach(messageData => {
-                        const messageEl = document.createElement('div');
-                        messageEl.innerHTML = messageData.innerHTML;
-                        messageEl.className = messageData.className;
-                        if (messageData.id) {
-                            messageEl.id = messageData.id;
-                        }
-                        messagesContainer.appendChild(messageEl);
-                    });
-                    
-                    // Scroll to bottom
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                    console.log('Chat history loaded:', messages.length, 'messages');
-                }
-            } catch (error) {
-                console.error('Error loading chat history:', error);
-                localStorage.removeItem('chatHistory');
-            }
-        }
-    }
-
-    clearChatHistory() {
-        localStorage.removeItem('chatHistory');
-        const messagesContainer = document.getElementById('chat-messages');
-        if (messagesContainer) {
-            messagesContainer.innerHTML = '';
-        }
-        console.log('Chat history cleared');
-    }
+    // Client-side chat history methods removed; history is persisted via API
 
     clearChat() {
         // Clear the chat interface
@@ -206,10 +226,7 @@ class MotorsportsAnalytics {
             messagesContainer.innerHTML = '';
         }
         
-        // Clear from localStorage
-        this.clearChatHistory();
-        
-        console.log('Chat cleared completely');
+        // Note: Server-side history persists; this only clears the UI
     }
 
     checkNavigationContext() {
@@ -259,7 +276,6 @@ class MotorsportsAnalytics {
         const sendButton = document.getElementById('send-button');
         
         if (!chatInput || !sendButton) {
-            console.log('Chat elements not found, skipping chat event listeners');
             return;
         }
         
@@ -634,11 +650,6 @@ class MotorsportsAnalytics {
             // Clean up any previous streaming state
             this.cleanupStreamingState();
             
-            // Close any existing EventSource
-            if (this.currentEventSource) {
-                this.currentEventSource.close();
-            }
-            
             // Create new agent message element for streaming
             const messagesContainer = document.getElementById('chat-messages');
             
@@ -693,11 +704,11 @@ class MotorsportsAnalytics {
             const url = `${this.apiBase}/chat/stream`;
             const requestBody = JSON.stringify({
                 message: message,
-                session_id: this.sessionId
+                session_id: this.sessionId,
+                conversation_id: this.conversationId
             });
             
-            // Use POST with EventSource (we'll need to modify this approach)
-            // For now, let's use a different approach with fetch and ReadableStream
+            // Stream with fetch/ReadableStream to support authenticated POST requests
             await this.streamWithFetch(url, requestBody);
             
         } catch (error) {
@@ -713,6 +724,7 @@ class MotorsportsAnalytics {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include',
                 body: requestBody
             });
             
@@ -828,8 +840,7 @@ class MotorsportsAnalytics {
                 }, 100);
             }
             
-            // Save chat history
-            this.saveChatHistory();
+            // Server persists chat history
             
         } else if (eventType === 'error') {
             // Handle error
@@ -923,8 +934,7 @@ class MotorsportsAnalytics {
             messageTextEl.innerHTML = this.basicFormatFallback(content);
         }
         
-        // Save chat history after adding message
-        this.saveChatHistory();
+        // Server persists chat history
         
         // Smooth scroll to bottom with animation
         messagesContainer.scrollTo({
@@ -1143,7 +1153,6 @@ class MotorsportsAnalytics {
         // Simulate dashboard loading
         setTimeout(() => {
             this.hideLoader();
-            console.log('Dashboard loaded successfully');
         }, 2000);
     }
 
@@ -1153,7 +1162,6 @@ class MotorsportsAnalytics {
         
         
         if (!floatingDock) {
-            console.log('No floating dock found, skipping dock setup');
             return;
         }
         
@@ -1166,7 +1174,6 @@ class MotorsportsAnalytics {
             item.addEventListener('click', (e) => {
                 // Check if the item has an onclick handler (like in data-sources.html)
                 if (item.hasAttribute('onclick')) {
-                    console.log('Item has onclick handler, letting it handle the click');
                     // Let the onclick handler take precedence
                     return;
                 }
@@ -1283,7 +1290,6 @@ class MotorsportsAnalytics {
         const tabPanes = document.querySelectorAll('.tab-pane');
         
         if (tabButtons.length === 0) {
-            console.log('No tab buttons found, skipping tab system setup');
             return;
         }
         
@@ -1374,7 +1380,6 @@ class MotorsportsAnalytics {
         const dock = document.getElementById('floating-dock');
         
         if (!chatSection || !analyticsSection || !dock) {
-            console.log('Required sections not found, skipping magnetic alignment');
             return;
         }
 
@@ -1489,7 +1494,6 @@ class MotorsportsAnalytics {
         const chatSection = document.querySelector('.chat-section');
         
         if (!analyticsSection || !chatSection) {
-            console.log('Required sections not found, skipping active section detection');
             return;
         }
         
@@ -1514,7 +1518,6 @@ class MotorsportsAnalytics {
         const analyticsSection = document.getElementById('analytics-section');
         
         if (!analyticsSection) {
-            console.log('Analytics section not found, skipping blur effect update');
             return;
         }
         
@@ -1587,8 +1590,6 @@ class MotorsportsAnalytics {
         
         // Force re-render of chat section
         this.forceChatSectionRerender();
-        
-        console.log('Chat section state restored');
     }
 
     forceChatSectionRerender() {
@@ -1631,8 +1632,6 @@ class MotorsportsAnalytics {
             sendButton.style.alignItems = 'center';
             sendButton.style.justifyContent = 'center';
         }
-        
-        console.log('Chat section re-rendered');
     }
 
     reinitializeChatListeners() {
@@ -1674,8 +1673,6 @@ class MotorsportsAnalytics {
             };
             chip.addEventListener('click', this.handleChipClick);
         });
-        
-        console.log('Chat listeners reinitialized');
     }
 
     preserveChatSection() {
@@ -1690,8 +1687,6 @@ class MotorsportsAnalytics {
         if (messagesContainer) {
             this.preservedChatMessages = messagesContainer.innerHTML;
         }
-        
-        console.log('Chat section state preserved');
     }
 
     // PRP Editor Methods
@@ -1701,7 +1696,6 @@ class MotorsportsAnalytics {
             textarea.value = '';
             this.updateCharCount();
             textarea.focus();
-            console.log('PRP content cleared');
         } else {
             console.error('Textarea not found');
         }
@@ -1788,49 +1782,26 @@ class MotorsportsAnalytics {
         }
     }
 
-    loadDefaultPRPContent() {
+    async loadDefaultPRPContent() {
         const textarea = document.getElementById('prp-editor-textarea');
-        if (textarea) {
-            // Load the current product_requirement_prompt.md content
-            fetch('/api/prp/default')
-                .then(response => response.text())
-                .then(content => {
-                    textarea.value = content;
-                    this.updateCharCount();
-                })
-                .catch(error => {
-                    console.error('Error loading default PRP:', error);
-                    textarea.value = `# Motorsports Data Analysis Agent
-
-## API Endpoints
-Use these specific endpoints for data fetching:
-
-### Race Data
-- Endpoint: \`/v1/races\`
-- Parameters: year, circuit_name
-- Example: \`curl "https://api.openf1.org/v1/races?year=2023"\`
-
-### Driver Performance
-- Endpoint: \`/v1/drivers\`
-- Focus on: lap_times, positions, pit_stops
-
-## Analysis Patterns
-When analyzing data, always:
-1. Check data quality first
-2. Apply relevant filters
-3. Calculate key metrics
-4. Provide visualizations
-5. Explain insights clearly
-
-## Output Format
-Always provide:
-- Summary of findings
-- Key metrics
-- Visual charts when relevant
-- Actionable insights`;
-                    this.updateCharCount();
-                });
+        if (!textarea) {
+            return;
         }
+
+        try {
+            const response = await fetch('/api/prp/default');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const content = await response.text();
+            textarea.value = content || '';
+        } catch (error) {
+            console.error('Error loading default PRP:', error);
+            textarea.value = '';
+            this.showNotification('Failed to load PRP from server. Editor is empty.', 'error');
+        }
+
+        this.updateCharCount();
     }
 
     async savePRP() {
@@ -1937,20 +1908,23 @@ Always provide:
             border: 1px solid rgba(255, 255, 255, 0.1);
         `;
         
-        // Add CSS for notification content spacing
-        const style = document.createElement('style');
-        style.textContent = `
-            .notification-content {
-                display: flex;
-                align-items: center;
-                gap: 0.75rem;
-            }
-            .notification-content i {
-                font-size: 0.9rem;
-                opacity: 0.9;
-            }
-        `;
-        document.head.appendChild(style);
+        // Ensure notification layout styles are only injected once
+        if (!this.notificationStyleInjected) {
+            const style = document.createElement('style');
+            style.textContent = `
+                .notification-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                }
+                .notification-content i {
+                    font-size: 0.9rem;
+                    opacity: 0.9;
+                }
+            `;
+            document.head.appendChild(style);
+            this.notificationStyleInjected = true;
+        }
         
         // Add to page
         document.body.appendChild(notification);
@@ -2020,7 +1994,6 @@ function clearPRPContent() {
 
 // Initialize the application on all pages
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Initializing MotorsportsAnalytics on:', window.location.pathname);
     window.app = new MotorsportsAnalytics();
 });
 
