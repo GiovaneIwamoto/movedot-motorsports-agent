@@ -3,7 +3,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
@@ -16,6 +16,18 @@ DEFAULT_THREAD_ID = "analytics_agent_session"
 DEFAULT_AGENT_NAME = "analytics_agent"
 
 logger = logging.getLogger(__name__)
+
+
+def _prepare_agent_config(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Ensure the agent config contains required defaults."""
+    prepared: Dict[str, Any] = dict(config or {})
+    prepared.setdefault("recursion_limit", DEFAULT_RECURSION_LIMIT)
+
+    configurable = dict(prepared.get("configurable") or {})
+    configurable.setdefault("thread_id", DEFAULT_THREAD_ID)
+    prepared["configurable"] = configurable
+
+    return prepared
 
 
 class AnalyticsAgentManager:
@@ -126,12 +138,8 @@ def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None
     if not message or not message.strip():
         raise ValueError("Message cannot be empty")
     
-    if config is None:
-        config = {"configurable": {"thread_id": DEFAULT_THREAD_ID}}
-    
-    # Ensure recursion_limit is set
-    config.setdefault("recursion_limit", DEFAULT_RECURSION_LIMIT)
-    
+    config = _prepare_agent_config(config)
+
     try:
         agent = get_analytics_agent()
         
@@ -150,38 +158,34 @@ def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None
         raise RuntimeError(f"Agent invocation failed: {str(e)}") from e
 
 
-async def stream_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None):
+async def stream_analytics_agent_with_history(messages_history: list, config: Optional[Dict[str, Any]] = None):
     """
-    Stream the analytics agent response token by token.
+    Stream the analytics agent response token by token with full conversation history.
     Only streams the final LLM response, filtering out tool outputs and intermediate steps.
     
     Args:
-        message: User message
+        messages_history: List of message dicts with "role" and "content" keys
         config: Configuration for the agent
         
     Yields:
         Tuple of (event_type, data) for SSE streaming
         
     Raises:
-        ValueError: If message is empty or invalid
+        ValueError: If messages_history is empty or invalid
         RuntimeError: If agent fails to process the message
     """
-    if not message or not message.strip():
-        raise ValueError("Message cannot be empty")
+    if not messages_history or len(messages_history) == 0:
+        raise ValueError("Messages history cannot be empty")
     
-    if config is None:
-        config = {"configurable": {"thread_id": DEFAULT_THREAD_ID}}
-    
-    # Ensure recursion_limit is set
-    config.setdefault("recursion_limit", DEFAULT_RECURSION_LIMIT)
-    
+    config = _prepare_agent_config(config)
+
     try:
         agent = get_analytics_agent()
         
         # Stream only messages mode to get LLM tokens
         # This approach filters out tool outputs and intermediate steps
         async for chunk, metadata in agent.astream(
-            {"messages": [{"role": "user", "content": message}]},
+            {"messages": messages_history},
             config,
             stream_mode="messages"
         ):
@@ -205,7 +209,7 @@ async def stream_analytics_agent(message: str, config: Optional[Dict[str, Any]] 
         })
         
     except Exception as e:
-        logger.error(f"Failed to stream analytics agent: {str(e)}")
+        logger.error(f"Failed to stream analytics agent with history: {str(e)}")
         yield ("error", {"error": f"Agent streaming failed: {str(e)}"})
 
 
