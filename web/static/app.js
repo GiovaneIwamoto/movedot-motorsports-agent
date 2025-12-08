@@ -2625,24 +2625,26 @@ class MotorsportsAnalytics {
             </div>
         `;
         
-        // Add minimal styles
+        // Add card styles - positioned at bottom right
         notification.style.cssText = `
             position: fixed;
-            top: 16px;
-            right: 16px;
-            background: rgba(26, 26, 26, 0.95);
+            bottom: 24px;
+            right: 24px;
+            background: rgba(20, 20, 20, 0.98);
             color: white;
-            border-radius: 6px;
-            padding: 0.5rem 0.75rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
             z-index: 10000;
-            transform: translateX(100%);
-            transition: transform 0.2s ease;
-            max-width: 250px;
-            font-size: 0.8rem;
+            transform: translateY(120%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+            max-width: 320px;
+            min-width: 280px;
+            font-size: 0.875rem;
             font-weight: 500;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
         `;
         
         // Ensure notification layout styles are only injected once
@@ -2652,11 +2654,11 @@ class MotorsportsAnalytics {
                 .notification-content {
                     display: flex;
                     align-items: center;
-                    gap: 0.75rem;
+                    gap: 0.875rem;
                 }
                 .notification-icon-wrapper {
-                    width: 24px;
-                    height: 24px;
+                    width: 28px;
+                    height: 28px;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
@@ -2680,7 +2682,10 @@ class MotorsportsAnalytics {
                     color: #f59e0b;
                 }
                 .notification-content i {
-                    font-size: 0.75rem;
+                    font-size: 0.875rem;
+                }
+                .notification-content span {
+                    line-height: 1.4;
                 }
             `;
             document.head.appendChild(style);
@@ -2690,20 +2695,22 @@ class MotorsportsAnalytics {
         // Add to page
         document.body.appendChild(notification);
         
-        // Animate in
+        // Animate in from bottom
         setTimeout(() => {
-            notification.style.transform = 'translateX(0)';
+            notification.style.transform = 'translateY(0)';
+            notification.style.opacity = '1';
         }, 50);
         
-        // Remove after 2 seconds
+        // Remove after 3 seconds with slide down animation
         setTimeout(() => {
-            notification.style.transform = 'translateX(100%)';
+            notification.style.transform = 'translateY(120%)';
+            notification.style.opacity = '0';
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.parentNode.removeChild(notification);
                 }
-            }, 200);
-        }, 2000);
+            }, 400);
+        }, 3000);
     }
     
     showWelcomeModal(forceShow = false) {
