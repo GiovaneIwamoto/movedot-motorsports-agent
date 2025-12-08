@@ -28,8 +28,19 @@ class MotorsportsAnalytics {
             "Analyze fuel consumption patterns...",
             "Find the best overtaking opportunities..."
         ];
+        // Decorative typing placeholders for when no messages
+        this.decorativePlaceholders = [
+            "Ask me anything",
+            "What can I help you with?",
+            "Ask me anything",
+            "How can I assist you?",
+            "Ask me anything"
+        ];
         this.currentPlaceholderIndex = 0;
+        this.currentDecorativeIndex = 0;
         this.placeholderInterval = null;
+        this.typingAnimation = null;
+        this.isTyping = false;
         this.isInputFocused = false;
         
         // Loader system
@@ -468,20 +479,46 @@ class MotorsportsAnalytics {
         chatInput.addEventListener('focus', () => {
             this.isInputFocused = true;
             this.stopPlaceholderAnimation();
+            const vanishPlaceholder = document.getElementById('vanish-placeholder');
+            if (vanishPlaceholder) {
+                vanishPlaceholder.classList.add('hidden');
+            }
         });
 
         chatInput.addEventListener('blur', () => {
             this.isInputFocused = false;
+            const vanishPlaceholder = document.getElementById('vanish-placeholder');
             if (!chatInput.value.trim()) {
+                if (vanishPlaceholder) {
+                    vanishPlaceholder.classList.remove('hidden');
+                }
                 this.startPlaceholderAnimation();
+            } else {
+                if (vanishPlaceholder) {
+                    vanishPlaceholder.classList.add('hidden');
+                }
             }
         });
 
         chatInput.addEventListener('input', () => {
+            const vanishPlaceholder = document.getElementById('vanish-placeholder');
             if (chatInput.value.trim()) {
                 this.stopPlaceholderAnimation();
-            } else if (!this.isInputFocused) {
-                this.startPlaceholderAnimation();
+                if (vanishPlaceholder) {
+                    vanishPlaceholder.classList.add('hidden');
+                }
+            } else {
+                if (vanishPlaceholder) {
+                    vanishPlaceholder.classList.remove('hidden');
+                }
+                if (!this.isInputFocused) {
+                    // Small delay to ensure input is cleared
+                    setTimeout(() => {
+                        if (!chatInput.value.trim()) {
+                            this.startPlaceholderAnimation();
+                        }
+                    }, 100);
+                }
             }
         });
 
@@ -1106,10 +1143,22 @@ class MotorsportsAnalytics {
                 centeredBlock.classList.remove('has-messages');
                 // Start rotating text
                 this.startRotatingText();
+                // Reset decorative placeholder index and start typing animation
+                this.currentDecorativeIndex = 0;
+                const placeholderText = document.getElementById('placeholder-text');
+                if (placeholderText) {
+                    placeholderText.textContent = '';
+                    placeholderText.classList.remove('fade-out');
+                    placeholderText.classList.add('fade-in', 'visible');
+                }
+                this.startPlaceholderAnimation();
             } else {
                 // Has messages, ensure it's at bottom
                 centeredBlock.classList.add('has-messages');
                 this.stopRotatingText();
+                // Update placeholder to show cycling placeholders
+                this.showPlaceholder();
+                this.startPlaceholderAnimation();
             }
         }
     }
@@ -1132,26 +1181,34 @@ class MotorsportsAnalytics {
 
         let currentIndex = 0;
         
+        // Set initial text and animate in
+        rotatingTextEl.textContent = phrases[currentIndex];
+        // Remove any existing classes
+        rotatingTextEl.classList.remove('slide-out', 'slide-in');
+        // Force reflow to restart animation
+        void rotatingTextEl.offsetWidth;
+        rotatingTextEl.classList.add('slide-in');
+        
         const rotate = () => {
-            // Fade out
-            rotatingTextEl.classList.add('fade-out');
+            // Fade out current text completely
+            rotatingTextEl.classList.remove('slide-in');
+            rotatingTextEl.classList.add('slide-out');
             
+            // Wait for complete fade out before showing next text
             setTimeout(() => {
-                // Change text
+                // Change text only after previous text has completely disappeared
                 currentIndex = (currentIndex + 1) % phrases.length;
                 rotatingTextEl.textContent = phrases[currentIndex];
                 
-                // Fade in
-                rotatingTextEl.classList.remove('fade-out');
-                rotatingTextEl.classList.add('fade-in');
-                
-                setTimeout(() => {
-                    rotatingTextEl.classList.remove('fade-in');
-                }, 100);
-            }, 500);
+                // Remove slide-out and add slide-in
+                rotatingTextEl.classList.remove('slide-out');
+                // Force reflow to restart animation
+                void rotatingTextEl.offsetWidth;
+                rotatingTextEl.classList.add('slide-in');
+            }, 500); // Wait for slide-out animation to complete (0.5s)
         };
 
-        // Start rotation after initial delay
+        // Start rotation after initial delay (first change after 3 seconds)
         this.rotatingTextInterval = setInterval(rotate, 3000);
     }
 
@@ -1413,8 +1470,22 @@ class MotorsportsAnalytics {
 
     initAnimatedPlaceholder() {
         const placeholderText = document.getElementById('placeholder-text');
-        if (placeholderText) {
+        const vanishPlaceholder = document.getElementById('vanish-placeholder');
+        const chatInput = document.getElementById('chat-input');
+        
+        if (placeholderText && vanishPlaceholder) {
+            // Ensure placeholder is visible initially if input is empty
+            if (!chatInput || !chatInput.value.trim()) {
+                vanishPlaceholder.classList.remove('hidden');
+                vanishPlaceholder.style.opacity = '1';
+            }
+            placeholderText.style.opacity = '1';
             this.startPlaceholderAnimation();
+        } else {
+            console.warn('placeholder elements not found during initialization', {
+                placeholderText: !!placeholderText,
+                vanishPlaceholder: !!vanishPlaceholder
+            });
         }
     }
 
@@ -1422,19 +1493,29 @@ class MotorsportsAnalytics {
         if (this.placeholderInterval) {
             clearInterval(this.placeholderInterval);
         }
+        this.stopTypingAnimation();
 
         const placeholderText = document.getElementById('placeholder-text');
         if (!placeholderText) return;
 
-        // Show current placeholder immediately
-        this.showPlaceholder();
+        // Check if there are messages
+        const centeredBlock = document.getElementById('chat-centered-block');
+        const messagesContainer = document.getElementById('chat-messages');
+        const hasMessages = centeredBlock && centeredBlock.classList.contains('has-messages') || 
+                          (messagesContainer && messagesContainer.children.length > 0);
 
-        // Start cycling through placeholders
-        this.placeholderInterval = setInterval(() => {
-            if (!this.isInputFocused && !document.getElementById('chat-input').value.trim()) {
-                this.cyclePlaceholder();
-            }
-        }, 3000); // Change every 3 seconds
+        if (!hasMessages) {
+            // Start typing animation when no messages
+            this.startTypingAnimation();
+        } else {
+            // Show current placeholder immediately and cycle when there are messages
+            this.showPlaceholder();
+            this.placeholderInterval = setInterval(() => {
+                if (!this.isInputFocused && !document.getElementById('chat-input').value.trim()) {
+                    this.cyclePlaceholder();
+                }
+            }, 3000); // Change every 3 seconds
+        }
     }
 
     stopPlaceholderAnimation() {
@@ -1442,6 +1523,7 @@ class MotorsportsAnalytics {
             clearInterval(this.placeholderInterval);
             this.placeholderInterval = null;
         }
+        this.stopTypingAnimation();
         
         const placeholderText = document.getElementById('placeholder-text');
         if (placeholderText) {
@@ -1449,18 +1531,171 @@ class MotorsportsAnalytics {
         }
     }
 
+    startTypingAnimation() {
+        this.stopTypingAnimation();
+        this.isTyping = true;
+        
+        const placeholderText = document.getElementById('placeholder-text');
+        if (!placeholderText) {
+            console.warn('placeholder-text element not found');
+            return;
+        }
+
+        const centeredBlock = document.getElementById('chat-centered-block');
+        const messagesContainer = document.getElementById('chat-messages');
+        const hasMessages = centeredBlock && centeredBlock.classList.contains('has-messages') || 
+                          (messagesContainer && messagesContainer.children.length > 0);
+
+        if (hasMessages || this.isInputFocused) {
+            this.stopTypingAnimation();
+            return;
+        }
+
+        // Ensure placeholder is visible
+        const vanishPlaceholder = document.getElementById('vanish-placeholder');
+        if (vanishPlaceholder) {
+            vanishPlaceholder.style.opacity = '1';
+        }
+        placeholderText.style.opacity = '1';
+        placeholderText.textContent = '';
+
+        // Start typing animation cycle
+        this.typeText();
+    }
+
+    stopTypingAnimation() {
+        if (this.typingAnimation) {
+            clearTimeout(this.typingAnimation);
+            this.typingAnimation = null;
+        }
+        this.isTyping = false;
+    }
+
+    typeText() {
+        const placeholderText = document.getElementById('placeholder-text');
+        if (!placeholderText) {
+            console.warn('placeholder-text element not found in typeText');
+            return;
+        }
+
+        // Check if we should continue
+        const centeredBlock = document.getElementById('chat-centered-block');
+        const messagesContainer = document.getElementById('chat-messages');
+        const hasMessages = centeredBlock && centeredBlock.classList.contains('has-messages') || 
+                          (messagesContainer && messagesContainer.children.length > 0);
+        const chatInput = document.getElementById('chat-input');
+
+        if (hasMessages || this.isInputFocused || (chatInput && chatInput.value.trim())) {
+            this.stopTypingAnimation();
+            return;
+        }
+
+        // Ensure placeholder is visible
+        placeholderText.style.opacity = '1';
+        const vanishPlaceholder = document.getElementById('vanish-placeholder');
+        if (vanishPlaceholder) {
+            vanishPlaceholder.style.opacity = '1';
+        }
+
+        const currentText = this.decorativePlaceholders[this.currentDecorativeIndex];
+        let currentIndex = 0;
+        const typingSpeed = 80; // milliseconds per character
+        const pauseAfterTyping = 2000; // pause after typing complete
+        const deletingSpeed = 40; // milliseconds per character when deleting
+        const pauseAfterDeleting = 500; // pause after deleting complete
+
+        // Typing phase
+        const typeChar = () => {
+            // Re-check conditions before each character
+            const centeredBlock = document.getElementById('chat-centered-block');
+            const messagesContainer = document.getElementById('chat-messages');
+            const hasMessages = centeredBlock && centeredBlock.classList.contains('has-messages') || 
+                              (messagesContainer && messagesContainer.children.length > 0);
+            const chatInput = document.getElementById('chat-input');
+
+            if (hasMessages || this.isInputFocused || (chatInput && chatInput.value.trim())) {
+                this.stopTypingAnimation();
+                return;
+            }
+
+            if (currentIndex < currentText.length) {
+                placeholderText.textContent = currentText.substring(0, currentIndex + 1);
+                currentIndex++;
+                this.typingAnimation = setTimeout(typeChar, typingSpeed);
+            } else {
+                // Finished typing, wait then start deleting
+                this.typingAnimation = setTimeout(() => {
+                    // Deleting phase
+                    const deleteChar = () => {
+                        // Re-check conditions before each deletion
+                        const centeredBlock = document.getElementById('chat-centered-block');
+                        const messagesContainer = document.getElementById('chat-messages');
+                        const hasMessages = centeredBlock && centeredBlock.classList.contains('has-messages') || 
+                                          (messagesContainer && messagesContainer.children.length > 0);
+                        const chatInput = document.getElementById('chat-input');
+
+                        if (hasMessages || this.isInputFocused || (chatInput && chatInput.value.trim())) {
+                            this.stopTypingAnimation();
+                            return;
+                        }
+
+                        if (currentIndex > 0) {
+                            placeholderText.textContent = currentText.substring(0, currentIndex - 1);
+                            currentIndex--;
+                            this.typingAnimation = setTimeout(deleteChar, deletingSpeed);
+                        } else {
+                            // Finished deleting, move to next text
+                            this.currentDecorativeIndex = (this.currentDecorativeIndex + 1) % this.decorativePlaceholders.length;
+                            this.typingAnimation = setTimeout(() => {
+                                this.typeText();
+                            }, pauseAfterDeleting);
+                        }
+                    };
+                    deleteChar();
+                }, pauseAfterTyping);
+            }
+        };
+
+        typeChar();
+    }
+
     showPlaceholder() {
         const placeholderText = document.getElementById('placeholder-text');
         if (!placeholderText) return;
 
-        placeholderText.textContent = this.placeholders[this.currentPlaceholderIndex];
-        placeholderText.classList.remove('fade-out');
-        placeholderText.classList.add('fade-in', 'visible');
+        // Check if there are messages
+        const centeredBlock = document.getElementById('chat-centered-block');
+        const messagesContainer = document.getElementById('chat-messages');
+        const hasMessages = centeredBlock && centeredBlock.classList.contains('has-messages') || 
+                          (messagesContainer && messagesContainer.children.length > 0);
+
+        if (!hasMessages) {
+            // Don't set text here when no messages - let typing animation handle it
+            // Just ensure it's visible
+            placeholderText.classList.remove('fade-out');
+            placeholderText.classList.add('fade-in', 'visible');
+        } else {
+            // Show cycling placeholders when there are messages
+            placeholderText.textContent = this.placeholders[this.currentPlaceholderIndex];
+            placeholderText.classList.remove('fade-out');
+            placeholderText.classList.add('fade-in', 'visible');
+        }
     }
 
     cyclePlaceholder() {
         const placeholderText = document.getElementById('placeholder-text');
         if (!placeholderText) return;
+
+        // Check if there are messages - only cycle if there are messages
+        const centeredBlock = document.getElementById('chat-centered-block');
+        const messagesContainer = document.getElementById('chat-messages');
+        const hasMessages = centeredBlock && centeredBlock.classList.contains('has-messages') || 
+                          (messagesContainer && messagesContainer.children.length > 0);
+
+        if (!hasMessages) {
+            // Don't cycle, keep "Ask me anything"
+            return;
+        }
 
         // Fade out current placeholder
         placeholderText.classList.remove('fade-in');

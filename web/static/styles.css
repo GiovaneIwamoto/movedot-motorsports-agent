@@ -635,7 +635,7 @@ body::after {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.1rem;
+    gap: 0.25rem;
     opacity: 1;
     transition: opacity 0.3s ease;
     pointer-events: none;
@@ -666,29 +666,58 @@ body::after {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 0.1rem;
+    margin-top: 0.25rem;
     position: relative;
     width: 100%;
+    overflow: hidden;
+    height: 2.5rem;
 }
 
 .rotating-text {
     font-size: 1rem;
     color: var(--text-secondary);
     opacity: 0.9;
-    transition: opacity 0.5s ease, transform 0.5s ease;
     text-align: center;
     display: block;
     width: 100%;
+    position: relative;
+    overflow: hidden;
 }
 
-.rotating-text.fade-out {
-    opacity: 0;
-    transform: translateY(-10px);
+/* Animation: smooth fade with subtle movement - no overlap */
+.rotating-text.slide-in {
+    animation: smoothFadeIn 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.rotating-text.fade-in {
-    opacity: 0.9;
-    transform: translateY(0);
+/* Animation: smooth fade out */
+.rotating-text.slide-out {
+    animation: smoothFadeOut 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes smoothFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-8px);
+        filter: blur(2px);
+    }
+    100% {
+        opacity: 0.9;
+        transform: translateY(0);
+        filter: blur(0px);
+    }
+}
+
+@keyframes smoothFadeOut {
+    0% {
+        opacity: 0.9;
+        transform: translateY(0);
+        filter: blur(0px);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(8px);
+        filter: blur(2px);
+    }
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -899,10 +928,16 @@ body::after {
     pointer-events: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1;
+    text-align: left;
+    opacity: 0.5;
 }
 
-.vanish-input:focus + .vanish-placeholder,
-.vanish-input:not(:placeholder-shown) + .vanish-placeholder {
+.vanish-input:focus + .vanish-placeholder {
+    opacity: 0;
+    transform: translateY(-50%) translateY(-10px);
+}
+
+.vanish-placeholder.hidden {
     opacity: 0;
     transform: translateY(-50%) translateY(-10px);
 }
@@ -910,6 +945,32 @@ body::after {
 .placeholder-text {
     display: inline-block;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Decorative typing effect for "Ask me anything" when no messages */
+.chat-centered-block:not(.has-messages) .placeholder-text {
+    position: relative;
+    color: var(--text-secondary);
+    font-style: italic;
+    opacity: 0.5;
+}
+
+.chat-centered-block:not(.has-messages) .placeholder-text:not(:empty)::after {
+    content: '|';
+    display: inline-block;
+    margin-left: 2px;
+    color: var(--text-muted);
+    animation: blink-cursor 1s infinite;
+    font-weight: 300;
+}
+
+@keyframes blink-cursor {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0;
+    }
 }
 
 /* Legacy chat input styles removed - not used */
