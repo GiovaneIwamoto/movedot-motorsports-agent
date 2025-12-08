@@ -36,9 +36,11 @@ from src.core.db import (  # noqa: E402
     ensure_conversation,
     get_messages,
     get_session_user,
+    get_user_api_config,
     init_db,
     list_conversations,
     upsert_user,
+    upsert_user_api_config,
 )
 from src.core.memory import get_csv_memory  # noqa: E402
 
@@ -118,6 +120,13 @@ app.add_middleware(
 class ChatMessage(BaseModel):
     message: str
     conversation_id: Optional[str] = None
+
+
+class UserApiConfig(BaseModel):
+    provider: str  # 'openai' or 'anthropic'
+    api_key: Optional[str] = None  # Optional if updating existing config
+    model: str
+    temperature: Optional[float] = 0.1
 
 class DataSource(BaseModel):
     name: str
@@ -391,12 +400,23 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
         # Configuration for the agent
         config = {"configurable": {"thread_id": str(conv_id)}}
         
+        # Get user's API configuration
+        user_api_config = get_user_api_config(int(user["id"]))
+        user_config_dict = None
+        if user_api_config:
+            user_config_dict = {
+                "provider": user_api_config["provider"],
+                "api_key": user_api_config["api_key"],
+                "model": user_api_config["model"],
+                "temperature": user_api_config["temperature"],
+            }
+        
         async def generate_sse_stream():
             """Generate SSE stream from agent response."""
             full_content = ""  # Accumulate all streamed content
             try:
                 # Stream tokens from the agent with history
-                async for event_type, data in stream_analytics_agent_with_history(messages_history, config):
+                async for event_type, data in stream_analytics_agent_with_history(messages_history, config, user_config_dict):
                     if event_type == "token":
                         # Send token event
                         content = data.get("content", "") if isinstance(data, dict) else ""
@@ -436,6 +456,224 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
     except Exception as e:
         logger.error(f"Error in SSE chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/models/list")
+async def list_available_models(provider: str, api_key: Optional[str] = None, user=Depends(current_user)):
+    """
+    List available models for a provider using the user's API key.
+    
+    Args:
+        provider: 'openai' or 'anthropic'
+        api_key: Optional API key to validate (if not provided, uses saved config)
+    """
+    try:
+        # Check if provided API key is a placeholder (bullet points)
+        is_placeholder = (
+            api_key and (
+                api_key.startswith('•') or 
+                api_key.startswith('\u2022') or 
+                api_key.startswith('\u25CF') or
+                all(c in ['•', '\u2022', '\u25CF'] for c in api_key)
+            )
+        ) if api_key else False
+        
+        # Use provided API key or get from saved config
+        if api_key and not is_placeholder:
+            api_key_to_use = api_key
+        else:
+            user_config = get_user_api_config(int(user["id"]))
+            if not user_config:
+                raise HTTPException(status_code=400, detail=f"Please provide an API key or configure your {provider} API key first")
+            
+            # Check if provider matches
+            if user_config["provider"] != provider.lower():
+                raise HTTPException(status_code=400, detail=f"Your configured provider is {user_config['provider']}, but you requested {provider}")
+            
+            api_key_to_use = user_config["api_key"]
+        
+        import httpx
+        
+        if provider.lower() == "openai":
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "https://api.openai.com/v1/models",
+                    headers={"Authorization": f"Bearer {api_key_to_use}"},
+                    timeout=30.0
+                )
+                if response.status_code != 200:
+                    error_detail = response.text[:500] if response.text else "Unknown error"
+                    logger.error(f"OpenAI API error: {response.status_code} - {error_detail}")
+                    raise HTTPException(
+                        status_code=response.status_code, 
+                        detail=f"OpenAI API error: {error_detail}"
+                    )
+                data = response.json()
+                # Filter for chat models (gpt-*, o1-*) and exclude deprecated models
+                models = [
+                    {
+                        "id": model["id"],
+                        "display_name": model["id"],
+                        "created": model.get("created"),
+                        "owned_by": model.get("owned_by", "openai"),
+                    }
+                    for model in data.get("data", [])
+                    if model.get("id", "").startswith(("gpt-", "o1-")) and "deprecated" not in model.get("id", "").lower()
+                ]
+                # Sort by created date (newest first)
+                models.sort(key=lambda x: x.get("created", 0), reverse=True)
+                return {"provider": "openai", "models": models}
+        
+        elif provider.lower() == "anthropic":
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "https://api.anthropic.com/v1/models",
+                    headers={
+                        "x-api-key": api_key_to_use,
+                        "anthropic-version": "2023-06-01"
+                    },
+                    timeout=30.0
+                )
+                if response.status_code != 200:
+                    error_detail = response.text[:500] if response.text else "Unknown error"
+                    logger.error(f"Anthropic API error: {response.status_code} - {error_detail}")
+                    raise HTTPException(
+                        status_code=response.status_code, 
+                        detail=f"Anthropic API error: {error_detail}"
+                    )
+                data = response.json()
+                models = [
+                    {
+                        "id": model["id"],
+                        "display_name": model.get("display_name", model["id"]),
+                        "created_at": model.get("created_at"),
+                        "type": model.get("type", "model"),
+                    }
+                    for model in data.get("data", [])
+                ]
+                # Sort by created_at (newest first)
+                models.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+                return {"provider": "anthropic", "models": models}
+        
+        else:
+            raise HTTPException(status_code=400, detail="Provider must be 'openai' or 'anthropic'")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing models: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/user/api-config")
+async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)):
+    """Save or update user's API configuration."""
+    try:
+        # Validate provider
+        if config.provider.lower() not in ["openai", "anthropic"]:
+            raise HTTPException(status_code=400, detail="Provider must be 'openai' or 'anthropic'")
+        
+        # Get existing config to preserve API key if not provided
+        existing_config = get_user_api_config(int(user["id"]))
+        api_key_to_use = config.api_key
+        
+        # If API key is placeholder (bullet points) or empty and we have existing config, use existing
+        # Check for various bullet point characters: •, •, ●
+        is_placeholder = (
+            not api_key_to_use or 
+            api_key_to_use.startswith('•') or 
+            api_key_to_use.startswith('\u2022') or 
+            api_key_to_use.startswith('\u25CF') or
+            all(c in ['•', '\u2022', '\u25CF'] for c in api_key_to_use) if api_key_to_use else False
+        )
+        
+        if is_placeholder and existing_config:
+            api_key_to_use = existing_config["api_key"]
+        
+        if not api_key_to_use:
+            raise HTTPException(status_code=400, detail="API key is required")
+        
+        # Validate API key by trying to list models
+        import httpx
+        try:
+            if config.provider.lower() == "openai":
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(
+                        "https://api.openai.com/v1/models",
+                        headers={"Authorization": f"Bearer {api_key_to_use}"},
+                        timeout=30.0
+                    )
+                    if response.status_code != 200:
+                        error_text = response.text[:500] if response.text else "Unknown error"
+                        logger.error(f"OpenAI API validation error: {response.status_code} - {error_text}")
+                        raise HTTPException(status_code=400, detail=f"Invalid OpenAI API key: {error_text}")
+            elif config.provider.lower() == "anthropic":
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(
+                        "https://api.anthropic.com/v1/models",
+                        headers={
+                            "x-api-key": api_key_to_use,
+                            "anthropic-version": "2023-06-01"
+                        },
+                        timeout=30.0
+                    )
+                    if response.status_code != 200:
+                        error_text = response.text[:500] if response.text else "Unknown error"
+                        logger.error(f"Anthropic API validation error: {response.status_code} - {error_text}")
+                        raise HTTPException(status_code=400, detail=f"Invalid Anthropic API key: {error_text}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error validating API key: {e}")
+            raise HTTPException(status_code=400, detail=f"Failed to validate API key: {str(e)}")
+        
+        # Save configuration (always use lowest temperature)
+        upsert_user_api_config(
+            user_id=int(user["id"]),
+            provider=config.provider.lower(),
+            api_key=api_key_to_use,
+            model=config.model,
+            temperature=0.0  # Always use lowest temperature
+        )
+        
+        return {"status": "success", "message": "API configuration saved successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error saving API config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/user/api-config")
+async def get_user_api_config_endpoint(user=Depends(current_user)):
+    """Get user's API configuration (without exposing the API key)."""
+    try:
+        config = get_user_api_config(int(user["id"]))
+        if config:
+            return {
+                "provider": config["provider"],
+                "model": config["model"],
+                "temperature": config["temperature"],
+                "has_api_key": bool(config["api_key"])
+            }
+        return None
+    except Exception as e:
+        logger.error(f"Error getting API config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/user/api-config")
+async def delete_user_api_config_endpoint(user=Depends(current_user)):
+    """Delete user's API configuration."""
+    try:
+        from src.core.db import delete_user_api_config as db_delete_user_api_config
+        db_delete_user_api_config(int(user["id"]))
+        return {"status": "success", "message": "API configuration deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting API config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # PRP Editor API endpoints
 @app.get("/api/prp/content")

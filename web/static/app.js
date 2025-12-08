@@ -43,6 +43,8 @@ class MotorsportsAnalytics {
         
         this.notificationStyleInjected = false;
         
+        // Rotating text for welcome message
+        this.rotatingTextInterval = null;
         
         this.init();
     }
@@ -74,6 +76,12 @@ class MotorsportsAnalytics {
                 // Set name
                 if (nameEl && this.currentUser.name) {
                     nameEl.textContent = this.currentUser.name;
+                }
+                
+                // Set welcome message user name
+                const welcomeUserName = document.getElementById('welcome-user-name');
+                if (welcomeUserName && this.currentUser.name) {
+                    welcomeUserName.textContent = this.currentUser.name;
                 }
                 
                 // Set picture
@@ -186,7 +194,13 @@ class MotorsportsAnalytics {
         const settingsBtn = document.getElementById('menu-settings');
         if (settingsBtn) {
             settingsBtn.addEventListener('click', () => {
-                this.showNotification('Settings coming soon', 'info');
+                // Close menu first
+                const menuDropdown = document.getElementById('user-menu-dropdown');
+                if (menuDropdown) {
+                    menuDropdown.style.display = 'none';
+                }
+                // Show settings modal
+                this.showSettingsModal();
             });
         }
         
@@ -440,6 +454,9 @@ class MotorsportsAnalytics {
                 this.sendMessage();
             });
         });
+        
+        // Initialize suggestion carousel
+        this.initSuggestionCarousel();
         
         // Auto-resize chat input
         chatInput.addEventListener('input', () => {
@@ -729,6 +746,24 @@ class MotorsportsAnalytics {
         const message = chatInput.value.trim();
         
         if (!message) return;
+        
+        // Check if user has configured API key
+        try {
+            const configRes = await fetch(`${this.apiBase}/user/api-config`, { credentials: 'include' });
+            if (!configRes.ok || !await configRes.json()) {
+                this.showNotification('Please configure your API key and model in Settings first', 'warning');
+                // Open settings modal
+                setTimeout(() => {
+                    const settingsBtn = document.getElementById('menu-settings');
+                    if (settingsBtn) {
+                        settingsBtn.click();
+                    }
+                }, 500);
+                return;
+            }
+        } catch (e) {
+            console.error('Error checking API config:', e);
+        }
         
         // Hide welcome message on first message
         this.hideWelcomeMessage();
@@ -1044,30 +1079,180 @@ class MotorsportsAnalytics {
     }
 
     hideWelcomeMessage() {
-        const welcomeMessage = document.getElementById('chat-welcome-message');
-        if (welcomeMessage && welcomeMessage.style.display !== 'none') {
-            welcomeMessage.classList.add('fade-out');
-            setTimeout(() => {
-                welcomeMessage.style.display = 'none';
-            }, 300);
+        const centeredBlock = document.getElementById('chat-centered-block');
+        if (centeredBlock) {
+            // Add class to trigger transition to bottom
+            centeredBlock.classList.add('has-messages');
+            // Stop rotating text
+            this.stopRotatingText();
         }
     }
     
     showWelcomeMessage() {
-        const welcomeMessage = document.getElementById('chat-welcome-message');
+        const centeredBlock = document.getElementById('chat-centered-block');
         const messagesContainer = document.getElementById('chat-messages');
-        if (welcomeMessage && messagesContainer) {
-            // Only show if there are no messages
+        if (centeredBlock && messagesContainer) {
+            // Only show centered if there are no messages
             const hasMessages = messagesContainer.children.length > 0;
             if (!hasMessages) {
-                welcomeMessage.style.display = 'flex';
-                welcomeMessage.classList.remove('fade-out');
+                // Update user name in welcome message
+                const welcomeUserName = document.getElementById('welcome-user-name');
+                if (welcomeUserName && this.currentUser && this.currentUser.name) {
+                    welcomeUserName.textContent = this.currentUser.name;
+                } else if (welcomeUserName) {
+                    welcomeUserName.textContent = 'there';
+                }
+                // Remove has-messages class to center the block
+                centeredBlock.classList.remove('has-messages');
+                // Start rotating text
+                this.startRotatingText();
+            } else {
+                // Has messages, ensure it's at bottom
+                centeredBlock.classList.add('has-messages');
+                this.stopRotatingText();
             }
         }
     }
 
+    startRotatingText() {
+        // Stop any existing rotation
+        this.stopRotatingText();
+        
+        const rotatingTextEl = document.getElementById('rotating-text');
+        if (!rotatingTextEl) return;
+
+        const phrases = [
+            'How can I help you today?',
+            'Which data do you want to analyze?',
+            'What insights are you looking for?',
+            'Ready to explore motorsports data?',
+            'What would you like to discover?',
+            'Let\'s analyze some race data!'
+        ];
+
+        let currentIndex = 0;
+        
+        const rotate = () => {
+            // Fade out
+            rotatingTextEl.classList.add('fade-out');
+            
+            setTimeout(() => {
+                // Change text
+                currentIndex = (currentIndex + 1) % phrases.length;
+                rotatingTextEl.textContent = phrases[currentIndex];
+                
+                // Fade in
+                rotatingTextEl.classList.remove('fade-out');
+                rotatingTextEl.classList.add('fade-in');
+                
+                setTimeout(() => {
+                    rotatingTextEl.classList.remove('fade-in');
+                }, 100);
+            }, 500);
+        };
+
+        // Start rotation after initial delay
+        this.rotatingTextInterval = setInterval(rotate, 3000);
+    }
+
+    stopRotatingText() {
+        if (this.rotatingTextInterval) {
+            clearInterval(this.rotatingTextInterval);
+            this.rotatingTextInterval = null;
+        }
+    }
+
+    initSuggestionCarousel() {
+        const suggestionsContainer = document.getElementById('input-suggestions');
+        const leftArrow = document.getElementById('suggestion-arrow-left');
+        const rightArrow = document.getElementById('suggestion-arrow-right');
+        
+        if (!suggestionsContainer || !leftArrow || !rightArrow) {
+            return;
+        }
+        
+        const scrollAmount = 200; // pixels to scroll
+        
+        // Left arrow click
+        leftArrow.addEventListener('click', () => {
+            suggestionsContainer.scrollBy({
+                left: -scrollAmount,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Right arrow click
+        rightArrow.addEventListener('click', () => {
+            suggestionsContainer.scrollBy({
+                left: scrollAmount,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Update arrow visibility based on scroll position
+        const updateArrowVisibility = () => {
+            const { scrollLeft, scrollWidth, clientWidth } = suggestionsContainer;
+            const wrapper = suggestionsContainer.closest('.input-suggestions-wrapper');
+            
+            // Check if content overflows
+            const needsScroll = scrollWidth > clientWidth;
+            
+            if (!needsScroll) {
+                // Hide both arrows if content doesn't overflow
+                leftArrow.classList.add('disabled');
+                rightArrow.classList.add('disabled');
+                if (wrapper) {
+                    wrapper.classList.remove('has-scroll-left', 'has-scroll-right');
+                }
+                return;
+            }
+            
+            // Update left arrow and fade
+            if (scrollLeft <= 10) {
+                leftArrow.classList.add('disabled');
+                if (wrapper) wrapper.classList.remove('has-scroll-left');
+            } else {
+                leftArrow.classList.remove('disabled');
+                if (wrapper) wrapper.classList.add('has-scroll-left');
+            }
+            
+            // Update right arrow and fade
+            if (scrollLeft >= scrollWidth - clientWidth - 10) {
+                rightArrow.classList.add('disabled');
+                if (wrapper) wrapper.classList.remove('has-scroll-right');
+            } else {
+                rightArrow.classList.remove('disabled');
+                if (wrapper) wrapper.classList.add('has-scroll-right');
+            }
+        };
+        
+        // Initial check
+        updateArrowVisibility();
+        
+        // Update on scroll
+        suggestionsContainer.addEventListener('scroll', updateArrowVisibility);
+        
+        // Update on resize
+        window.addEventListener('resize', updateArrowVisibility);
+        
+        // Check if arrows are needed initially (with delay to ensure layout is complete)
+        setTimeout(() => {
+            updateArrowVisibility();
+        }, 100);
+        
+        // Also check after a longer delay to catch any dynamic content
+        setTimeout(() => {
+            updateArrowVisibility();
+        }, 500);
+    }
+
     async addMessage(content, sender) {
         const messagesContainer = document.getElementById('chat-messages');
+        const centeredBlock = document.getElementById('chat-centered-block');
+        
+        // Check if this is the first message (before adding)
+        const isFirstMessage = messagesContainer.children.length === 0;
+        
         const messageElement = document.createElement('div');
         messageElement.className = `message ${sender}-message framer-fade-in`;
         
@@ -1088,6 +1273,11 @@ class MotorsportsAnalytics {
         `;
         
         messagesContainer.appendChild(messageElement);
+        
+        // If this is the first message, trigger the transition
+        if (isFirstMessage && centeredBlock) {
+            centeredBlock.classList.add('has-messages');
+        }
         
         // Render markdown using MarkdownRenderer if available
         const messageTextEl = messageElement.querySelector('.message-text');
@@ -2364,6 +2554,337 @@ class MotorsportsAnalytics {
             }
         };
         document.addEventListener('keydown', escapeHandler);
+    }
+    
+    async showSettingsModal() {
+        // Load current config
+        let currentConfig = null;
+        try {
+            const res = await fetch(`${this.apiBase}/user/api-config`, { credentials: 'include' });
+            if (res.ok) {
+                currentConfig = await res.json();
+            }
+        } catch (e) {
+            console.error('Error loading API config:', e);
+        }
+        
+        // Create minimal modal overlay
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'settings-modal-overlay';
+        modalOverlay.innerHTML = `
+            <div class="settings-modal">
+                <div class="settings-header">
+                    <h2>AI Configuration</h2>
+                    <button class="settings-close-btn" id="settings-close-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="settings-content">
+                    <div class="settings-row">
+                        <label class="settings-label">Provider</label>
+                        <div class="provider-options-minimal">
+                            <button class="provider-btn ${currentConfig?.provider === 'openai' ? 'active' : ''}" data-provider="openai">
+                                <span>OpenAI</span>
+                            </button>
+                            <button class="provider-btn ${currentConfig?.provider === 'anthropic' ? 'active' : ''}" data-provider="anthropic">
+                                <span>Anthropic</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-row">
+                        <label class="settings-label">API Key</label>
+                        <div class="input-wrapper-minimal">
+                            <input 
+                                type="password" 
+                                id="settings-api-key" 
+                                class="input-minimal" 
+                                placeholder="sk-..."
+                                value="${currentConfig?.has_api_key ? '••••••••••••••••' : ''}"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="settings-row">
+                        <label class="settings-label">Model</label>
+                        <div class="input-wrapper-minimal">
+                            <select id="settings-model" class="input-minimal" disabled>
+                                <option value="">Enter API key to load models...</option>
+                                ${currentConfig?.model ? `<option value="${currentConfig.model}" selected>${currentConfig.model}</option>` : ''}
+                            </select>
+                        </div>
+                        <div id="settings-loading-indicator" class="loading-minimal" style="display: none;">
+                            <span>Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-actions-minimal">
+                        ${currentConfig ? `
+                        <button id="settings-delete-btn" class="btn-minimal btn-secondary">
+                            Remove
+                        </button>
+                        ` : ''}
+                        <button id="settings-save-btn" class="btn-minimal btn-primary">
+                            Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modalOverlay);
+        
+        // Setup event listeners
+        this.setupSettingsModalListeners(modalOverlay, currentConfig);
+    }
+    
+    setupSettingsModalListeners(modalOverlay, currentConfig) {
+        const closeBtn = document.getElementById('settings-close-btn');
+        const saveBtn = document.getElementById('settings-save-btn');
+        const deleteBtn = document.getElementById('settings-delete-btn');
+        const providerCards = modalOverlay.querySelectorAll('.provider-card');
+        const apiKeyInput = document.getElementById('settings-api-key');
+        const modelSelect = document.getElementById('settings-model');
+        const loadingIndicator = document.getElementById('settings-loading-indicator');
+        const timelineSteps = modalOverlay.querySelectorAll('.timeline-step');
+        
+        let loadModelsTimeout = null;
+        
+        // Handle provider button selection
+        const providerButtons = modalOverlay.querySelectorAll('.provider-btn');
+        providerButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                providerButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Clear models and reload if API key exists
+                if (loadModelsTimeout) {
+                    clearTimeout(loadModelsTimeout);
+                }
+                loadModelsTimeout = setTimeout(loadModels, 300);
+            });
+        });
+        
+        // Close button
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modalOverlay.remove();
+            });
+        }
+        
+        // Close on overlay click
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.remove();
+            }
+        });
+        
+        // Close on Escape
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                modalOverlay.remove();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        // Auto-load models when API key is entered
+        const loadModels = async () => {
+            const provider = getCurrentProvider();
+            let apiKey = apiKeyInput.value.trim();
+            
+            // Check if the value is the placeholder (bullet points)
+            const isPlaceholder = apiKey === '••••••••••••••••' || apiKey.match(/^[•\u2022\u25CF]+$/);
+            
+            // If it's a placeholder, treat as empty
+            if (isPlaceholder) {
+                apiKey = '';
+            }
+            
+            // If no API key entered but we have saved config, use saved one
+            const useSavedKey = !apiKey && currentConfig?.has_api_key && currentConfig.provider === provider;
+            
+            if (!apiKey && !useSavedKey) {
+                modelSelect.innerHTML = '<option value="">Enter API key to load models...</option>';
+                modelSelect.disabled = true;
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                return;
+            }
+            
+            // Show loading indicator
+            if (loadingIndicator) loadingIndicator.style.display = 'flex';
+            modelSelect.disabled = true;
+            modelSelect.innerHTML = '<option value="">Loading models...</option>';
+            
+            try {
+                // Load models - if using saved key, don't pass api_key param
+                let url = `${this.apiBase}/models/list?provider=${provider}`;
+                if (apiKey && !isPlaceholder) {
+                    url += `&api_key=${encodeURIComponent(apiKey)}`;
+                }
+                
+                const modelsRes = await fetch(url, {
+                    credentials: 'include'
+                });
+                
+                if (!modelsRes.ok) {
+                    const error = await modelsRes.json();
+                    throw new Error(error.detail || 'Failed to load models. Please check your API key.');
+                }
+                
+                const data = await modelsRes.json();
+                modelSelect.innerHTML = '<option value="">Select a model...</option>';
+                
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.display_name || model.id;
+                    if (currentConfig && currentConfig.model === model.id) {
+                        option.selected = true;
+                    }
+                    modelSelect.appendChild(option);
+                });
+                
+                modelSelect.disabled = false;
+            } catch (e) {
+                modelSelect.innerHTML = '<option value="">Error loading models</option>';
+                this.showNotification(`Error loading models: ${e.message}`, 'error');
+                console.error('Error loading models:', e);
+            } finally {
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+            }
+        };
+        
+        // Get current provider from selected button
+        const getCurrentProvider = () => {
+            const selected = modalOverlay.querySelector('.provider-btn.active');
+            return selected ? selected.dataset.provider : (currentConfig?.provider || 'openai');
+        };
+        
+        // API key input change - auto-validate and load models
+        if (apiKeyInput) {
+            apiKeyInput.addEventListener('input', () => {
+                // Clear previous timeout
+                if (loadModelsTimeout) {
+                    clearTimeout(loadModelsTimeout);
+                }
+                // Debounce: wait 800ms after user stops typing
+                loadModelsTimeout = setTimeout(loadModels, 800);
+            });
+            
+            // Also trigger on paste
+            apiKeyInput.addEventListener('paste', () => {
+                setTimeout(() => {
+                    if (loadModelsTimeout) {
+                        clearTimeout(loadModelsTimeout);
+                    }
+                    loadModelsTimeout = setTimeout(loadModels, 800);
+                }, 100);
+            });
+        }
+        
+        // Load models on initial load if we have saved config
+        if (currentConfig?.has_api_key) {
+            setTimeout(loadModels, 500);
+        }
+        
+        // Save button
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                const provider = getCurrentProvider();
+                let apiKey = apiKeyInput.value.trim();
+                const model = modelSelect.value;
+                
+                // If API key field shows placeholder (••••), use saved key
+                if (!apiKey && currentConfig?.has_api_key && apiKeyInput.value === '••••••••••••••••') {
+                    // Don't send the placeholder, we'll use saved key
+                    // But we need to get it from backend - actually, we should require new key entry
+                    this.showNotification('Please enter your API key (or leave empty to keep current)', 'warning');
+                    return;
+                }
+                
+                // If no API key entered but we have saved config, we can keep using saved one
+                // But for security, we should require re-entry or explicitly allow keeping
+                if (!apiKey && !currentConfig?.has_api_key) {
+                    this.showNotification('Please enter your API key', 'warning');
+                    return;
+                }
+                
+                if (!model) {
+                    this.showNotification('Please select a model', 'warning');
+                    return;
+                }
+                
+                // If API key is placeholder, send empty string to keep current
+                if (apiKey === '••••••••••••••••') {
+                    apiKey = ''; // Empty string will trigger using saved key on backend
+                }
+                
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                
+                try {
+                    const res = await fetch(`${this.apiBase}/user/api-config`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            provider: provider,
+                            api_key: apiKey,
+                            model: model,
+                            temperature: 0.0  // Always use lowest temperature
+                        })
+                    });
+                    
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.detail || 'Failed to save configuration');
+                    }
+                    
+                    this.showNotification('Configuration saved successfully', 'success');
+                    modalOverlay.remove();
+                } catch (e) {
+                    this.showNotification(`Error saving configuration: ${e.message}`, 'error');
+                    console.error('Error saving config:', e);
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Configuration';
+                }
+            });
+        }
+        
+        // Delete button
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async () => {
+                if (!confirm('Are you sure you want to remove your API configuration? You will need to configure it again to use the agent.')) {
+                    return;
+                }
+                
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Removing...';
+                
+                try {
+                    const res = await fetch(`${this.apiBase}/user/api-config`, {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    });
+                    
+                    if (!res.ok) {
+                        throw new Error('Failed to delete configuration');
+                    }
+                    
+                    this.showNotification('Configuration removed successfully', 'success');
+                    modalOverlay.remove();
+                } catch (e) {
+                    this.showNotification(`Error removing configuration: ${e.message}`, 'error');
+                    console.error('Error deleting config:', e);
+                } finally {
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Remove Configuration';
+                }
+            });
+        }
     }
     
     initWelcomeFeaturesCarousel(modalOverlay) {

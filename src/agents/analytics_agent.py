@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
-from ..config import get_openai_client, get_settings
+from ..config import get_openai_client, get_settings, get_llm_client
 from ..prompt.analytics_agent_prompt import ANALYTICS_AGENT_PROMPT
 
 # Constants
@@ -35,6 +35,7 @@ class AnalyticsAgentManager:
     
     _instance: Optional['AnalyticsAgentManager'] = None
     _agent: Optional[Any] = None
+    _agent_config: Optional[Dict[str, Any]] = None
     _logging_configured: bool = False
     
     def __new__(cls) -> 'AnalyticsAgentManager':
@@ -53,9 +54,23 @@ class AnalyticsAgentManager:
             logger.info(f"Logging configured with level: {settings.log_level}")
             self._logging_configured = True
     
-    def get_agent(self, force_reload: bool = False) -> Any:
-        """Get or create the analytics agent."""
-        if self._agent is None or force_reload:
+    def get_agent(self, force_reload: bool = False, user_config: Optional[Dict[str, Any]] = None) -> Any:
+        """
+        Get or create the analytics agent.
+        
+        Args:
+            force_reload: Force reload of the agent
+            user_config: Optional user-specific config with provider, api_key, model, temperature
+        """
+        # Check if we need to reload (config changed or force reload)
+        config_changed = False
+        if user_config:
+            config_key = f"{user_config.get('provider')}:{user_config.get('model')}:{user_config.get('api_key', '')[:10]}"
+            if self._agent_config != config_key:
+                config_changed = True
+                self._agent_config = config_key
+        
+        if self._agent is None or force_reload or config_changed:
             from ..tools import get_all_tools
             
             # Setup LangSmith tracing
@@ -67,7 +82,19 @@ class AnalyticsAgentManager:
             # Format the prompt with temporal context
             formatted_prompt = ANALYTICS_AGENT_PROMPT.format(current_date=current_date)
             
-            llm = get_openai_client()
+            # Use user config if provided, otherwise fallback to global settings
+            if user_config and user_config.get("api_key"):
+                llm = get_llm_client(
+                    provider=user_config.get("provider", "openai"),
+                    api_key=user_config["api_key"],
+                    model=user_config.get("model", "gpt-4o-mini"),
+                    temperature=0.0  # Always use lowest temperature
+                )
+                logger.info(f"Using user-provided {user_config.get('provider', 'openai')} model: {user_config.get('model', 'gpt-4o-mini')}")
+            else:
+                llm = get_openai_client()
+                logger.info("Using default OpenAI client")
+            
             tools = get_all_tools()
             
             self._agent = create_react_agent(
@@ -78,7 +105,7 @@ class AnalyticsAgentManager:
                 name=DEFAULT_AGENT_NAME
             )
             
-            action = "reloaded" if force_reload else "created"
+            action = "reloaded" if (force_reload or config_changed) else "created"
             logger.info(f"Analytics agent {action} with LangSmith tracing and current date: {current_date}")
         
         return self._agent
@@ -110,9 +137,9 @@ def _setup_logging():
     _agent_manager._configure_logging()
 
 
-def get_analytics_agent(force_reload: bool = False) -> Any:
+def get_analytics_agent(force_reload: bool = False, user_config: Optional[Dict[str, Any]] = None) -> Any:
     """Get or create the analytics agent."""
-    return _agent_manager.get_agent(force_reload)
+    return _agent_manager.get_agent(force_reload, user_config)
 
 
 def reload_analytics_agent() -> Any:
@@ -120,7 +147,7 @@ def reload_analytics_agent() -> Any:
     return _agent_manager.reload_agent()
 
 
-def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None) -> str:
+def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None, user_config: Optional[Dict[str, Any]] = None) -> str:
     """
     Invoke the analytics agent with a message.
     
@@ -141,7 +168,7 @@ def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None
     config = _prepare_agent_config(config)
 
     try:
-        agent = get_analytics_agent()
+        agent = get_analytics_agent(user_config=user_config)
         
         response = agent.invoke(
             {"messages": [{"role": "user", "content": message}]},
@@ -158,7 +185,7 @@ def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None
         raise RuntimeError(f"Agent invocation failed: {str(e)}") from e
 
 
-async def stream_analytics_agent_with_history(messages_history: list, config: Optional[Dict[str, Any]] = None):
+async def stream_analytics_agent_with_history(messages_history: list, config: Optional[Dict[str, Any]] = None, user_config: Optional[Dict[str, Any]] = None):
     """
     Stream the analytics agent response token by token with full conversation history.
     Only streams the final LLM response, filtering out tool outputs and intermediate steps.
@@ -180,7 +207,7 @@ async def stream_analytics_agent_with_history(messages_history: list, config: Op
     config = _prepare_agent_config(config)
 
     try:
-        agent = get_analytics_agent()
+        agent = get_analytics_agent(user_config=user_config)
         
         # Stream only messages mode to get LLM tokens
         # This approach filters out tool outputs and intermediate steps

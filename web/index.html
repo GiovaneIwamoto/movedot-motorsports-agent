@@ -82,47 +82,67 @@
                     <div class="chat-messages" id="chat-messages">
                         <!-- Messages will be added here -->
                     </div>
-                    <div class="chat-welcome-message" id="chat-welcome-message">
-                        <div class="welcome-icon">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <h3>How can I help you today?</h3>
-                        <p>Ask me about motorsports data, analyze race performance, compare drivers, or explore lap times.</p>
-                    </div>
                     
-                    <div class="chat-input-container-minimal">
-                        
-                        <!-- Small suggestion chips above input -->
-                        <div class="input-suggestions">
-                            <button class="suggestion-chip framer-hover-lift" data-query="Analyze driver performance">
-                                <i class="fas fa-user"></i>
-                                Driver Performance
-                            </button>
-                            <button class="suggestion-chip framer-hover-lift" data-query="Show fastest lap times">
-                                <i class="fas fa-stopwatch"></i>
-                                Lap Times
-                            </button>
-                            <button class="suggestion-chip framer-hover-lift" data-query="Compare teams">
-                                <i class="fas fa-users"></i>
-                                Compare Teams
-                            </button>
+                    <!-- Centered block when no messages -->
+                    <div class="chat-centered-block" id="chat-centered-block">
+                        <div class="chat-welcome-message" id="chat-welcome-message">
+                            <h3 class="welcome-title">
+                                Welcome <span class="user-name-welcome" id="welcome-user-name">there</span>
+                            </h3>
+                            <div class="rotating-text-container">
+                                <span class="rotating-text" id="rotating-text">How can I help you today?</span>
+                            </div>
                         </div>
                         
-                        <div class="vanish-input-container">
-                            <div class="vanish-input-wrapper">
-                                <input 
-                                    type="text" 
-                                    id="chat-input" 
-                                    class="vanish-input"
-                                    placeholder=""
-                                >
-                                <div class="vanish-placeholder" id="vanish-placeholder">
-                                    <span class="placeholder-text">Ask your question about motorsports data...</span>
+                        <div class="chat-input-container-minimal">
+                            <!-- Small suggestion chips above input -->
+                            <div class="input-suggestions-wrapper">
+                                <button class="suggestion-arrow suggestion-arrow-left" id="suggestion-arrow-left" aria-label="Previous suggestions">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <div class="input-suggestions" id="input-suggestions">
+                                    <button class="suggestion-chip framer-hover-lift" data-query="Weather condition at the last grand prix">
+                                        <i class="fas fa-cloud-sun"></i>
+                                        Weather Conditions
+                                    </button>
+                                    <button class="suggestion-chip framer-hover-lift" data-query="Get info about all grand prix">
+                                        <i class="fas fa-flag-checkered"></i>
+                                        All Grand Prix
+                                    </button>
+                                    <button class="suggestion-chip framer-hover-lift" data-query="Determine how much time Driver X spends braking during their fastest qualifying lap">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                        Braking Time Analysis
+                                    </button>
+                                    <button class="suggestion-chip framer-hover-lift" data-query="Compare the maximum speed of Driver X with DRS open vs their teammate with DRS open">
+                                        <i class="fas fa-gauge-high"></i>
+                                        Max Speed with DRS
+                                    </button>
+                                    <button class="suggestion-chip framer-hover-lift" data-query="Compare the pit stop duration of Driver X with that of the race leader">
+                                        <i class="fas fa-stopwatch"></i>
+                                        Pit Stop Duration
+                                    </button>
                                 </div>
+                                <button class="suggestion-arrow suggestion-arrow-right" id="suggestion-arrow-right" aria-label="Next suggestions">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
                             </div>
-                            <button id="send-button" class="send-button">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
+                            
+                            <div class="vanish-input-container">
+                                <div class="vanish-input-wrapper">
+                                    <input 
+                                        type="text" 
+                                        id="chat-input" 
+                                        class="vanish-input"
+                                        placeholder=""
+                                    >
+                                    <div class="vanish-placeholder" id="vanish-placeholder">
+                                        <span class="placeholder-text">Ask your question about motorsports data...</span>
+                                    </div>
+                                </div>
+                                <button id="send-button" class="send-button">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

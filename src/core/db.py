@@ -70,6 +70,19 @@ def init_db() -> None:
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_api_config (
+                user_id INTEGER PRIMARY KEY,
+                provider TEXT NOT NULL,
+                api_key TEXT NOT NULL,
+                model TEXT NOT NULL,
+                temperature REAL DEFAULT 0.1,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
         conn.commit()
 
 
@@ -200,6 +213,48 @@ def delete_user_conversations(user_id: int) -> int:
         
         conn.commit()
         return deleted_conversations
+
+
+def upsert_user_api_config(user_id: int, provider: str, api_key: str, model: str, temperature: float = 0.0) -> None:
+    """Save or update user's API configuration."""
+    now = datetime.utcnow().isoformat()
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT OR REPLACE INTO user_api_config (user_id, provider, api_key, model, temperature, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, provider, api_key, model, temperature, now),
+        )
+        conn.commit()
+
+
+def get_user_api_config(user_id: int) -> Optional[dict]:
+    """Get user's API configuration."""
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT provider, api_key, model, temperature FROM user_api_config WHERE user_id = ?",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if row:
+            return {
+                "provider": row["provider"],
+                "api_key": row["api_key"],
+                "model": row["model"],
+                "temperature": row["temperature"],
+            }
+        return None
+
+
+def delete_user_api_config(user_id: int) -> None:
+    """Delete user's API configuration."""
+    with _connect() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM user_api_config WHERE user_id = ?", (user_id,))
+        conn.commit()
 
 
 
