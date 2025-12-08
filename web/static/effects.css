@@ -299,18 +299,22 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background: var(--success-color);
-    animation: status-pulse 2s infinite;
+    background: #15e45a;
+    animation: status-pulse-smooth 2s infinite;
 }
 
-@keyframes status-pulse {
+@keyframes status-pulse-smooth {
     0% {
         transform: scale(1);
-        opacity: 1;
+        opacity: 0.6;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 0.3;
     }
     100% {
-        transform: scale(1.5);
-        opacity: 0;
+        transform: scale(1);
+        opacity: 0.6;
     }
 }
 

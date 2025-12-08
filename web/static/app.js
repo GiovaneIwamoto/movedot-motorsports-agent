@@ -531,25 +531,32 @@ class MotorsportsAnalytics {
 
     showQueryStatus(status, message) {
         const queryStatus = document.getElementById('query-status');
-        const statusDot = document.getElementById('status-dot');
+        const connectionStatusContainer = document.getElementById('connection-status-container');
         const statusText = document.getElementById('status-text');
         
         if (status === 'processing') {
+            // Hide connection status, show query progress
+            if (connectionStatusContainer) {
+                connectionStatusContainer.style.display = 'none';
+            }
             queryStatus.style.display = 'flex';
-            statusDot.className = 'status-dot processing';
             statusText.textContent = message || 'Processing...';
         } else if (status === 'success') {
-            statusDot.className = 'status-dot success';
             statusText.textContent = message || 'Completed';
             setTimeout(() => {
                 queryStatus.style.display = 'none';
-            }, 2000);
+                if (connectionStatusContainer) {
+                    connectionStatusContainer.style.display = 'flex';
+                }
+            }, 1500);
         } else if (status === 'error') {
-            statusDot.className = 'status-dot error';
             statusText.textContent = message || 'Error';
             setTimeout(() => {
                 queryStatus.style.display = 'none';
-            }, 3000);
+                if (connectionStatusContainer) {
+                    connectionStatusContainer.style.display = 'flex';
+                }
+            }, 2000);
         }
     }
 
@@ -586,7 +593,7 @@ class MotorsportsAnalytics {
         
         // Start query tracking
         this.queryStartTime = Date.now();
-        this.showQueryStatus('processing', 'Sending query...');
+        this.showQueryStatus('processing', 'Preparing response...');
         this.updateStatusIndicator(); // Update status immediately
         
         // Add user message to chat

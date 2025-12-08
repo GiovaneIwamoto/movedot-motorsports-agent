@@ -414,6 +414,13 @@ body::after {
     margin: 0;
 }
 
+.chat-status-container {
+    display: flex;
+    align-items: center;
+    position: relative;
+    min-width: 80px;
+}
+
 .chat-status-minimal {
     display: flex;
     align-items: center;
@@ -422,12 +429,61 @@ body::after {
     color: var(--text-secondary);
 }
 
-.query-status-minimal {
+.query-progress-indicator {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     font-size: 0.75rem;
     color: var(--text-secondary);
+    animation: fadeInMinimal 0.2s ease-out;
+}
+
+.progress-dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.progress-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #3b82f6;
+    animation: progressDotPulse 1.4s ease-in-out infinite;
+}
+
+.progress-dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.progress-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.progress-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes progressDotPulse {
+    0%, 80%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    40% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes fadeInMinimal {
+    from {
+        opacity: 0;
+        transform: translateY(-2px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .status-indicator {
@@ -441,8 +497,8 @@ body::after {
 
 .status-indicator.online {
     background: #15e45a; /* Vibrant green */
-    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
-    animation: pulse 2s infinite;
+    box-shadow: 0 0 0 1px rgba(21, 228, 90, 0.3);
+    animation: onlinePulse 2s infinite;
 }
 
 .status-indicator.offline {
@@ -463,6 +519,19 @@ body::after {
     }
     50% {
         opacity: 0.7;
+    }
+}
+
+@keyframes onlinePulse {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 0 1px rgba(21, 228, 90, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 0 2px rgba(21, 228, 90, 0.4);
+        transform: scale(1.02);
     }
 }
 

@@ -100,7 +100,6 @@ body::after {
 /* Main Content */
 .main-content {
   text-align: center;
-  animation: fadeInUp 1s ease-out 0.2s both;
   padding: var(--spacing-xl);
   position: relative;
 }
@@ -113,6 +112,7 @@ body::after {
   color: var(--foreground);
   position: relative;
   z-index: 1;
+  animation: fadeInMinimal 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.05s both;
 }
 
 
@@ -164,7 +164,7 @@ body::after {
 /* Navigation Section */
 .navigation-section {
   margin-bottom: var(--spacing-2xl);
-  animation: fadeInUp 1s ease-out 0.4s both;
+  animation: fadeInMinimal 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.25s both;
 }
 
 .enter-button {
@@ -216,7 +216,7 @@ body::after {
 
 /* Footer */
 .footer {
-  animation: fadeInUp 1s ease-out 0.6s both;
+  animation: fadeInMinimal 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.4s both;
   margin-top: var(--spacing-xl);
 }
 
@@ -239,11 +239,11 @@ body::after {
   font-family: 'Inter', sans-serif;
 }
 
-/* Animations */
-@keyframes fadeInUp {
+/* Animations - Modern Minimalist */
+@keyframes fadeInMinimal {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -258,6 +258,11 @@ body::after {
   to {
     opacity: 1;
   }
+}
+
+/* Product description gets a slightly different timing */
+.product-description {
+  animation: fadeInMinimal 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both;
 }
 
 /* Responsive Design */

@@ -21,14 +21,20 @@
                 <div class="chat-header-minimal">
                     <div class="chat-title">
                         <h2>Analytics Assistant</h2>
-                        <div class="chat-status-minimal">
-                            <div class="status-indicator online glow-white" id="connection-status"></div>
-                            <span id="connection-text">Online</span>
+                        <div class="chat-status-container">
+                            <div class="chat-status-minimal" id="connection-status-container">
+                                <div class="status-indicator online glow-white" id="connection-status"></div>
+                                <span id="connection-text">Online</span>
+                            </div>
+                            <div class="query-progress-indicator" id="query-status" style="display: none;">
+                                <div class="progress-dots">
+                                    <span class="progress-dot"></span>
+                                    <span class="progress-dot"></span>
+                                    <span class="progress-dot"></span>
+                                </div>
+                                <span id="status-text">Processing...</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="query-status-minimal" id="query-status" style="display: none;">
-                        <div class="status-dot processing" id="status-dot"></div>
-                        <span id="status-text">Processing...</span>
                     </div>
                     <div id="user-auth" style="margin-left:auto; display:flex; align-items:center; gap:0.5rem;">
                         <span id="user-name" style="font-size:0.9rem; opacity:0.9;"></span>
