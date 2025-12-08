@@ -1681,6 +1681,8 @@ class MotorsportsAnalytics {
             chatSection.style.top = '';
             chatSection.style.left = '';
             chatSection.style.transform = '';
+            chatSection.style.display = '';
+            chatSection.style.visibility = '';
         }
         
         if (inputContainer) {
@@ -1688,6 +1690,9 @@ class MotorsportsAnalytics {
             inputContainer.style.top = '';
             inputContainer.style.left = '';
             inputContainer.style.transform = '';
+            inputContainer.style.display = '';
+            inputContainer.style.visibility = '';
+            inputContainer.style.opacity = '';
         }
         
         if (vanishContainer) {
@@ -1695,6 +1700,8 @@ class MotorsportsAnalytics {
             vanishContainer.style.top = '';
             vanishContainer.style.left = '';
             vanishContainer.style.transform = '';
+            vanishContainer.style.display = '';
+            vanishContainer.style.visibility = '';
         }
         
         if (sendButton) {
@@ -1702,6 +1709,8 @@ class MotorsportsAnalytics {
             sendButton.style.top = '';
             sendButton.style.left = '';
             sendButton.style.transform = '';
+            sendButton.style.display = '';
+            sendButton.style.visibility = '';
         }
         
         // Restore preserved state
@@ -1711,6 +1720,11 @@ class MotorsportsAnalytics {
         
         if (this.preservedChatMessages && messagesContainer) {
             messagesContainer.innerHTML = this.preservedChatMessages;
+            
+            // Restore scroll position to bottom after messages are restored
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 100);
         }
         
         // Reinitialize all chat listeners
@@ -1726,29 +1740,45 @@ class MotorsportsAnalytics {
         
         // Force re-render of chat section
         this.forceChatSectionRerender();
+        
+        // Ensure scroll is enabled and working
+        if (messagesContainer) {
+            messagesContainer.style.overflow = 'auto';
+            messagesContainer.style.overflowY = 'auto';
+            
+            // Scroll to bottom after a short delay to ensure DOM is updated
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 200);
+        }
     }
 
     forceChatSectionRerender() {
         const chatSection = document.querySelector('.chat-section');
         if (chatSection) {
             // Force a reflow to ensure proper positioning
+            const originalDisplay = chatSection.style.display;
             chatSection.style.display = 'none';
             chatSection.offsetHeight; // Trigger reflow
-            chatSection.style.display = 'flex';
+            chatSection.style.display = originalDisplay || 'flex';
             
             // Ensure proper flex layout
             chatSection.style.flexDirection = 'column';
             chatSection.style.position = 'relative';
             chatSection.style.height = 'calc(100vh - 90px)';
             chatSection.style.minHeight = '600px';
+            chatSection.style.overflow = 'hidden';
         }
         
-        // Ensure input container is properly positioned
+        // Ensure input container is properly positioned and visible
         const inputContainer = document.querySelector('.chat-input-container-minimal');
         if (inputContainer) {
             inputContainer.style.position = 'relative';
             inputContainer.style.bottom = '0';
             inputContainer.style.padding = '1rem';
+            inputContainer.style.display = 'block';
+            inputContainer.style.visibility = 'visible';
+            inputContainer.style.opacity = '1';
         }
         
         // Ensure vanish container maintains proper layout
@@ -1758,6 +1788,7 @@ class MotorsportsAnalytics {
             vanishContainer.style.alignItems = 'center';
             vanishContainer.style.gap = '0.75rem';
             vanishContainer.style.position = 'relative';
+            vanishContainer.style.visibility = 'visible';
         }
         
         // Ensure send button is properly positioned
@@ -1766,6 +1797,7 @@ class MotorsportsAnalytics {
             sendButton.style.position = 'relative';
             sendButton.style.display = 'flex';
             sendButton.style.alignItems = 'center';
+            sendButton.style.visibility = 'visible';
             sendButton.style.justifyContent = 'center';
         }
     }
