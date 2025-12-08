@@ -160,11 +160,17 @@ class MotorsportsAnalytics {
                             this.showNotification('Chat history cleared successfully', 'success');
                             // Clear chat messages
                             const messagesContainer = document.getElementById('chat-messages');
+                            const centeredBlock = document.getElementById('chat-centered-block');
                             if (messagesContainer) {
                                 messagesContainer.innerHTML = '';
                             }
-                            // Show welcome message after clearing
-                            this.showWelcomeMessage();
+                            // Ensure smooth transition by waiting for DOM update
+                            requestAnimationFrame(() => {
+                                // Show welcome message after clearing with smooth animation
+                                this.showWelcomeMessage();
+                            });
+                            // Small delay to ensure DOM is updated before reloading
+                            await new Promise(resolve => setTimeout(resolve, 100));
                             // Reload conversation
                             await this.bootstrapConversation();
                             // Close menu
@@ -1117,11 +1123,26 @@ class MotorsportsAnalytics {
 
     hideWelcomeMessage() {
         const centeredBlock = document.getElementById('chat-centered-block');
+        const chatContainer = document.querySelector('.chat-container');
         if (centeredBlock) {
-            // Add class to trigger transition to bottom
-            centeredBlock.classList.add('has-messages');
-            // Stop rotating text
-            this.stopRotatingText();
+            // Stop typing animation immediately before transition
+            this.stopTypingAnimation();
+            // Clear any partial typing text
+            const placeholderText = document.getElementById('placeholder-text');
+            if (placeholderText) {
+                placeholderText.textContent = '';
+            }
+            // Use requestAnimationFrame to ensure smooth transition
+            requestAnimationFrame(() => {
+                // Add class to trigger transition to bottom
+                centeredBlock.classList.add('has-messages');
+                // Add class to container for padding-bottom on messages
+                if (chatContainer) {
+                    chatContainer.classList.add('has-messages-active');
+                }
+                // Stop rotating text
+                this.stopRotatingText();
+            });
         }
     }
     
@@ -1139,8 +1160,16 @@ class MotorsportsAnalytics {
                 } else if (welcomeUserName) {
                     welcomeUserName.textContent = 'there';
                 }
-                // Remove has-messages class to center the block
-                centeredBlock.classList.remove('has-messages');
+                // Use requestAnimationFrame to ensure smooth transition back to center
+                requestAnimationFrame(() => {
+                    // Remove has-messages class to center the block
+                    centeredBlock.classList.remove('has-messages');
+                    // Remove class from container to remove padding-bottom
+                    const chatContainer = document.querySelector('.chat-container');
+                    if (chatContainer) {
+                        chatContainer.classList.remove('has-messages-active');
+                    }
+                });
                 // Start rotating text
                 this.startRotatingText();
                 // Reset decorative placeholder index and start typing animation
@@ -1151,11 +1180,30 @@ class MotorsportsAnalytics {
                     placeholderText.classList.remove('fade-out');
                     placeholderText.classList.add('fade-in', 'visible');
                 }
-                this.startPlaceholderAnimation();
+                // Stop any existing placeholder animation first
+                this.stopPlaceholderAnimation();
+                // Start typing animation for "Ask me anything" when no messages
+                setTimeout(() => {
+                    this.startTypingAnimation();
+                }, 300);
             } else {
                 // Has messages, ensure it's at bottom
-                centeredBlock.classList.add('has-messages');
+                requestAnimationFrame(() => {
+                    centeredBlock.classList.add('has-messages');
+                    // Add class to container for padding-bottom on messages
+                    const chatContainer = document.querySelector('.chat-container');
+                    if (chatContainer) {
+                        chatContainer.classList.add('has-messages-active');
+                    }
+                });
                 this.stopRotatingText();
+                // Stop typing animation immediately when there are messages
+                this.stopTypingAnimation();
+                // Clear any partial typing text
+                const placeholderText = document.getElementById('placeholder-text');
+                if (placeholderText) {
+                    placeholderText.textContent = '';
+                }
                 // Update placeholder to show cycling placeholders
                 this.showPlaceholder();
                 this.startPlaceholderAnimation();
@@ -1331,9 +1379,24 @@ class MotorsportsAnalytics {
         
         messagesContainer.appendChild(messageElement);
         
-        // If this is the first message, trigger the transition
+        // If this is the first message, trigger the transition smoothly
         if (isFirstMessage && centeredBlock) {
-            centeredBlock.classList.add('has-messages');
+            // Stop typing animation immediately
+            this.stopTypingAnimation();
+            // Clear any partial typing text
+            const placeholderText = document.getElementById('placeholder-text');
+            if (placeholderText) {
+                placeholderText.textContent = '';
+            }
+            // Use requestAnimationFrame to ensure smooth transition
+            requestAnimationFrame(() => {
+                centeredBlock.classList.add('has-messages');
+                // Add class to container for padding-bottom on messages
+                const chatContainer = document.querySelector('.chat-container');
+                if (chatContainer) {
+                    chatContainer.classList.add('has-messages-active');
+                }
+            });
         }
         
         // Render markdown using MarkdownRenderer if available
@@ -1505,8 +1568,14 @@ class MotorsportsAnalytics {
                           (messagesContainer && messagesContainer.children.length > 0);
 
         if (!hasMessages) {
-            // Start typing animation when no messages
-            this.startTypingAnimation();
+            // Start typing animation when no messages - ensure it starts properly
+            // Clear any static placeholder first
+            placeholderText.textContent = '';
+            this.currentDecorativeIndex = 0;
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                this.startTypingAnimation();
+            }, 100);
         } else {
             // Show current placeholder immediately and cycle when there are messages
             this.showPlaceholder();
@@ -1533,7 +1602,6 @@ class MotorsportsAnalytics {
 
     startTypingAnimation() {
         this.stopTypingAnimation();
-        this.isTyping = true;
         
         const placeholderText = document.getElementById('placeholder-text');
         if (!placeholderText) {
@@ -1548,8 +1616,14 @@ class MotorsportsAnalytics {
 
         if (hasMessages || this.isInputFocused) {
             this.stopTypingAnimation();
+            // Clear any partial typing text when there are messages
+            if (hasMessages) {
+                placeholderText.textContent = '';
+            }
             return;
         }
+
+        this.isTyping = true;
 
         // Ensure placeholder is visible
         const vanishPlaceholder = document.getElementById('vanish-placeholder');
@@ -1569,6 +1643,21 @@ class MotorsportsAnalytics {
             this.typingAnimation = null;
         }
         this.isTyping = false;
+        
+        // Clear any partial typing text when stopping
+        const placeholderText = document.getElementById('placeholder-text');
+        const centeredBlock = document.getElementById('chat-centered-block');
+        const messagesContainer = document.getElementById('chat-messages');
+        const hasMessages = centeredBlock && centeredBlock.classList.contains('has-messages') || 
+                          (messagesContainer && messagesContainer.children.length > 0);
+        
+        if (hasMessages && placeholderText) {
+            // Don't clear if we're showing a placeholder (not typing animation)
+            // Only clear if it's a single character (likely from typing animation)
+            if (placeholderText.textContent.length <= 1 && placeholderText.textContent !== '') {
+                placeholderText.textContent = '';
+            }
+        }
     }
 
     typeText() {
@@ -1675,6 +1764,8 @@ class MotorsportsAnalytics {
             placeholderText.classList.remove('fade-out');
             placeholderText.classList.add('fade-in', 'visible');
         } else {
+            // Stop typing animation first to prevent any partial text
+            this.stopTypingAnimation();
             // Show cycling placeholders when there are messages
             placeholderText.textContent = this.placeholders[this.currentPlaceholderIndex];
             placeholderText.classList.remove('fade-out');
@@ -2202,8 +2293,12 @@ class MotorsportsAnalytics {
         // Reinitialize all chat listeners
         this.reinitializeChatListeners();
         
-        // Restore placeholder animation
-        this.startPlaceholderAnimation();
+        // Only restore placeholder animation if there are messages
+        // If no messages, showWelcomeMessage already started the typing animation
+        const hasMessages = messagesContainer && messagesContainer.children.length > 0;
+        if (hasMessages) {
+            this.startPlaceholderAnimation();
+        }
         
         // Ensure WebSocket is connected
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
