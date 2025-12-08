@@ -973,8 +973,7 @@ body::after {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    /* Card-level scrollbar styling (gray transparent) */
+    justify-content: flex-start;
     scrollbar-width: thin;
     scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
 }
@@ -3579,18 +3578,28 @@ body::after {
 
 .tab-pane {
   display: none;
+  /* Garante que a aba ocupe a altura toda do pai */
+  height: 100%; 
+  
+  /* A barra de rolagem fica AQUI */
+  overflow-y: auto; 
+  
+  /* --- A MÁGICA --- */
+  /* Transfere o espaço que antes era margin do filho para padding do pai */
+  /* Esse 100px garante que o conteúdo comece bem abaixo (ajuste conforme a altura do seu menu) */
+  padding-top: 100px; 
+  
+  /* Espaço no fundo para não cortar o último card */
+  padding-bottom: 50px; 
+  
+  /* Garante que o padding não estoure a largura */
+  box-sizing: border-box; 
 }
 
 .tab-pane.active {
-  display: block; /* ou flex, conforme seu layout */
+  display: block; 
 }
-.kpi-grid-container {
-  width: 100%;
-  display: flex !important;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
-}
+
 
 
 .kpi-card {
@@ -3661,19 +3670,29 @@ body::after {
 
 
 #kpi-container {
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 25px; /* Um pouco mais de espaço entre cards */
-  justify-content: flex-start; /* Alinha à esquerda em vez de centralizar (opcional) */
-  
-  /* --- A CORREÇÃO DO CORTE ESTÁ AQUI: --- */
-  padding: 20px; /* Dá espaço interno para a sombra não ser cortada */
-  margin-top: 10px;
-  min-height: 250px; /* Garante altura mínima para o card caber */
-  overflow: visible; /* Deixa a sombra "vazar" se precisar, sem cortar */
-  box-sizing: border-box; /* Garante que o padding não estoure a largura */
+    /* 1. O segredo para não ficar gigante: altura automática */
+    height: auto !important; 
+    min-height: 0 !important; /* Remove altura mínima forçada */
+    
+    /* 2. Impede que ele cresça para ocupar espaço vazio (se estiver num flex column) */
+    flex-grow: 0 !important;
+    
+    /* 3. Comportamento do Grid */
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 15px !important;
+    
+    /* 4. Alinhamento e Espaçamento */
+    width: 100% !important;
+    margin-bottom: 20px !important; /* Apenas uma margem inferior para separar do próximo elemento */
+    padding: 0 !important; /* Remove padding interno excessivo se houver */
+    
+    /* Opcional: Para depuração (remova depois) */
+    /* border: 1px solid red; */
 }
+
+
+
 
 @keyframes shimmer {
   0% { transform: translateX(-100%) rotate(25deg); }
