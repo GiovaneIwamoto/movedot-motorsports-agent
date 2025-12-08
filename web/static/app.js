@@ -55,6 +55,7 @@ class MotorsportsAnalytics {
             const res = await fetch(`${this.apiBase}/auth/me`, { credentials: 'include' });
             if (!res.ok) throw new Error('Not authenticated');
             this.currentUser = await res.json();
+            console.log('Current user data:', this.currentUser); // Debug log
         } catch (e) {
             window.location.href = `${this.apiBase}/auth/login`;
             throw e;
@@ -62,38 +63,174 @@ class MotorsportsAnalytics {
     }
 
     setupAuthUI() {
-        // Populate user name and wire sign out on both pages if present
+        // Populate user name and setup user menu
         try {
             const nameEl = document.getElementById('user-name');
-            const btn = document.getElementById('sign-out-btn');
-            if (nameEl && this.currentUser && this.currentUser.name) {
-                nameEl.textContent = this.currentUser.name;
+            const pictureEl = document.getElementById('user-picture');
+            const menuTrigger = document.getElementById('user-menu-trigger');
+            const menuDropdown = document.getElementById('user-menu-dropdown');
+            
+            if (this.currentUser) {
+                // Set name
+                if (nameEl && this.currentUser.name) {
+                    nameEl.textContent = this.currentUser.name;
+                }
+                
+                // Set picture
+                if (this.currentUser.picture && pictureEl) {
+                    pictureEl.src = this.currentUser.picture;
+                    pictureEl.style.display = 'block';
+                    pictureEl.onerror = () => {
+                        console.warn('Failed to load user picture:', this.currentUser.picture);
+                        pictureEl.style.display = 'none';
+                    };
+                }
             }
-            if (btn) {
-                btn.addEventListener('click', async () => {
-                    try {
-                        await fetch(`${this.apiBase}/auth/logout`, { method: 'POST', credentials: 'include' });
-                    } finally {
-                        window.location.href = `${this.apiBase}/auth/login`;
+            
+            // Setup menu toggle
+            if (menuTrigger && menuDropdown) {
+                menuTrigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = menuDropdown.style.display === 'flex';
+                    menuDropdown.style.display = isOpen ? 'none' : 'flex';
+                });
+                
+                // Close menu when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!menuTrigger.contains(e.target) && !menuDropdown.contains(e.target)) {
+                        menuDropdown.style.display = 'none';
                     }
                 });
             }
+            
+            // Setup menu items
+            this.setupUserMenuActions();
         } catch (e) {
             console.warn('Auth UI setup error', e);
+        }
+    }
+    
+    setupUserMenuActions() {
+        // Logout
+        const logoutBtn = document.getElementById('menu-logout');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                try {
+                    await fetch(`${this.apiBase}/auth/logout`, { method: 'POST', credentials: 'include' });
+                } finally {
+                    window.location.href = `${this.apiBase}/auth/login`;
+                }
+            });
+        }
+        
+        // Clear chat history
+        const clearHistoryBtn = document.getElementById('menu-clear-history');
+        if (clearHistoryBtn) {
+            clearHistoryBtn.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to delete all your chat history? This action cannot be undone.')) {
+                    try {
+                        const res = await fetch(`${this.apiBase}/chat/conversations/clear`, {
+                            method: 'DELETE',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (res.ok) {
+                            this.showNotification('Chat history cleared successfully', 'success');
+                            // Reload conversation
+                            await this.bootstrapConversation();
+                            // Clear chat messages
+                            const messagesContainer = document.getElementById('chat-messages');
+                            if (messagesContainer) {
+                                messagesContainer.innerHTML = '';
+                            }
+                            // Close menu
+                            const menuDropdown = document.getElementById('user-menu-dropdown');
+                            if (menuDropdown) {
+                                menuDropdown.style.display = 'none';
+                            }
+                        } else {
+                            const errorText = await res.text();
+                            console.error('Failed to clear history:', res.status, errorText);
+                            throw new Error(`Failed to clear history: ${res.status}`);
+                        }
+                    } catch (e) {
+                        this.showNotification('Failed to clear chat history. Please try again.', 'error');
+                        console.error('Error clearing history:', e);
+                    }
+                }
+            });
+        }
+        
+        // Manage conversations
+        const manageConvBtn = document.getElementById('menu-manage-conversations');
+        if (manageConvBtn) {
+            manageConvBtn.addEventListener('click', () => {
+                this.showNotification('Conversation management coming soon', 'info');
+            });
+        }
+        
+        // Export data
+        const exportBtn = document.getElementById('menu-export-data');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                this.showNotification('Data export coming soon', 'info');
+            });
+        }
+        
+        // Settings
+        const settingsBtn = document.getElementById('menu-settings');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                this.showNotification('Settings coming soon', 'info');
+            });
+        }
+        
+        // About
+        const aboutBtn = document.getElementById('menu-about');
+        if (aboutBtn) {
+            aboutBtn.addEventListener('click', () => {
+                // Close menu first
+                const menuDropdown = document.getElementById('user-menu-dropdown');
+                if (menuDropdown) {
+                    menuDropdown.style.display = 'none';
+                }
+                // Show welcome modal (about info)
+                this.showWelcomeModal(true);
+            });
         }
     }
 
     async bootstrapConversation() {
         try {
             const res = await fetch(`${this.apiBase}/chat/conversations`, { credentials: 'include' });
+            let isNewUser = false;
+            
             if (res.ok) {
                 const list = await res.json();
                 if (Array.isArray(list) && list.length > 0) {
                     this.conversationId = list[0].id;
                     await this.loadConversationMessages(this.conversationId);
                     return;
+                } else {
+                    // No conversations exist - this is a new user
+                    isNewUser = true;
                 }
+            } else {
+                // Error fetching - might be new user
+                isNewUser = true;
             }
+            
+            // Show welcome modal for new users
+            if (isNewUser) {
+                // Small delay to ensure page is loaded
+                setTimeout(() => {
+                    this.showWelcomeModal();
+                }, 500);
+            }
+            
             const createRes = await fetch(`${this.apiBase}/chat/conversations`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1882,7 +2019,9 @@ class MotorsportsAnalytics {
         notification.className = `minimal-notification minimal-notification-${type}`;
         notification.innerHTML = `
             <div class="notification-content">
-                <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : type === 'warning' ? 'exclamation' : 'info'}"></i>
+                <div class="notification-icon-wrapper">
+                    <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                </div>
                 <span>${message}</span>
             </div>
         `;
@@ -1916,9 +2055,33 @@ class MotorsportsAnalytics {
                     align-items: center;
                     gap: 0.75rem;
                 }
+                .notification-icon-wrapper {
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                }
+                .minimal-notification-info .notification-icon-wrapper {
+                    background: rgba(59, 130, 246, 0.15);
+                    color: #3b82f6;
+                }
+                .minimal-notification-success .notification-icon-wrapper {
+                    background: rgba(16, 185, 129, 0.15);
+                    color: #10b981;
+                }
+                .minimal-notification-error .notification-icon-wrapper {
+                    background: rgba(239, 68, 68, 0.15);
+                    color: #ef4444;
+                }
+                .minimal-notification-warning .notification-icon-wrapper {
+                    background: rgba(245, 158, 11, 0.15);
+                    color: #f59e0b;
+                }
                 .notification-content i {
-                    font-size: 0.9rem;
-                    opacity: 0.9;
+                    font-size: 0.75rem;
                 }
             `;
             document.head.appendChild(style);
@@ -1943,6 +2106,287 @@ class MotorsportsAnalytics {
             }, 200);
         }, 2000);
     }
+    
+    showWelcomeModal(forceShow = false) {
+        // Check if already shown (using localStorage) - unless forced (About button)
+        if (!forceShow) {
+            const welcomeShown = localStorage.getItem('welcomeModalShown');
+            if (welcomeShown === 'true') {
+                return;
+            }
+        }
+        
+        // Create modal overlay
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'welcome-modal-overlay';
+        modalOverlay.innerHTML = `
+            <div class="welcome-modal">
+                <div class="welcome-modal-content-wrapper">
+                    <div class="welcome-text-section">
+                        <div class="welcome-header-content">
+                            <h2>${forceShow ? 'How Our Agents Work' : 'Welcome to MoveDot Motorsports Analytics'}</h2>
+                            <p class="welcome-description">AI-powered analytics platform for analysts. Transform data into insights through natural language. Autonomous agents connect, navigate, and analyze data efficiently by executing code and strategically sourcing from multiple tools.</p>
+                        </div>
+                        
+                        <div class="welcome-features-carousel-wrapper">
+                            <div class="welcome-features-carousel">
+                                <div class="welcome-feature-slide active">
+                                    <h3>Autonomous Data Strategy</h3>
+                                    <p>Our AI agents autonomously determine where to source data from available tools. They strategically navigate data sources, making intelligent decisions about which tools and endpoints to access for comprehensive analysis.</p>
+                                </div>
+                                <div class="welcome-feature-slide">
+                                    <h3>Natural Language Analytics</h3>
+                                    <p>Transform data into insights through natural language conversations. Designed for analysts, our platform lets you explore data and generate analysis using simple questions - no technical barriers.</p>
+                                </div>
+                                <div class="welcome-feature-slide">
+                                    <h3>Intelligent Data Navigation</h3>
+                                    <p>AI agents connect and traverse through complex data structures. They understand relationships, dependencies, and can efficiently navigate across multiple data sources to find exactly what you need.</p>
+                                </div>
+                                <div class="welcome-feature-slide">
+                                    <h3>Code Execution Agents</h3>
+                                    <p>Agents execute Python code to analyze data efficiently. Complex pandas operations, statistical analysis, and visualizations are generated automatically - agents handle the technical execution while you focus on insights.</p>
+                                </div>
+                                <div class="welcome-feature-slide">
+                                    <h3>Context-Aware Analysis</h3>
+                                    <p>Maintains full conversation history across sessions. Build on previous analyses, ask follow-up questions, and refine insights - agents remember your entire analytical journey and adapt accordingly.</p>
+                                </div>
+                                <div class="welcome-feature-slide">
+                                    <h3>Secure Execution Environment</h3>
+                                    <p>All code execution happens in isolated E2B sandboxes. Your system stays safe while agents analyze data with full Python capabilities - enterprise-grade security without compromising functionality.</p>
+                                </div>
+                            </div>
+                            <div class="welcome-carousel-bottom">
+                                <div class="welcome-features-dots"></div>
+                                <button class="welcome-carousel-arrow welcome-carousel-next" id="welcome-carousel-next">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button class="welcome-button-primary" id="welcome-get-started">
+                            ${forceShow ? 'Close' : 'Get Started'}
+                        </button>
+                    </div>
+                    
+                    <div class="welcome-visual-section">
+                        <div class="welcome-visual-background">
+                            <div class="welcome-visual-layer welcome-layer-3">
+                                <div class="welcome-visual-card">
+                                    <div class="welcome-card-icon-small">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                            <path d="M2 17l10 5 10-5"></path>
+                                            <path d="M2 12l10 5 10-5"></path>
+                                        </svg>
+                                    </div>
+                                    <span>Data Studio</span>
+                                </div>
+                            </div>
+                            <div class="welcome-visual-layer welcome-layer-2">
+                                <div class="welcome-workflow-canvas">
+                                    <div class="welcome-workflow-header">Analytics Pipeline</div>
+                                    <div class="welcome-workflow-lines">
+                                        <div class="welcome-workflow-line"></div>
+                                        <div class="welcome-workflow-line"></div>
+                                        <div class="welcome-workflow-line"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="welcome-visual-layer welcome-layer-1">
+                                <div class="welcome-feature-cards">
+                                    <div class="welcome-feature-card">
+                                        <div class="welcome-feature-card-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                            </svg>
+                                        </div>
+                                        <span>Fetch Data</span>
+                                        <div class="welcome-card-toggle"></div>
+                                    </div>
+                                    <div class="welcome-feature-card welcome-card-active">
+                                        <div class="welcome-feature-card-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M9 11l3 3L22 4"></path>
+                                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                                            </svg>
+                                        </div>
+                                        <span>Analyze</span>
+                                        <div class="welcome-card-toggle welcome-toggle-on"></div>
+                                    </div>
+                                    <div class="welcome-feature-card welcome-card-active">
+                                        <div class="welcome-feature-card-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                                            </svg>
+                                        </div>
+                                        <span>Visualize</span>
+                                        <div class="welcome-card-toggle welcome-toggle-on"></div>
+                                    </div>
+                                    <div class="welcome-feature-card welcome-card-active">
+                                        <div class="welcome-feature-card-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                                <polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline>
+                                                <polyline points="7.5 19.79 7.5 14.6 3 12"></polyline>
+                                                <polyline points="21 12 16.5 14.6 16.5 19.79"></polyline>
+                                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                            </svg>
+                                        </div>
+                                        <span>Insights</span>
+                                        <div class="welcome-card-toggle welcome-toggle-on"></div>
+                                    </div>
+                                    <div class="welcome-feature-card">
+                                        <div class="welcome-feature-card-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="7 10 12 15 17 10"></polyline>
+                                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                                            </svg>
+                                        </div>
+                                        <span>Export</span>
+                                        <div class="welcome-card-toggle"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modalOverlay);
+        
+        // Initialize features carousel
+        this.initWelcomeFeaturesCarousel(modalOverlay);
+        
+        // Close on button click
+        const getStartedBtn = document.getElementById('welcome-get-started');
+        if (getStartedBtn) {
+            getStartedBtn.addEventListener('click', () => {
+                modalOverlay.remove();
+            });
+        }
+        
+        // Close on overlay click (outside modal)
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.remove();
+            }
+        });
+        
+        // Close on Escape key
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                modalOverlay.remove();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+    }
+    
+    initWelcomeFeaturesCarousel(modalOverlay) {
+        const slides = modalOverlay.querySelectorAll('.welcome-feature-slide');
+        const dotsContainer = modalOverlay.querySelector('.welcome-features-dots');
+        const nextBtn = modalOverlay.querySelector('.welcome-carousel-next');
+        
+        if (!slides.length || !dotsContainer) return;
+        
+        let currentIndex = 0;
+        let autoAdvanceInterval;
+        let isTransitioning = false;
+        
+        // Create dots
+        slides.forEach((_, index) => {
+            const dot = document.createElement('div');
+            dot.className = `welcome-feature-dot ${index === 0 ? 'active' : ''}`;
+            dot.addEventListener('click', () => {
+                if (!isTransitioning) {
+                    currentIndex = index;
+                    updateCarousel();
+                    resetAutoAdvance();
+                }
+            });
+            dotsContainer.appendChild(dot);
+        });
+        
+        const updateCarousel = () => {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            
+            // Fade out current slide
+            slides.forEach((slide, index) => {
+                if (index === currentIndex) {
+                    slide.classList.remove('active');
+                    slide.classList.add('fade-out');
+                } else {
+                    slide.classList.remove('active', 'fade-out', 'fade-in');
+                }
+            });
+            
+            // After fade out, change content and fade in
+            setTimeout(() => {
+                slides.forEach((slide, index) => {
+                    if (index === currentIndex) {
+                        slide.classList.remove('fade-out');
+                        slide.classList.add('fade-in');
+                        setTimeout(() => {
+                            slide.classList.add('active');
+                            slide.classList.remove('fade-in');
+                            isTransitioning = false;
+                        }, 50);
+                    }
+                });
+                
+                // Update dots
+                const dots = dotsContainer.querySelectorAll('.welcome-feature-dot');
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === currentIndex);
+                });
+            }, 300);
+        };
+        
+        const nextSlide = () => {
+            if (!isTransitioning) {
+                currentIndex = (currentIndex + 1) % slides.length;
+                updateCarousel();
+            }
+        };
+        
+        const resetAutoAdvance = () => {
+            if (autoAdvanceInterval) {
+                clearInterval(autoAdvanceInterval);
+            }
+            autoAdvanceInterval = setInterval(nextSlide, 5000);
+        };
+        
+        // Arrow control
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                nextSlide();
+                resetAutoAdvance();
+            });
+        }
+        
+        // Start auto-advance
+        resetAutoAdvance();
+        
+        // Pause on hover
+        const carouselWrapper = modalOverlay.querySelector('.welcome-features-carousel-wrapper');
+        if (carouselWrapper) {
+            carouselWrapper.addEventListener('mouseenter', () => {
+                if (autoAdvanceInterval) {
+                    clearInterval(autoAdvanceInterval);
+                }
+            });
+            carouselWrapper.addEventListener('mouseleave', () => {
+                resetAutoAdvance();
+            });
+        }
+    }
+    
 
 }
 

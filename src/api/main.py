@@ -32,6 +32,7 @@ from src.core.db import (  # noqa: E402
     add_message,
     create_session,
     delete_session,
+    delete_user_conversations,
     ensure_conversation,
     get_messages,
     get_session_user,
@@ -247,7 +248,14 @@ async def auth_logout(request: Request):
 
 @app.get("/api/auth/me")
 async def auth_me(user=Depends(current_user)):
-    return user
+    # Ensure picture is returned as string or None, not empty string
+    user_data = {
+        "id": user["id"],
+        "email": user["email"],
+        "name": user["name"],
+        "picture": user.get("picture") if user.get("picture") else None
+    }
+    return user_data
 
 @app.get("/")
 async def read_root():
@@ -485,6 +493,13 @@ async def chat_list_conversations(user=Depends(current_user)):
 async def chat_create_conversation(payload: ConversationCreate, user=Depends(current_user)):
     conv_id = ensure_conversation(int(user["id"]), None, title=payload.title)
     return {"id": conv_id}
+
+
+@app.delete("/api/chat/conversations/clear")
+async def chat_clear_all_conversations(user=Depends(current_user)):
+    """Delete all conversations and messages for the current user."""
+    deleted_count = delete_user_conversations(int(user["id"]))
+    return {"status": "success", "deleted_conversations": deleted_count}
 
 
 @app.get("/api/chat/conversations/{conversation_id}")

@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="static/effects.css">
     <link rel="stylesheet" href="static/framer-components.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
 </head>
@@ -36,11 +39,42 @@
                             </div>
                         </div>
                     </div>
-                    <div id="user-auth" style="margin-left:auto; display:flex; align-items:center; gap:0.5rem;">
-                        <span id="user-name" style="font-size:0.9rem; opacity:0.9;"></span>
-                        <button id="sign-out-btn" class="action-btn" title="Sign out" style="padding:0.4rem 0.6rem;">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </button>
+                    <div id="user-auth" style="margin-left:auto; display:flex; align-items:center; gap:0.75rem; position:relative;">
+                        <div class="user-menu-container">
+                            <button id="user-menu-trigger" class="user-menu-trigger" title="User menu">
+                                <img id="user-picture" src="" alt="User" class="user-avatar" style="display:none;" crossorigin="anonymous" referrerpolicy="no-referrer">
+                                <span id="user-name" style="font-size:0.9rem; opacity:0.9;"></span>
+                                <i class="fas fa-chevron-down" style="font-size:0.7rem; opacity:0.6; margin-left:0.25rem;"></i>
+                            </button>
+                            <div id="user-menu-dropdown" class="user-menu-dropdown" style="display:none;">
+                                <button class="user-menu-item" id="menu-manage-conversations">
+                                    <i class="fas fa-comments"></i>
+                                    <span>Manage Conversations</span>
+                                </button>
+                                <button class="user-menu-item" id="menu-clear-history">
+                                    <i class="fas fa-trash-alt"></i>
+                                    <span>Clear Chat History</span>
+                                </button>
+                                <button class="user-menu-item" id="menu-export-data">
+                                    <i class="fas fa-download"></i>
+                                    <span>Export Data</span>
+                                </button>
+                                <div class="user-menu-divider"></div>
+                                <button class="user-menu-item" id="menu-settings">
+                                    <i class="fas fa-cog"></i>
+                                    <span>Settings</span>
+                                </button>
+                                <button class="user-menu-item" id="menu-about">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>About</span>
+                                </button>
+                                <div class="user-menu-divider"></div>
+                                <button class="user-menu-item user-menu-item-danger" id="menu-logout">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span>Sign Out</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
