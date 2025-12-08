@@ -139,13 +139,15 @@ class MotorsportsAnalytics {
                         
                         if (res.ok) {
                             this.showNotification('Chat history cleared successfully', 'success');
-                            // Reload conversation
-                            await this.bootstrapConversation();
                             // Clear chat messages
                             const messagesContainer = document.getElementById('chat-messages');
                             if (messagesContainer) {
                                 messagesContainer.innerHTML = '';
                             }
+                            // Show welcome message after clearing
+                            this.showWelcomeMessage();
+                            // Reload conversation
+                            await this.bootstrapConversation();
                             // Close menu
                             const menuDropdown = document.getElementById('user-menu-dropdown');
                             if (menuDropdown) {
@@ -223,8 +225,9 @@ class MotorsportsAnalytics {
                 isNewUser = true;
             }
             
-            // Show welcome modal for new users
+            // Show welcome message for new users
             if (isNewUser) {
+                this.showWelcomeMessage();
                 // Small delay to ensure page is loaded
                 setTimeout(() => {
                     this.showWelcomeModal();
@@ -255,8 +258,16 @@ class MotorsportsAnalytics {
             const messagesContainer = document.getElementById('chat-messages');
             if (!messagesContainer) return;
             messagesContainer.innerHTML = '';
-            for (const m of messages) {
-                await this.addMessage(m.content, m.role === 'user' ? 'user' : 'agent');
+            
+            if (messages.length > 0) {
+                // Hide welcome message if there are messages
+                this.hideWelcomeMessage();
+                for (const m of messages) {
+                    await this.addMessage(m.content, m.role === 'user' ? 'user' : 'agent');
+                }
+            } else {
+                // Show welcome message if no messages
+                this.showWelcomeMessage();
             }
         } catch (e) {
             console.error('Error loading conversation messages', e);
@@ -719,6 +730,9 @@ class MotorsportsAnalytics {
         
         if (!message) return;
         
+        // Hide welcome message on first message
+        this.hideWelcomeMessage();
+        
         // Prevent multiple simultaneous queries
         if (this.isProcessingQuery) {
             this.showNotification('Please wait for the current query to complete.', 'warning');
@@ -1026,6 +1040,29 @@ class MotorsportsAnalytics {
         // Handle plots if any
         if (data.plots && data.plots.length > 0) {
             this.updateCharts(data.plots);
+        }
+    }
+
+    hideWelcomeMessage() {
+        const welcomeMessage = document.getElementById('chat-welcome-message');
+        if (welcomeMessage && welcomeMessage.style.display !== 'none') {
+            welcomeMessage.classList.add('fade-out');
+            setTimeout(() => {
+                welcomeMessage.style.display = 'none';
+            }, 300);
+        }
+    }
+    
+    showWelcomeMessage() {
+        const welcomeMessage = document.getElementById('chat-welcome-message');
+        const messagesContainer = document.getElementById('chat-messages');
+        if (welcomeMessage && messagesContainer) {
+            // Only show if there are no messages
+            const hasMessages = messagesContainer.children.length > 0;
+            if (!hasMessages) {
+                welcomeMessage.style.display = 'flex';
+                welcomeMessage.classList.remove('fade-out');
+            }
         }
     }
 
@@ -1721,10 +1758,20 @@ class MotorsportsAnalytics {
         if (this.preservedChatMessages && messagesContainer) {
             messagesContainer.innerHTML = this.preservedChatMessages;
             
+            // Hide welcome message if messages were restored
+            if (messagesContainer.children.length > 0) {
+                this.hideWelcomeMessage();
+            } else {
+                this.showWelcomeMessage();
+            }
+            
             // Restore scroll position to bottom after messages are restored
             setTimeout(() => {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }, 100);
+        } else {
+            // Show welcome message if no messages
+            this.showWelcomeMessage();
         }
         
         // Reinitialize all chat listeners
