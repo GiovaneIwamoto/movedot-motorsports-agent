@@ -3565,3 +3565,119 @@ body::after {
         width: 90%;
     }
 }
+
+
+
+
+
+
+#kpi-tab {
+  justify-content: flex-start;
+  height: 100%;
+
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block; /* ou flex, conforme seu layout */
+}
+.kpi-grid-container {
+  width: 100%;
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+
+.kpi-card {
+  width: 250px;
+  height: 200px;
+  background: linear-gradient(135deg, #242424, #2f2f2f);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+  background-color: rgba(43, 43, 43, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.kpi-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #bbb;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 6px 0;
+  color: #fff;
+}
+
+.kpi-subtext {
+  font-size: 0.85rem;
+  color: #1cc88a; /* Verde positivo */
+  font-weight: 500;
+  margin-top: auto;
+}
+
+/* Hover effect: brilho/reflexo sutil */
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.12), transparent);
+  transform: rotate(25deg);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.kpi-card:hover::after {
+  opacity: 1;
+  animation: shimmer 1.2s ease forwards;
+}
+
+
+#kpi-container {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 25px; /* Um pouco mais de espaço entre cards */
+  justify-content: flex-start; /* Alinha à esquerda em vez de centralizar (opcional) */
+  
+  /* --- A CORREÇÃO DO CORTE ESTÁ AQUI: --- */
+  padding: 20px; /* Dá espaço interno para a sombra não ser cortada */
+  margin-top: 10px;
+  min-height: 250px; /* Garante altura mínima para o card caber */
+  overflow: visible; /* Deixa a sombra "vazar" se precisar, sem cortar */
+  box-sizing: border-box; /* Garante que o padding não estoure a largura */
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) rotate(25deg); }
+  100% { transform: translateX(100%) rotate(25deg); }
+}
+
+

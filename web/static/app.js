@@ -1020,6 +1020,12 @@ class MotorsportsAnalytics {
             
             this.showQueryStatus('error', 'Streaming error');
             this.updateQueryMetrics(Date.now() - this.queryStartTime, false);
+        } else if (eventType === 'kpi') {
+            // Adicione esta linha para ver o "bicho" que está chegando
+            console.log("🛠️ DEBUG KPI CRU:", data); 
+            console.log("🛠️ TIPO:", typeof data);
+
+            renderizarCardKPI(data); 
         }
     }
 
@@ -2528,3 +2534,86 @@ window.previewDataSource = (datasetName) => {
     window.app.previewDataSource(datasetName);
 };
 
+
+// No final do app.js
+
+function renderizarCardKPI(kpiData) {
+    console.log("🎨 DADOS BRUTOS RECEBIDOS:", kpiData);
+
+    const container = document.getElementById('kpi-container');
+    
+    if (!container) {
+        console.warn("Container KPI não encontrado.");
+        return;
+    }
+
+    // Remove o placeholder de boas-vindas se existir
+    const welcomeMsg = document.querySelector('.dashboard-welcome');
+    if (welcomeMsg && getComputedStyle(welcomeMsg).display !== 'none') {
+        welcomeMsg.style.display = 'none';
+    }
+
+    // --- LÓGICA INTELIGENTE DE DETECÇÃO DE CAMPOS ---
+    // Normaliza as chaves para minúsculas para facilitar a busca
+    const normalizedData = {};
+    Object.keys(kpiData).forEach(key => {
+        normalizedData[key.toLowerCase()] = kpiData[key];
+    });
+
+    // Tenta encontrar o Título em várias variações possíveis
+    const titulo = kpiData.title || kpiData.Title || normalizedData.title || 
+                   normalizedData.label || normalizedData.name || "Métrica";
+
+    // Tenta encontrar o Valor
+    let valorRaw = kpiData.value || kpiData.Value || normalizedData.value || 
+                   normalizedData.amount || normalizedData.number || null;
+    
+    // Se valor for nulo, mas "value" estiver explicitamente definido como 0, aceitamos
+    const valor = (valorRaw !== null && valorRaw !== undefined) ? valorRaw : "--";
+
+    // Tenta encontrar a Unidade
+    const unidade = kpiData.unit || kpiData.Unit || normalizedData.unit || "";
+
+    // Tenta encontrar a Cor
+    const corDestaque = kpiData.color || kpiData.Color || normalizedData.color || "#1cc88a";
+    // ------------------------------------------------
+
+    // Criação do Card
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'kpi-card'; 
+    cardDiv.style.borderLeft = `5px solid ${corDestaque}`;
+
+    cardDiv.innerHTML = `
+        <h3>${titulo}</h3>
+        <div class="kpi-value">${valor}</div>
+        <div class="kpi-subtext">${unidade}</div>
+    `;
+
+    cardDiv.style.opacity = "0";
+    cardDiv.style.transform = "translateY(20px)";
+    container.appendChild(cardDiv);
+
+    setTimeout(() => {
+        cardDiv.style.opacity = "1";
+        cardDiv.style.transform = "translateY(0)";
+    }, 50);
+}
+
+function appendKPICard(kpiData) {
+    const container = document.querySelector('.kpi-grid-container');
+    
+    // Segurança: se não houver container, não faz nada para não dar erro
+    if (!container) return;
+
+    const card = document.createElement('div');
+    card.classList.add('kpi-card');
+
+    // Monta o HTML interno do card
+    card.innerHTML = `
+        <h3>${kpiData.title || 'Métrica'}</h3>
+        <p class="kpi-value" style="${kpiData.color === 'red' ? 'color:#e74a3b' : ''}">${kpiData.value}</p>
+        <p class="kpi-subtext">${kpiData.unit || ''}</p>
+    `;
+
+    container.appendChild(card);
+}

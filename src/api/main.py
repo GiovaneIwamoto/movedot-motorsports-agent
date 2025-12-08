@@ -391,28 +391,34 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
         # Configuration for the agent
         config = {"configurable": {"thread_id": str(conv_id)}}
         
+
         async def generate_sse_stream():
             """Generate SSE stream from agent response."""
-            full_content = ""  # Accumulate all streamed content
+            full_content = ""
             try:
-                # Stream tokens from the agent with history
                 async for event_type, data in stream_analytics_agent_with_history(messages_history, config):
+                    
                     if event_type == "token":
-                        # Send token event
                         content = data.get("content", "") if isinstance(data, dict) else ""
-                        full_content += content  # Accumulate content
+                        full_content += content
                         yield f"event: token\n"
                         yield f"data: {json.dumps(data)}\n\n"
+
+                    # --- ADICIONE ESTE BLOCO AQUI ---
+                    elif event_type == "kpi":
+                        # Envia o evento específico de KPI para o JavaScript
+                        yield f"event: kpi\n"
+                        yield f"data: {json.dumps(data)}\n\n"
+                    # ---------------------------------
+
                     elif event_type == "complete":
-                        # Send completion event
                         yield f"event: complete\n"
                         yield f"data: {json.dumps(data)}\n\n"
-                        # Persist complete assistant message
                         if full_content:
                             add_message(conv_id, "assistant", full_content)
                         break
+                        
                     elif event_type == "error":
-                        # Send error event
                         yield f"event: error\n"
                         yield f"data: {json.dumps(data)}\n\n"
                         break
@@ -507,6 +513,29 @@ async def chat_get_conversation(conversation_id: str, user=Depends(current_user)
     # Listing messages implies the conversation belongs to the user; ensure it exists
     msgs = get_messages(conversation_id)
     return {"id": conversation_id, "messages": msgs}
+
+# --- COLE ISSO NO FINAL DO SEU main.py ---
+
+@app.get("/api/auth/bypass")
+async def dev_login_bypass():
+    """Rota mágica para logar sem Google."""
+    
+    # 1. Cria um usuário falso no banco
+    user_id = upsert_user(
+        google_sub="usuario_teste_123", 
+        email="teste@dev.com", 
+        name="Admin Local", 
+        picture=""
+    )
+    
+    # 2. Cria a sessão
+    session_id = f"sess_bypass_{int(datetime.datetime.now().timestamp())}"
+    create_session(session_id, user_id)
+
+    # 3. Redireciona para o painel já logado
+    resp = RedirectResponse(url="/index.html")
+    _set_session_cookie(resp, session_id)
+    return resp
 
 # Mount static files
 if STATIC_DIR.exists():

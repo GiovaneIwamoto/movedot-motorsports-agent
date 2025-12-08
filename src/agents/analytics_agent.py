@@ -2,10 +2,15 @@
 
 import logging
 import os
+import json
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.tools import tool
+
+# --- ADICIONE ESTES IMPORTS DO PYDANTIC ---
+from pydantic import BaseModel, Field# ------------------------------------------
 
 from ..config import get_openai_client, get_settings
 from ..prompt.analytics_agent_prompt import ANALYTICS_AGENT_PROMPT
@@ -16,6 +21,23 @@ DEFAULT_THREAD_ID = "analytics_agent_session"
 DEFAULT_AGENT_NAME = "analytics_agent"
 
 logger = logging.getLogger(__name__)
+
+# --- DEFINIÇÃO DO SCHEMA RÍGIDO (O Agente é obrigado a seguir isso) ---
+class KPIInput(BaseModel):
+    title: str = Field(description="Título da métrica. Ex: 'Velocidade Máxima', 'Volta Mais Rápida'")
+    value: str = Field(description="O valor numérico ou curto. Ex: '320', '1:45.00'")
+    unit: str = Field(description="Unidade de medida (opcional). Ex: 'km/h', 'seg'", default="")
+    color: str = Field(description="Cor do destaque: 'blue', 'red', 'green', 'yellow'", default="blue")
+
+@tool(args_schema=KPIInput)
+def display_kpi(title: str, value: str, unit: str = "", color: str = "blue"):
+    """
+    Use esta ferramenta SEMPRE que encontrar números importantes (velocidade, tempo, pontuação) 
+    que mereçam destaque visual na dashboard. Preencha título e valor obrigatoriamente.
+    """
+    # O retorno aqui é apenas informativo para o histórico do chat
+    return f"[KPI Renderizado: {title} = {value} {unit}]"
+# -----------------------------------------------------------------------
 
 
 def _prepare_agent_config(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -68,7 +90,10 @@ class AnalyticsAgentManager:
             formatted_prompt = ANALYTICS_AGENT_PROMPT.format(current_date=current_date)
             
             llm = get_openai_client()
-            tools = get_all_tools()
+            
+            # ADICIONAMOS A FERRAMENTA NOVA AQUI
+            existing_tools = get_all_tools()
+            tools = existing_tools + [display_kpi]
             
             self._agent = create_react_agent(
                 model=llm,
@@ -121,20 +146,7 @@ def reload_analytics_agent() -> Any:
 
 
 def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None) -> str:
-    """
-    Invoke the analytics agent with a message.
-    
-    Args:
-        message: User message
-        config: Configuration for the agent
-        
-    Returns:
-        Agent response
-        
-    Raises:
-        ValueError: If message is empty or invalid
-        RuntimeError: If agent fails to process the message
-    """
+    """Invoke the analytics agent with a message."""
     if not message or not message.strip():
         raise ValueError("Message cannot be empty")
     
@@ -159,85 +171,102 @@ def invoke_analytics_agent(message: str, config: Optional[Dict[str, Any]] = None
 
 
 async def stream_analytics_agent_with_history(messages_history: list, config: Optional[Dict[str, Any]] = None):
-    """
-    Stream the analytics agent response token by token with full conversation history.
-    Only streams the final LLM response, filtering out tool outputs and intermediate steps.
-    
-    Args:
-        messages_history: List of message dicts with "role" and "content" keys
-        config: Configuration for the agent
-        
-    Yields:
-        Tuple of (event_type, data) for SSE streaming
-        
-    Raises:
-        ValueError: If messages_history is empty or invalid
-        RuntimeError: If agent fails to process the message
-    """
-    if not messages_history or len(messages_history) == 0:
+    if not messages_history:
         raise ValueError("Messages history cannot be empty")
     
+    # 1. INCENTIVO: Lembramos o agente de usar a ferramenta visual
+    system_reminder = {
+        "role": "system", 
+        "content": "Se você tiver números concretos (velocidade, tempo, posições), USE a ferramenta 'display_kpi' para mostrá-los visualmente. Não esconda os números apenas no texto."
+    }
+    messages_to_process = messages_history + [system_reminder]
+
     config = _prepare_agent_config(config)
 
     try:
         agent = get_analytics_agent()
         
-        # Stream only messages mode to get LLM tokens
-        # This approach filters out tool outputs and intermediate steps
+        # Buffer para acumular o JSON fragmentado
+        kpi_buffer = ""
+        is_collecting_kpi = False
+
         async for chunk, metadata in agent.astream(
-            {"messages": messages_history},
+            {"messages": messages_to_process},
             config,
             stream_mode="messages"
         ):
-            # Only stream content from LLM responses, not tool outputs
-            if hasattr(chunk, 'content') and chunk.content:
-                # Get the node name from metadata
-                node_name = metadata.get("langgraph_node", "")
+            # A. Se for Texto normal (Content)
+            if getattr(chunk, 'content', None):
+                # Se tínhamos um KPI pendente e chegou texto novo, tenta descarregar o KPI antes
+                if is_collecting_kpi and kpi_buffer:
+                    try:
+                        kpi_args = json.loads(kpi_buffer)
+                        yield ("kpi", kpi_args)
+                        kpi_buffer = ""
+                        is_collecting_kpi = False
+                    except json.JSONDecodeError:
+                        # JSON ainda incompleto ou corrompido, mantemos no buffer por segurança
+                        pass
                 
-                # Filter to only include final agent responses
-                # Skip tool execution nodes and intermediate steps
-                # The main agent node typically has names like "agent", "analytics_agent", or is empty
-                if (not node_name or  # Empty node name often indicates main agent
-                    node_name in ["agent", "analytics_agent", DEFAULT_AGENT_NAME] or
-                    "agent" in node_name.lower()):
-                    yield ("token", {"content": chunk.content})
-        
-        # Yield completion event
+                yield ("token", {"content": chunk.content})
+
+            # B. Processamento de Chunks de Ferramenta (A CORREÇÃO PRINCIPAL ESTÁ AQUI)
+            tool_call_chunks = getattr(chunk, 'tool_call_chunks', [])
+            
+            if tool_call_chunks:
+                for tc_chunk in tool_call_chunks:
+                    # 1. Verifica se começou uma chamada da nossa ferramenta
+                    # Nota: O nome geralmente vem só no primeiro chunk
+                    if tc_chunk.get("name") == "display_kpi":
+                        is_collecting_kpi = True
+                        kpi_buffer = "" # Reseta buffer para nova chamada
+                    
+                    # 2. Se estamos coletando, acumula os argumentos (independente de ter nome no chunk ou não)
+                    if is_collecting_kpi and tc_chunk.get("args"):
+                        kpi_buffer += tc_chunk["args"]
+            
+            # C. Tentativa de processamento em tempo real (Opcional, mas ajuda se o JSON vier rápido)
+            # Se o buffer parecer fechar um JSON '}', tentamos processar imediatamente
+            if is_collecting_kpi and kpi_buffer and kpi_buffer.strip().endswith("}"):
+                try:
+                    kpi_args = json.loads(kpi_buffer)
+                    print(f"\n🔥 [KPI DETECTADO]: {kpi_args}\n")
+                    yield ("kpi", kpi_args)
+                    # Limpeza após sucesso
+                    kpi_buffer = "" 
+                    is_collecting_kpi = False
+                except json.JSONDecodeError:
+                    # Falso positivo (ex: string interna contendo '}'), continua acumulando
+                    pass
+
+        # D. BLOCO PÓS-LOOP (CRUCIAL)
+        # Se o loop acabar e ainda tivermos algo no buffer (ex: agente chamou a tool e parou de falar)
+        if is_collecting_kpi and kpi_buffer:
+            try:
+                kpi_args = json.loads(kpi_buffer)
+                print(f"\n🔥 [KPI FINAL]: {kpi_args}\n")
+                yield ("kpi", kpi_args)
+            except Exception as e:
+                logger.error(f"Erro ao processar KPI residual: {str(e)}")
+
+        # Finalização
         yield ("complete", {
             "status": "done", 
             "timestamp": datetime.now().isoformat()
         })
         
     except Exception as e:
-        logger.error(f"Failed to stream analytics agent with history: {str(e)}")
-        yield ("error", {"error": f"Agent streaming failed: {str(e)}"})
-
+        logger.error(f"Stream error: {str(e)}")
+        yield ("error", {"error": str(e)})
 
 def process_message(message: str, config: Optional[Dict[str, Any]] = None) -> str:
-    """
-    Process a message using the analytics agent.
-    
-    Args:
-        message: User message
-        config: Configuration for the agent
-        
-    Returns:
-        Agent response or error message if processing fails
-    """
+    """Process a message using the analytics agent."""
     _setup_logging()
     
     try:
         response = invoke_analytics_agent(message, config)
         logger.info("Response generated successfully")
         return response
-        
-    except ValueError as e:
-        logger.warning(f"Invalid input: {str(e)}")
-        return f"Invalid input: {str(e)}"
-        
-    except RuntimeError as e:
-        logger.error(f"Agent processing error: {str(e)}")
-        return f"Error processing your request: {str(e)}"
         
     except Exception as e:
         logger.error(f"Unexpected error processing message: {str(e)}")
