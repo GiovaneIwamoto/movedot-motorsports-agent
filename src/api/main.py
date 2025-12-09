@@ -746,6 +746,43 @@ async def chat_get_conversation(conversation_id: str, user=Depends(current_user)
     msgs = get_messages(conversation_id)
     return {"id": conversation_id, "messages": msgs}
 
+# Favicon endpoint - force no cache
+@app.get("/favicon.ico")
+async def favicon_ico():
+    """Serve favicon.ico (SVG) with no-cache headers."""
+    favicon_path = STATIC_DIR / "favicon.svg"
+    if favicon_path.exists():
+        content = favicon_path.read_bytes()
+        return Response(
+            content=content,
+            media_type="image/svg+xml",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+                "ETag": '"v6"'
+            }
+        )
+    return Response(status_code=404)
+
+@app.get("/static/favicon.svg")
+async def favicon_svg():
+    """Serve favicon.svg with no-cache headers."""
+    favicon_path = STATIC_DIR / "favicon.svg"
+    if favicon_path.exists():
+        content = favicon_path.read_bytes()
+        return Response(
+            content=content,
+            media_type="image/svg+xml",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+                "ETag": '"v6"'
+            }
+        )
+    return Response(status_code=404)
+
 # Mount static files
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

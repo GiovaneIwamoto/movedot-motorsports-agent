@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Circular black background -->
+  <circle cx="50" cy="50" r="50" fill="#000000"/>
+  
+  <!-- OpenAI-inspired circular design -->
+  <!-- Outer subtle circle -->
+  <circle cx="50" cy="50" r="40" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+  
+  <!-- Main circular pattern - OpenAI style with connected dots -->
+  <g fill="#ffffff" stroke="#ffffff" stroke-width="1.5">
+    <!-- Top section dots -->
+    <circle cx="50" cy="20" r="3.5" opacity="0.95"/>
+    <circle cx="63" cy="25" r="2.8" opacity="0.9"/>
+    <circle cx="72" cy="35" r="2.8" opacity="0.9"/>
+    <circle cx="78" cy="50" r="2.8" opacity="0.9"/>
+    
+    <!-- Right section dots -->
+    <circle cx="72" cy="65" r="2.8" opacity="0.9"/>
+    <circle cx="63" cy="75" r="2.8" opacity="0.9"/>
+    <circle cx="50" cy="80" r="3.5" opacity="0.95"/>
+    
+    <!-- Bottom section dots -->
+    <circle cx="37" cy="75" r="2.8" opacity="0.9"/>
+    <circle cx="28" cy="65" r="2.8" opacity="0.9"/>
+    <circle cx="22" cy="50" r="2.8" opacity="0.9"/>
+    
+    <!-- Left section dots -->
+    <circle cx="28" cy="35" r="2.8" opacity="0.9"/>
+    <circle cx="37" cy="25" r="2.8" opacity="0.9"/>
+  </g>
+  
+  <!-- Connecting curves - smooth OpenAI-style arcs -->
+  <g fill="none" stroke="#ffffff" stroke-width="2" opacity="0.8">
+    <!-- Top-right arc -->
+    <path d="M 50 20 Q 56 22, 63 25 Q 67 29, 72 35 Q 75 42, 78 50"/>
+    <!-- Right-bottom arc -->
+    <path d="M 78 50 Q 75 58, 72 65 Q 67 71, 63 75 Q 56 78, 50 80"/>
+    <!-- Bottom-left arc -->
+    <path d="M 50 80 Q 44 78, 37 75 Q 33 71, 28 65 Q 25 58, 22 50"/>
+    <!-- Left-top arc -->
+    <path d="M 22 50 Q 25 42, 28 35 Q 33 29, 37 25 Q 44 22, 50 20"/>
+  </g>
+  
+  <!-- Central core dot -->
+  <circle cx="50" cy="50" r="5" fill="#ffffff" opacity="1"/>
+</svg>
