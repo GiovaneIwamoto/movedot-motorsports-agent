@@ -1800,7 +1800,7 @@ class MotorsportsAnalytics {
             // Fade in new placeholder
             placeholderText.classList.remove('fade-out');
             placeholderText.classList.add('fade-in');
-        }, 300); // Wait for fade out to complete
+        }, 150); // Wait for fade out to complete - reduced from 300ms
     }
 
     showLoader(text = 'Loading...') {
