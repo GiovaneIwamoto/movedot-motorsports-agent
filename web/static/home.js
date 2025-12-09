@@ -171,7 +171,120 @@ class HomePage {
     }
 }
 
+// CTA Canvas Particle Animation
+class CTAParticles {
+    constructor() {
+        this.canvas = document.getElementById('ctaCanvas');
+        if (!this.canvas) return;
+        
+        this.ctx = this.canvas.getContext('2d');
+        this.particles = [];
+        this.animationFrame = null;
+        
+        this.init();
+        this.setupResize();
+    }
+    
+    setSize() {
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
+    }
+    
+    getParticleCount() {
+        return Math.floor((this.canvas.width * this.canvas.height) / 7000);
+    }
+    
+    createParticle() {
+        const fadeDelay = Math.random() * 600 + 100;
+        return {
+            x: Math.random() * this.canvas.width,
+            y: Math.random() * this.canvas.height,
+            speed: Math.random() / 5 + 0.1,
+            opacity: 0.7,
+            fadeDelay: fadeDelay,
+            fadeStart: Date.now() + fadeDelay,
+            fadingOut: false
+        };
+    }
+    
+    resetParticle(particle) {
+        particle.x = Math.random() * this.canvas.width;
+        particle.y = Math.random() * this.canvas.height;
+        particle.speed = Math.random() / 5 + 0.1;
+        particle.opacity = 0.7;
+        particle.fadeDelay = Math.random() * 600 + 100;
+        particle.fadeStart = Date.now() + particle.fadeDelay;
+        particle.fadingOut = false;
+    }
+    
+    init() {
+        this.setSize();
+        this.particles = [];
+        const count = this.getParticleCount();
+        for (let i = 0; i < count; i++) {
+            this.particles.push(this.createParticle());
+        }
+        this.animate();
+    }
+    
+    animate() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.particles.forEach(particle => {
+            // Move particle up
+            particle.y -= particle.speed;
+            
+            // Reset if out of bounds
+            if (particle.y < 0) {
+                this.resetParticle(particle);
+            }
+            
+            // Start fading out after delay
+            if (!particle.fadingOut && Date.now() > particle.fadeStart) {
+                particle.fadingOut = true;
+            }
+            
+            // Fade out gradually
+            if (particle.fadingOut) {
+                particle.opacity -= 0.008;
+                if (particle.opacity <= 0) {
+                    this.resetParticle(particle);
+                }
+            }
+            
+            // Draw particle
+            this.ctx.fillStyle = `rgba(250, 250, 250, ${particle.opacity})`;
+            this.ctx.fillRect(
+                particle.x,
+                particle.y,
+                0.6,
+                Math.random() * 2 + 1
+            );
+        });
+        
+        this.animationFrame = requestAnimationFrame(() => this.animate());
+    }
+    
+    setupResize() {
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.init();
+            }, 250);
+        }, { passive: true });
+    }
+    
+    destroy() {
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+        }
+    }
+}
+
 // Initialize with passive event
 document.addEventListener('DOMContentLoaded', () => {
     new HomePage();
+    new CTAParticles();
 }, { passive: true });

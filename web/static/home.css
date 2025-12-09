@@ -596,10 +596,115 @@ body::before {
   align-items: center;
 }
 
+.nav-logo-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
 .nav-logo {
   font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+/* YC Badge in Navbar - same style as footer */
+.nav-yc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  font-weight: 500;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  transition: var(--transition);
+  line-height: 1;
+}
+
+.nav-yc-badge:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Demo Badge - Pulsing neon style */
+.demo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-weight: 600;
+  font-size: 0.625rem;
+  letter-spacing: 0.05em;
+  color: rgb(34, 197, 94);
+  text-transform: uppercase;
+  box-shadow: 
+    0 0 10px rgba(34, 197, 94, 0.1),
+    inset 0 0 10px rgba(34, 197, 94, 0.05);
+  animation: demoPulse 2s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.demo-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.2), transparent);
+  animation: demoShine 3s ease-in-out infinite;
+}
+
+.demo-dot {
+  width: 6px;
+  height: 6px;
+  background: rgb(34, 197, 94);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+  animation: demoDotPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes demoPulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 10px rgba(34, 197, 94, 0.1),
+      inset 0 0 10px rgba(34, 197, 94, 0.05);
+  }
+  50% {
+    box-shadow: 
+      0 0 20px rgba(34, 197, 94, 0.3),
+      inset 0 0 15px rgba(34, 197, 94, 0.1);
+  }
+}
+
+@keyframes demoDotPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes demoShine {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 200%;
+  }
 }
 
 .nav-enter-btn {
@@ -746,10 +851,25 @@ body::before {
 }
 
 .hero-badge-dot {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgb(34, 197, 94);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  animation: greenBlink 2s ease-in-out infinite;
+}
+
+@keyframes greenBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.85);
+    box-shadow: 0 0 4px rgba(34, 197, 94, 0.3);
+  }
 }
 
 .hero-title {
@@ -1857,9 +1977,9 @@ section {
 }
 
 
-/* CTA Section - Futuristic Organic */
+/* CTA Section - Futuristic Organic with Animated Background */
 .cta {
-  padding: calc(var(--spacing-4xl) + var(--spacing-2xl)) var(--spacing-xl) var(--spacing-4xl);
+  padding: var(--spacing-4xl) var(--spacing-xl) calc(var(--spacing-4xl) + var(--spacing-3xl));
   text-align: center;
   position: relative;
   margin-top: 0;
@@ -1869,7 +1989,62 @@ section {
   align-items: center;
   justify-content: center;
   z-index: 10;
-  background: transparent !important;
+  background: #0a0a0a !important;
+}
+
+/* Divider line between Features and CTA (above title) */
+.cta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 1200px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 10%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.15) 90%,
+    transparent 100%
+  );
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* Divider line between CTA and Footer */
+.cta::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 1200px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 10%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.08) 90%,
+    transparent 100%
+  );
+  z-index: 20;
+}
+
+/* Canvas particle background styling */
+.cta-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.6;
+  z-index: 1;
 }
 
 /* CTA Layout - Single column */
@@ -2133,30 +2308,7 @@ section {
   z-index: 0;
 }
 
-/* Section divider */
-.cta::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 1200px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.1) 20%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0.1) 80%,
-    transparent 100%
-  );
-  opacity: 0.6;
-}
-
-.cta::after {
-  display: none;
-}
+/* Duplicates removed - using animated background above */
 
 @keyframes ctaGlow {
   0%, 100% {
@@ -2171,7 +2323,7 @@ section {
 
 .cta .container {
   position: relative;
-  z-index: 1;
+  z-index: 10;
   max-width: 100%;
   margin: 0 auto;
   width: 100%;
@@ -2242,8 +2394,9 @@ section {
 
 .footer-left {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-md);
 }
 
 .footer-logo {

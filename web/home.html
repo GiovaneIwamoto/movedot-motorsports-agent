@@ -97,7 +97,12 @@
     <!-- Navigation -->
     <nav class="nav">
         <div class="nav-container">
-            <div class="nav-logo">MoveDot</div>
+            <div class="nav-logo-group">
+                <div class="nav-logo">MoveDot</div>
+                <span class="nav-yc-badge">
+                    <span class="yc-icon">Y</span> Combinator
+                </span>
+            </div>
             <a href="index.html" class="nav-enter-btn">Enter Dashboard →</a>
         </div>
     </nav>
@@ -254,6 +259,7 @@
 
     <!-- CTA Section -->
     <section class="cta">
+        <canvas class="cta-canvas" id="ctaCanvas"></canvas>
         <div class="container">
             <div class="cta-layout">
                 <div class="cta-content">
@@ -281,7 +287,7 @@
                                     <circle cx="11" cy="11" r="8"/>
                                     <path d="m21 21-4.35-4.35"/>
                                 </svg>
-                                <text x="20" y="12" fill="white" stroke="none" font-size="4.5" font-weight="500">DISCOVER</text>
+                                <text x="20" y="10" fill="white" stroke="none" font-size="4.5" font-weight="500" dominant-baseline="middle">DISCOVER</text>
                             </g>
                             <!-- QUERY Button -->
                             <g class="api-button">
@@ -290,7 +296,7 @@
                                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                                 </svg>
-                                <text x="74" y="12" fill="white" stroke="none" font-size="4.5" font-weight="500">QUERY</text>
+                                <text x="74" y="10" fill="white" stroke="none" font-size="4.5" font-weight="500" dominant-baseline="middle">QUERY</text>
                             </g>
                             <!-- PROCESS Button -->
                             <g class="api-button api-button-process">
@@ -310,7 +316,7 @@
                                         repeatCount="indefinite"
                                     />
                                 </svg>
-                                <text x="116" y="12" fill="white" stroke="none" font-size="4.5" font-weight="500">PROCESS</text>
+                                <text x="116" y="10" fill="white" stroke="none" font-size="4.5" font-weight="500" dominant-baseline="middle">PROCESS</text>
                             </g>
                             <!-- INSIGHTS Button -->
                             <g class="api-button">
@@ -318,7 +324,7 @@
                                 <svg x="158" y="7.5" width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                                     <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                                 </svg>
-                                <text x="166" y="12" fill="white" stroke="none" font-size="4.5" font-weight="500">INSIGHTS</text>
+                                <text x="166" y="10" fill="white" stroke="none" font-size="4.5" font-weight="500" dominant-baseline="middle">INSIGHTS</text>
                             </g>
                         </g>
                         
@@ -331,15 +337,6 @@
                     <div class="database-box">
                         <!-- Box Title -->
                         <div class="database-box-title">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <!-- Robot head -->
-                                <rect x="6" y="8" width="12" height="10" rx="2"/>
-                                <!-- Eyes -->
-                                <circle cx="9.5" cy="13" r="1.5" fill="currentColor"/>
-                                <circle cx="14.5" cy="13" r="1.5" fill="currentColor"/>
-                                <!-- Antenna -->
-                                <path d="M12 8V5M10 5h4"/>
-                            </svg>
                             <span>Motorsports Data Analytics Agent</span>
                         </div>
                         
