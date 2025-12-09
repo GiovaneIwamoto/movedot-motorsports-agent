@@ -117,7 +117,13 @@
         
         <div class="container">
             <div class="hero-layout">
-                <div class="hero-content">
+                <!-- Hero Header - Badge, Title and Subtitle -->
+                <div class="hero-header scroll-animate">
+                    <div class="hero-badge">
+                        <span class="hero-badge-label">New</span>
+                        <span class="hero-badge-dot"></span>
+                        <span class="hero-badge-text">AI-first data orchestration</span>
+                    </div>
                     <h1 class="hero-title">
                         AI Agent for Motorsports Analysts
                     </h1>
@@ -133,65 +139,11 @@
                         </a>
                         <a href="#features" class="btn-secondary">Learn More</a>
                     </div>
-                </div>
-                
-                <!-- Display Cards - Stacked Feature Cards -->
-                <div class="display-cards scroll-animate">
-                    <div class="display-card display-card-1">
-                        <div class="display-card-header">
-                            <span class="display-card-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="2.5"/>
-                                    <circle cx="6" cy="6" r="1.5"/>
-                                    <circle cx="18" cy="6" r="1.5"/>
-                                    <circle cx="6" cy="18" r="1.5"/>
-                                    <circle cx="18" cy="18" r="1.5"/>
-                                    <line x1="12" y1="9.5" x2="7.5" y2="7.5"/>
-                                    <line x1="12" y1="9.5" x2="16.5" y2="7.5"/>
-                                    <line x1="12" y1="14.5" x2="7.5" y2="16.5"/>
-                                    <line x1="12" y1="14.5" x2="16.5" y2="16.5"/>
-                                </svg>
-                            </span>
-                            <p class="display-card-title">Navigate Sources</p>
-                        </div>
-                        <p class="display-card-description">Auto-discover & connect data across APIs</p>
-                        <p class="display-card-date">Real-time</p>
-                    </div>
-                    
-                    <div class="display-card display-card-2">
-                        <div class="display-card-header">
-                            <span class="display-card-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="6" cy="12" r="2"/>
-                                    <circle cx="12" cy="12" r="2"/>
-                                    <circle cx="18" cy="12" r="2"/>
-                                    <line x1="8" y1="12" x2="10" y2="12"/>
-                                    <line x1="14" y1="12" x2="16" y2="12"/>
-                                </svg>
-                            </span>
-                            <p class="display-card-title">Resolve Dependencies</p>
-                        </div>
-                        <p class="display-card-description">Understand relationships & fetch prerequisites</p>
-                        <p class="display-card-date">Intelligent</p>
-                    </div>
-                    
-                    <div class="display-card display-card-3">
-                        <div class="display-card-header">
-                            <span class="display-card-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="8"/>
-                                    <line x1="12" y1="4" x2="12" y2="6"/>
-                                    <line x1="12" y1="18" x2="12" y2="20"/>
-                                    <line x1="4" y1="12" x2="6" y2="12"/>
-                                    <line x1="18" y1="12" x2="20" y2="12"/>
-                                    <circle cx="12" cy="12" r="2.5"/>
-                                </svg>
-                            </span>
-                            <p class="display-card-title">Interpret Data</p>
-                        </div>
-                        <p class="display-card-description">Extract meaning from patterns across sources</p>
-                        <p class="display-card-date">AI-Powered</p>
-                    </div>
+                    <ul class="hero-micro">
+                        <li><span class="hero-dot"></span>Autonomous data discovery</li>
+                        <li><span class="hero-dot"></span>Evidence-based insights</li>
+                        <li><span class="hero-dot"></span>Secure sandbox execution</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -200,17 +152,16 @@
     <!-- Features Section -->
     <section id="features" class="features">
         <div class="container">
-            <div class="section-header">
-                <div class="section-label">Built for Analysts</div>
-                <h2 class="section-title">Connect Knowledge Across Data Sources</h2>
-                <p class="section-subtitle">Your AI agent that navigates multiple APIs, resolves dependencies, and interprets relationships—extracting insights you'd miss manually.</p>
+            <div class="features-header scroll-animate">
+                <h2 class="features-title">Connect Knowledge Across Data Sources</h2>
+                <p class="features-subtitle">Your AI agent that navigates multiple APIs, resolves dependencies, and interprets relationships—extracting insights you'd miss manually.</p>
             </div>
             
-            <div class="features-grid">
+            <div class="features-grid-bordered">
                 <!-- Multi-Source Navigation -->
-                <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                <div class="feature-item scroll-animate">
+                    <div class="feature-item-header">
+                        <svg class="feature-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="2.5"/>
                             <circle cx="6" cy="6" r="1.5"/>
                             <circle cx="18" cy="6" r="1.5"/>
@@ -221,38 +172,30 @@
                             <line x1="12" y1="14.5" x2="7.5" y2="16.5"/>
                             <line x1="12" y1="14.5" x2="16.5" y2="16.5"/>
                         </svg>
+                        <h3 class="feature-item-title">Navigate Sources</h3>
                     </div>
-                    <div class="feature-header">
-                        <h3 class="feature-title">Navigate Multiple Sources</h3>
-                        <p class="feature-description">
-                            Automatically discovers and connects data across different APIs. Knowledge scattered? The agent finds and links it.
-                        </p>
-                    </div>
+                    <p class="feature-item-description">Automatically discovers and connects data across different APIs. Knowledge scattered? The agent finds and links it.</p>
                 </div>
 
                 <!-- Dependency Resolution -->
-                <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                <div class="feature-item scroll-animate">
+                    <div class="feature-item-header">
+                        <svg class="feature-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="6" cy="12" r="2"/>
                             <circle cx="12" cy="12" r="2"/>
                             <circle cx="18" cy="12" r="2"/>
                             <line x1="8" y1="12" x2="10" y2="12"/>
                             <line x1="14" y1="12" x2="16" y2="12"/>
                         </svg>
+                        <h3 class="feature-item-title">Resolve Dependencies</h3>
                     </div>
-                    <div class="feature-header">
-                        <h3 class="feature-title">Resolve Dependencies</h3>
-                        <p class="feature-description">
-                            Understands relationships between data sources. Automatically fetches prerequisites and connects the dots.
-                        </p>
-                    </div>
+                    <p class="feature-item-description">Understands relationships between data sources. Automatically fetches prerequisites and connects the dots.</p>
                 </div>
 
                 <!-- Interpretation -->
-                <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                <div class="feature-item scroll-animate">
+                    <div class="feature-item-header">
+                        <svg class="feature-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="8"/>
                             <line x1="12" y1="4" x2="12" y2="6"/>
                             <line x1="12" y1="18" x2="12" y2="20"/>
@@ -260,66 +203,50 @@
                             <line x1="18" y1="12" x2="20" y2="12"/>
                             <circle cx="12" cy="12" r="2.5"/>
                         </svg>
+                        <h3 class="feature-item-title">Interpret Data</h3>
                     </div>
-                    <div class="feature-header">
-                        <h3 class="feature-title">Interpret & Understand</h3>
-                        <p class="feature-description">
-                            Extracts meaning from data patterns across sources. Identifies insights that span multiple datasets.
-                        </p>
-                    </div>
+                    <p class="feature-item-description">Extracts meaning from data patterns across sources. Identifies insights that span multiple datasets.</p>
                 </div>
 
                 <!-- Evidence-Based Analysis -->
-                <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                <div class="feature-item scroll-animate">
+                    <div class="feature-item-header">
+                        <svg class="feature-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="3 21 9 15 12 18 21 9"/>
                             <line x1="21" y1="3" x2="21" y2="9"/>
                             <line x1="21" y1="9" x2="15" y2="9"/>
                         </svg>
+                        <h3 class="feature-item-title">Evidence-Based</h3>
                     </div>
-                    <div class="feature-header">
-                        <h3 class="feature-title">Evidence-Based Analysis</h3>
-                        <p class="feature-description">
-                            Every insight traceable to source data. Professional-grade analysis you can trust and verify.
-                        </p>
-                    </div>
+                    <p class="feature-item-description">Every insight traceable to source data. Professional-grade analysis you can trust and verify.</p>
                 </div>
 
                 <!-- Advanced Code Execution -->
-                <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                <div class="feature-item scroll-animate">
+                    <div class="feature-item-header">
+                        <svg class="feature-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="3" width="18" height="18" rx="1"/>
                             <line x1="8" y1="8" x2="16" y2="8"/>
                             <line x1="8" y1="12" x2="14" y2="12"/>
                             <line x1="8" y1="16" x2="12" y2="16"/>
                         </svg>
+                        <h3 class="feature-item-title">Auto Execution</h3>
                     </div>
-                    <div class="feature-header">
-                        <h3 class="feature-title">Auto Code Execution</h3>
-                        <p class="feature-description">
-                            Executes complex analysis automatically. Python code generated to analyze relationships across sources.
-                        </p>
-                    </div>
+                    <p class="feature-item-description">Executes complex analysis automatically. Python code generated to analyze relationships across sources.</p>
                 </div>
 
                 <!-- Context-Aware Conversations -->
-                <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                <div class="feature-item scroll-animate">
+                    <div class="feature-item-header">
+                        <svg class="feature-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             <circle cx="9" cy="10" r="0.5" fill="currentColor"/>
                             <circle cx="12" cy="10" r="0.5" fill="currentColor"/>
                             <circle cx="15" cy="10" r="0.5" fill="currentColor"/>
                         </svg>
+                        <h3 class="feature-item-title">Memory</h3>
                     </div>
-                    <div class="feature-header">
-                        <h3 class="feature-title">Conversation Memory</h3>
-                        <p class="feature-description">
-                            Builds on previous analyses. Remembers context and connections discovered across your research.
-                        </p>
-                    </div>
+                    <p class="feature-item-description">Builds on previous analyses. Remembers context and connections discovered across your research.</p>
                 </div>
             </div>
         </div>
@@ -328,14 +255,116 @@
     <!-- CTA Section -->
     <section class="cta">
         <div class="container">
-            <h2 class="cta-title">Extract Maximum Value from Your Data Sources</h2>
-            <p class="cta-text">Stop manually connecting the dots. Let your AI agent discover, interpret, and understand knowledge across multiple sources.</p>
-            <a href="index.html" class="btn-primary btn-large">
-                <span>Start Analyzing</span>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </a>
+            <div class="cta-layout">
+                <div class="cta-content">
+                    <h2 class="cta-title">Unlock Your Data Potential</h2>
+                    <p class="cta-text">Let our AI agent autonomously navigate multiple racing data sources, resolve complex dependencies, and deliver professional-grade insights you'd spend hours discovering manually—all backed by evidence and traceable to source.</p>
+                </div>
+                
+                <!-- Database with REST API Visual Component -->
+                <div class="database-api-visual scroll-animate">
+                    <svg class="database-api-svg" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet">
+                        <!-- Paths connecting buttons to database box -->
+                        <g stroke="rgba(255, 255, 255, 0.3)" fill="none" stroke-width="0.4" stroke-dasharray="100 100" pathLength="100">
+                            <path d="M 31 10 v 15 q 0 5 5 5 h 59 q 5 0 5 5 v 10"/>
+                            <path d="M 79 10 v 10 q 0 5 5 5 h 11 q 5 0 5 5 v 10"/>
+                            <path d="M 125 10 v 10 q 0 5 -5 5 h -15 q -5 0 -5 5 v 10"/>
+                            <path d="M 174 10 v 15 q 0 5 -5 5 h -64 q -5 0 -5 5 v 10"/>
+                        </g>
+                        
+                        <!-- API Method Buttons -->
+                        <g stroke="rgba(255, 255, 255, 0.3)" fill="none" stroke-width="0.4">
+                            <!-- DISCOVER Button -->
+                            <g class="api-button">
+                                <rect fill="#18181B" x="8" y="5" width="46" height="10" rx="5"/>
+                                <svg x="12" y="7.5" width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="m21 21-4.35-4.35"/>
+                                </svg>
+                                <text x="20" y="12" fill="white" stroke="none" font-size="4.5" font-weight="500">DISCOVER</text>
+                            </g>
+                            <!-- QUERY Button -->
+                            <g class="api-button">
+                                <rect fill="#18181B" x="62" y="5" width="34" height="10" rx="5"/>
+                                <svg x="66" y="7.5" width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                </svg>
+                                <text x="74" y="12" fill="white" stroke="none" font-size="4.5" font-weight="500">QUERY</text>
+                            </g>
+                            <!-- PROCESS Button -->
+                            <g class="api-button api-button-process">
+                                <rect fill="#18181B" x="104" y="5" width="42" height="10" rx="5"/>
+                                <svg x="108" y="7.5" width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" class="process-icon">
+                                    <path d="M12 2v4M12 18v4"/>
+                                    <path d="m4.93 4.93 2.83 2.83m8.48 8.48 2.83 2.83"/>
+                                    <path d="M2 12h4M18 12h4"/>
+                                    <path d="m4.93 19.07 2.83-2.83m8.48-8.48 2.83-2.83"/>
+                                    <animateTransform
+                                        attributeName="transform"
+                                        attributeType="XML"
+                                        type="rotate"
+                                        from="0 2.5 2.5"
+                                        to="360 2.5 2.5"
+                                        dur="3s"
+                                        repeatCount="indefinite"
+                                    />
+                                </svg>
+                                <text x="116" y="12" fill="white" stroke="none" font-size="4.5" font-weight="500">PROCESS</text>
+                            </g>
+                            <!-- INSIGHTS Button -->
+                            <g class="api-button">
+                                <rect fill="#18181B" x="154" y="5" width="40" height="10" rx="5"/>
+                                <svg x="158" y="7.5" width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                                </svg>
+                                <text x="166" y="12" fill="white" stroke="none" font-size="4.5" font-weight="500">INSIGHTS</text>
+                            </g>
+                        </g>
+                        
+                        <defs>
+                            <!-- No blue lights or masks (as requested) -->
+                        </defs>
+                    </svg>
+                    
+                    <!-- Main Box -->
+                    <div class="database-box">
+                        <!-- Box Title -->
+                        <div class="database-box-title">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <!-- Robot head -->
+                                <rect x="6" y="8" width="12" height="10" rx="2"/>
+                                <!-- Eyes -->
+                                <circle cx="9.5" cy="13" r="1.5" fill="currentColor"/>
+                                <circle cx="14.5" cy="13" r="1.5" fill="currentColor"/>
+                                <!-- Antenna -->
+                                <path d="M12 8V5M10 5h4"/>
+                            </svg>
+                            <span>Motorsports Data Analytics Agent</span>
+                        </div>
+                        
+                        <!-- Box Content -->
+                        <div class="database-box-content">
+                            <!-- Badges -->
+                            <div class="database-badge database-badge-1">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/>
+                                </svg>
+                                <span>Real-Time</span>
+                            </div>
+                            
+                            <!-- Animated Circles -->
+                            <div class="database-circle database-circle-1"></div>
+                            <div class="database-circle database-circle-2"></div>
+                            <div class="database-circle database-circle-3"></div>
+                            <div class="database-circle database-circle-4"></div>
+                        </div>
+                        
+                        <!-- Bottom Circle -->
+                        <div class="database-bottom-circle">API</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 

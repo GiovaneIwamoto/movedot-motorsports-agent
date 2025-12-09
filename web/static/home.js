@@ -154,16 +154,16 @@ class HomePage {
 
         // Observe elements only once
         const elements = [
-            ...document.querySelectorAll('.hero-title, .hero-subtitle, .hero-cta'),
-            ...document.querySelectorAll('.display-cards'),
-            ...document.querySelectorAll('.section-header, .section-label, .section-title, .section-subtitle'),
-            ...document.querySelectorAll('.feature-card'),
-            ...document.querySelectorAll('.cta-title, .cta-text, .cta .btn-primary')
+            ...document.querySelectorAll('.hero-header, .hero-title, .hero-subtitle'),
+            ...document.querySelectorAll('.hero-cta'),
+            ...document.querySelectorAll('.features-header, .features-title, .features-subtitle'),
+            ...document.querySelectorAll('.feature-item'),
+            ...document.querySelectorAll('.cta-title, .cta-text, .cta .btn-primary, .database-api-visual')
         ];
 
         elements.forEach((el, index) => {
             el.classList.add('scroll-animate');
-            if (el.classList.contains('feature-card') || el.classList.contains('hero-title')) {
+            if (el.classList.contains('feature-item')) {
                 el.style.setProperty('--animation-delay', `${index * 0.08}s`);
             }
             observer.observe(el);
