@@ -1,181 +1,177 @@
-// MoveDot Home Page JavaScript
+// MoveDot Home Page JavaScript - Zero Scroll Interference
 
 class HomePage {
     constructor() {
-        // Loader system
-        this.loaderTimeout = null;
-        this.isLoading = false;
-        
         this.init();
     }
 
     init() {
         this.setupEventListeners();
-        this.startBackgroundAnimation();
-        this.preloadDashboard();
+        this.setupHeroGridPattern();
+        // Delay animations significantly to ensure no scroll interference
+        setTimeout(() => {
+            this.setupScrollAnimations();
+        }, 500);
     }
 
     setupEventListeners() {
-        // Enter button click
-        const enterButton = document.querySelector('.enter-button');
-        if (enterButton) {
-            enterButton.addEventListener('click', (e) => {
+        // Simple anchor navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', (e) => {
                 e.preventDefault();
-                console.log('Enter Dashboard clicked');
-                this.navigateToDashboard();
+                const href = anchor.getAttribute('href');
+                const target = document.querySelector(href);
+                if (target) {
+                    const targetPosition = target.offsetTop - 80;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'auto'
+                    });
+                }
             });
-        }
-
-        // Keyboard navigation
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                console.log('Keyboard navigation triggered');
-                this.navigateToDashboard();
-            }
-        });
-
-        // Add visual feedback
-        if (enterButton) {
-            enterButton.addEventListener('mousedown', () => {
-                enterButton.style.transform = 'translateY(-2px) scale(0.98)';
-            });
-            
-            enterButton.addEventListener('mouseup', () => {
-                enterButton.style.transform = '';
-            });
-        }
-    }
-
-    startBackgroundAnimation() {
-        // Subtle floating animation for background elements
-        const body = document.body;
-        let mouseX = 0;
-        let mouseY = 0;
-
-        document.addEventListener('mousemove', (e) => {
-            mouseX = (e.clientX / window.innerWidth) * 100;
-            mouseY = (e.clientY / window.innerHeight) * 100;
-            
-            // Update background pattern position
-            body.style.setProperty('--mouse-x', `${mouseX}%`);
-            body.style.setProperty('--mouse-y', `${mouseY}%`);
         });
     }
 
+    setupHeroGridPattern() {
+        const heroSection = document.querySelector('.hero');
+        const squaresContainer = document.querySelector('.hero-grid-squares');
+        
+        if (!heroSection || !squaresContainer) return;
 
-    navigateToDashboard() {
-        console.log('Navigating to dashboard...');
-        
-        // Show inline loader in button
-        this.showButtonLoader();
-        
-        // Navigate after loader animation
+        const gridSize = 40;
+        const numSquares = 50;
+        let squares = [];
+
+        // Get random position within hero section
+        function getRandomPos() {
+            const rect = heroSection.getBoundingClientRect();
+            const maxX = Math.max(1, Math.floor(rect.width / gridSize));
+            const maxY = Math.max(1, Math.floor(rect.height / gridSize));
+            return [
+                Math.floor(Math.random() * maxX),
+                Math.floor(Math.random() * maxY)
+            ];
+        }
+
+        // Generate initial squares
+        function generateSquares() {
+            squares = Array.from({ length: numSquares }, (_, i) => ({
+                id: i,
+                pos: getRandomPos()
+            }));
+        }
+
+        // Update square position
+        function updateSquarePosition(id) {
+            const newPos = getRandomPos();
+            squares = squares.map(sq =>
+                sq.id === id ? { ...sq, pos: newPos } : sq
+            );
+            return newPos;
+        }
+
+        // Create and animate squares
+        function createSquares() {
+            squaresContainer.innerHTML = '';
+            
+            squares.forEach(({ pos: [x, y], id }, index) => {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('class', 'hero-grid-square');
+                rect.setAttribute('width', gridSize - 1);
+                rect.setAttribute('height', gridSize - 1);
+                rect.setAttribute('x', x * gridSize + 1);
+                rect.setAttribute('y', y * gridSize + 1);
+                rect.style.animationDelay = `${index * 0.1}s`;
+                
+                // Update position when animation completes (after reverse)
+                let animationCount = 0;
+                rect.addEventListener('animationiteration', () => {
+                    animationCount++;
+                    // Update position after each complete cycle (0 -> 1 -> 0)
+                    if (animationCount % 2 === 0) {
+                        const newPos = updateSquarePosition(id);
+                        rect.setAttribute('x', newPos[0] * gridSize + 1);
+                        rect.setAttribute('y', newPos[1] * gridSize + 1);
+                    }
+                });
+                
+                squaresContainer.appendChild(rect);
+            });
+        }
+
+        // Initialize after a small delay to ensure hero section is rendered
         setTimeout(() => {
-            console.log('Redirecting to dashboard...');
-            window.location.href = 'index.html';
-        }, 2000);
+            generateSquares();
+            createSquares();
+        }, 100);
+
+        // Update on resize
+        let resizeTimeout;
+        const resizeObserver = new ResizeObserver(() => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                generateSquares();
+                createSquares();
+            }, 200);
+        });
+
+        resizeObserver.observe(heroSection);
     }
 
-    showButtonLoader() {
-        if (this.isLoading) return;
-        
-        console.log('Showing button loader');
-        this.isLoading = true;
-        
-        const enterButton = document.getElementById('enter-button');
-        const buttonText = enterButton.querySelector('.button-text');
-        const arrow = enterButton.querySelector('.arrow');
-        const buttonLoader = document.getElementById('button-loader');
-        
-        if (enterButton && buttonText && arrow && buttonLoader) {
-            // Add loading class to remove border
-            enterButton.classList.add('loading');
+    setupScrollAnimations() {
+        // Observer with better thresholds for smooth animations
+        const observerOptions = {
+            threshold: [0, 0.1, 0.25, 0.5],
+            rootMargin: '50px' // Trigger slightly before element enters viewport
+        };
+
+        // Smooth animation observer with RAF
+        let isProcessing = false;
+        const observer = new IntersectionObserver((entries) => {
+            if (isProcessing) return;
+            isProcessing = true;
             
-            // Hide text and arrow
-            buttonText.style.display = 'none';
-            arrow.style.display = 'none';
-            
-            // Show loader
-            buttonLoader.style.display = 'flex';
-            
-            // Disable button
-            enterButton.style.pointerEvents = 'none';
-            enterButton.style.opacity = '0.7';
-            
-            console.log('Button loader activated');
-        } else {
-            console.error('Button elements not found');
-        }
+            requestAnimationFrame(() => {
+                entries.forEach(entry => {
+                    // Smooth transition based on intersection ratio
+                    const ratio = entry.intersectionRatio;
+                    
+                    if (entry.isIntersecting && ratio > 0.1) {
+                        entry.target.classList.add('is-visible');
+                        entry.target.classList.remove('is-hidden');
+                    } else if (!entry.isIntersecting) {
+                        // Only hide if completely out of viewport
+                        const rect = entry.boundingClientRect;
+                        if (rect.bottom < -200 || rect.top > window.innerHeight + 200) {
+                            entry.target.classList.remove('is-visible');
+                            entry.target.classList.add('is-hidden');
+                        }
+                    }
+                });
+                isProcessing = false;
+            });
+        }, observerOptions);
+
+        // Observe elements only once
+        const elements = [
+            ...document.querySelectorAll('.hero-title, .hero-subtitle, .hero-cta'),
+            ...document.querySelectorAll('.display-cards'),
+            ...document.querySelectorAll('.section-header, .section-label, .section-title, .section-subtitle'),
+            ...document.querySelectorAll('.feature-card'),
+            ...document.querySelectorAll('.cta-title, .cta-text, .cta .btn-primary')
+        ];
+
+        elements.forEach((el, index) => {
+            el.classList.add('scroll-animate');
+            if (el.classList.contains('feature-card') || el.classList.contains('hero-title')) {
+                el.style.setProperty('--animation-delay', `${index * 0.08}s`);
+            }
+            observer.observe(el);
+        });
     }
-
-    hideButtonLoader() {
-        if (!this.isLoading) return;
-        
-        console.log('Hiding button loader');
-        this.isLoading = false;
-        
-        const enterButton = document.getElementById('enter-button');
-        const buttonText = enterButton.querySelector('.button-text');
-        const arrow = enterButton.querySelector('.arrow');
-        const buttonLoader = document.getElementById('button-loader');
-        
-        if (enterButton && buttonText && arrow && buttonLoader) {
-            // Show text and arrow
-            buttonText.style.display = 'inline';
-            arrow.style.display = 'inline';
-            
-            // Hide loader
-            buttonLoader.style.display = 'none';
-            
-            // Enable button
-            enterButton.style.pointerEvents = 'auto';
-            enterButton.style.opacity = '1';
-            
-            console.log('Button loader deactivated');
-        }
-    }
-
-
-    preloadDashboard() {
-        // Preload the dashboard page for faster navigation
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.href = 'index.html';
-        document.head.appendChild(link);
-
-        // Also preload critical CSS
-        const cssLink = document.createElement('link');
-        cssLink.rel = 'prefetch';
-        cssLink.href = 'static/styles.css';
-        document.head.appendChild(cssLink);
-    }
-
 }
 
-// Initialize when DOM is loaded
+// Initialize with passive event
 document.addEventListener('DOMContentLoaded', () => {
     new HomePage();
-});
-
-// Add some additional CSS animations via JavaScript
-const additionalStyles = `
-    .logo-m, .logo-y {
-        transition: transform 0.2s ease;
-    }
-    
-    .yc-logo {
-        transition: transform 0.3s ease;
-    }
-    
-    .enter-button {
-        position: relative;
-    }
-    
-    .enter-button:active {
-        transform: translateY(-1px) scale(0.98);
-    }
-`;
-
-const styleSheet = document.createElement('style');
-styleSheet.textContent = additionalStyles;
-document.head.appendChild(styleSheet);
+}, { passive: true });
