@@ -4167,3 +4167,129 @@ body::after {
         width: 90%;
     }
 }
+
+/* Alert Dialog Styles - Radix UI inspired */
+.alert-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 200ms ease-in-out;
+}
+
+.alert-dialog-overlay[style*="display: none"] {
+    animation: fadeOut 200ms ease-in-out;
+}
+
+.alert-dialog-content {
+    position: relative;
+    width: 100%;
+    max-width: 32rem;
+    background: #0a0a0a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.3),
+        0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    animation: contentFadeIn 200ms ease-out;
+}
+
+.alert-dialog-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.alert-dialog-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #fafafa;
+    margin: 0;
+}
+
+.alert-dialog-description {
+    font-size: 0.875rem;
+    color: #a1a1aa;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.alert-dialog-footer {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+    .alert-dialog-footer {
+        flex-direction: row;
+        justify-content: flex-end;
+    }
+}
+
+.alert-dialog-cancel,
+.alert-dialog-action {
+    height: 2.5rem;
+    padding: 0 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms ease-in-out;
+    border: none;
+    outline: none;
+}
+
+.alert-dialog-cancel {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fafafa;
+}
+
+.alert-dialog-cancel:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.alert-dialog-action {
+    background: #fafafa;
+    color: #0a0a0a;
+}
+
+.alert-dialog-action:hover {
+    background: #e5e5e5;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes contentFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

@@ -145,9 +145,32 @@ class MotorsportsAnalytics {
         // Clear chat history
         const clearHistoryBtn = document.getElementById('menu-clear-history');
         if (clearHistoryBtn) {
-            clearHistoryBtn.addEventListener('click', async () => {
-                if (confirm('Are you sure you want to delete all your chat history? This action cannot be undone.')) {
-                    try {
+            clearHistoryBtn.addEventListener('click', () => {
+                // Show custom dialog
+                const dialog = document.getElementById('clear-history-dialog');
+                if (dialog) {
+                    dialog.style.display = 'flex';
+                    
+                    // Handle cancel
+                    const cancelBtn = document.getElementById('dialog-cancel');
+                    const confirmBtn = document.getElementById('dialog-confirm');
+                    
+                    const closeDialog = () => {
+                        dialog.style.display = 'none';
+                    };
+                    
+                    // Close on overlay click
+                    dialog.addEventListener('click', (e) => {
+                        if (e.target === dialog) {
+                            closeDialog();
+                        }
+                    });
+                    
+                    cancelBtn.onclick = closeDialog;
+                    
+                    confirmBtn.onclick = async () => {
+                        closeDialog();
+                        try {
                         const res = await fetch(`${this.apiBase}/chat/conversations/clear`, {
                             method: 'DELETE',
                             credentials: 'include',
@@ -183,10 +206,11 @@ class MotorsportsAnalytics {
                             console.error('Failed to clear history:', res.status, errorText);
                             throw new Error(`Failed to clear history: ${res.status}`);
                         }
-                    } catch (e) {
-                        this.showNotification('Failed to clear chat history. Please try again.', 'error');
-                        console.error('Error clearing history:', e);
-                    }
+                        } catch (e) {
+                            this.showNotification('Failed to clear chat history. Please try again.', 'error');
+                            console.error('Error clearing history:', e);
+                        }
+                    };
                 }
             });
         }
