@@ -8,13 +8,24 @@
     <link rel="shortcut icon" href="/static/favicon.svg?v=7">
     <link rel="apple-touch-icon" href="/static/favicon.svg?v=7">
     <meta name="theme-color" content="#000000">
-    <link rel="stylesheet" href="static/styles.css">
-    <link rel="stylesheet" href="static/effects.css">
-    <link rel="stylesheet" href="static/framer-components.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/styles.css?v=5">
+    <link rel="stylesheet" href="static/effects.css?v=5">
+    <link rel="stylesheet" href="static/framer-components.css?v=5">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- Animated Grid Pattern Background - Same as Hero -->
+    <svg class="hero-grid-pattern" aria-hidden="true">
+        <defs>
+            <pattern id="hero-grid" width="40" height="40" patternUnits="userSpaceOnUse" x="0" y="0">
+                <path d="M.5 40V.5H40" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="0.5"/>
+            </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#hero-grid)" />
+        <g class="hero-grid-squares"></g>
+    </svg>
+
     <div id="app">
         <!-- Main Content -->
         <main class="datasets-main">
@@ -79,8 +90,98 @@
         </nav>
     </div>
 
-    <script src="static/app.js"></script>
+    <script src="static/app.js?v=5"></script>
     <script>
+        // Initialize Grid Pattern Animation
+        function initGridPattern() {
+            const bgContainer = document.querySelector('.hero-grid-pattern');
+            const squaresContainer = document.querySelector('.hero-grid-squares');
+            
+            if (!bgContainer || !squaresContainer) {
+                console.error('Grid pattern elements not found');
+                return;
+            }
+            
+            console.log('Initializing grid pattern for datasets page...');
+            
+            const gridSize = 40;
+            const numSquares = 50;
+            let squares = [];
+
+            function getRandomPos() {
+                const maxX = Math.max(1, Math.floor(window.innerWidth / gridSize));
+                const maxY = Math.max(1, Math.floor(window.innerHeight / gridSize));
+                return [
+                    Math.floor(Math.random() * maxX),
+                    Math.floor(Math.random() * maxY)
+                ];
+            }
+
+            function generateSquares() {
+                squares = Array.from({ length: numSquares }, (_, i) => ({
+                    id: i,
+                    pos: getRandomPos()
+                }));
+            }
+
+            function updateSquarePosition(id) {
+                const newPos = getRandomPos();
+                squares = squares.map(sq =>
+                    sq.id === id ? { ...sq, pos: newPos } : sq
+                );
+                return newPos;
+            }
+
+            function createSquares() {
+                squaresContainer.innerHTML = '';
+                
+                squares.forEach(({ pos: [x, y], id }, index) => {
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('class', 'hero-grid-square');
+                    rect.setAttribute('width', gridSize - 1);
+                    rect.setAttribute('height', gridSize - 1);
+                    rect.setAttribute('x', x * gridSize + 1);
+                    rect.setAttribute('y', y * gridSize + 1);
+                    rect.style.animationDelay = `${index * 0.1}s`;
+                    
+                    let animationCount = 0;
+                    rect.addEventListener('animationiteration', () => {
+                        animationCount++;
+                        if (animationCount % 2 === 0) {
+                            const newPos = updateSquarePosition(id);
+                            rect.setAttribute('x', newPos[0] * gridSize + 1);
+                            rect.setAttribute('y', newPos[1] * gridSize + 1);
+                        }
+                    });
+                    
+                    squaresContainer.appendChild(rect);
+                });
+                
+                console.log(`Created ${numSquares} animated grid squares`);
+            }
+
+            setTimeout(() => {
+                generateSquares();
+                createSquares();
+            }, 100);
+
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    generateSquares();
+                    createSquares();
+                }, 200);
+            });
+        }
+        
+        // Initialize grid on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initGridPattern);
+        } else {
+            initGridPattern();
+        }
+        
         // Simple Datasets Manager
         class DatasetsManager {
             constructor() {

@@ -8,10 +8,10 @@
     <link rel="shortcut icon" href="/static/favicon.svg?v=7">
     <link rel="apple-touch-icon" href="/static/favicon.svg?v=7">
     <meta name="theme-color" content="#000000">
-    <link rel="stylesheet" href="static/styles.css">
-    <link rel="stylesheet" href="static/effects.css">
-    <link rel="stylesheet" href="static/framer-components.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/styles.css?v=3">
+    <link rel="stylesheet" href="static/effects.css?v=3">
+    <link rel="stylesheet" href="static/framer-components.css?v=3">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -19,6 +19,17 @@
     
 </head>
 <body>
+    <!-- Animated Grid Pattern Background - Same as Hero -->
+    <svg class="hero-grid-pattern" aria-hidden="true">
+        <defs>
+            <pattern id="hero-grid" width="40" height="40" patternUnits="userSpaceOnUse" x="0" y="0">
+                <path d="M.5 40V.5H40" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="0.5"/>
+            </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#hero-grid)" />
+        <g class="hero-grid-squares"></g>
+    </svg>
+
     <div id="app">
 
         <!-- Main Content -->
@@ -410,7 +421,7 @@
         </div>
     </div>
 
-    <script src="static/markdown-renderer.js"></script>
-    <script src="static/app.js"></script>
+    <script src="static/markdown-renderer.js?v=3"></script>
+    <script src="static/app.js?v=4"></script>
 </body>
 </html>

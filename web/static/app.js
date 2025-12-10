@@ -339,6 +339,7 @@ class MotorsportsAnalytics {
         this.startStatusUpdater();
         this.updateConnectionStatus(true); // SSE is always available
         this.initAnimatedPlaceholder();
+        this.setupBgGridPattern();
         
         // Only require authentication on pages that need it (not data-sources.html)
         const isDataSourcesPage = window.location.pathname.includes('data-sources.html');
@@ -3346,6 +3347,93 @@ class MotorsportsAnalytics {
                 resetAutoAdvance();
             });
         }
+    }
+
+    setupBgGridPattern() {
+        const bgContainer = document.querySelector('.hero-grid-pattern');
+        const squaresContainer = document.querySelector('.hero-grid-squares');
+        
+        if (!bgContainer || !squaresContainer) {
+            console.log('Grid pattern elements not found:', { bgContainer, squaresContainer });
+            return;
+        }
+        
+        console.log('Setting up grid pattern animation...');
+
+        const gridSize = 40;
+        const numSquares = 50;
+        let squares = [];
+
+        // Get random position within viewport
+        function getRandomPos() {
+            const maxX = Math.max(1, Math.floor(window.innerWidth / gridSize));
+            const maxY = Math.max(1, Math.floor(window.innerHeight / gridSize));
+            return [
+                Math.floor(Math.random() * maxX),
+                Math.floor(Math.random() * maxY)
+            ];
+        }
+
+        // Generate initial squares
+        function generateSquares() {
+            squares = Array.from({ length: numSquares }, (_, i) => ({
+                id: i,
+                pos: getRandomPos()
+            }));
+        }
+
+        // Update square position
+        function updateSquarePosition(id) {
+            const newPos = getRandomPos();
+            squares = squares.map(sq =>
+                sq.id === id ? { ...sq, pos: newPos } : sq
+            );
+            return newPos;
+        }
+
+        // Create and animate squares
+        function createSquares() {
+            squaresContainer.innerHTML = '';
+            
+            squares.forEach(({ pos: [x, y], id }, index) => {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('class', 'hero-grid-square');
+                rect.setAttribute('width', gridSize - 1);
+                rect.setAttribute('height', gridSize - 1);
+                rect.setAttribute('x', x * gridSize + 1);
+                rect.setAttribute('y', y * gridSize + 1);
+                rect.style.animationDelay = `${index * 0.1}s`;
+                
+                // Update position when animation completes
+                let animationCount = 0;
+                rect.addEventListener('animationiteration', () => {
+                    animationCount++;
+                    if (animationCount % 2 === 0) {
+                        const newPos = updateSquarePosition(id);
+                        rect.setAttribute('x', newPos[0] * gridSize + 1);
+                        rect.setAttribute('y', newPos[1] * gridSize + 1);
+                    }
+                });
+                
+                squaresContainer.appendChild(rect);
+            });
+        }
+
+        // Initialize
+        setTimeout(() => {
+            generateSquares();
+            createSquares();
+        }, 100);
+
+        // Update on resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                generateSquares();
+                createSquares();
+            }, 200);
+        });
     }
     
 

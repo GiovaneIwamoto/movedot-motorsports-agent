@@ -172,51 +172,81 @@ html::-webkit-scrollbar-corner {
 }
 
 body {
-    font-family: var(--font-sans);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'SF Pro Display', sans-serif;
     background: var(--background);
     color: var(--foreground);
     line-height: 1.6;
     overflow-x: hidden;
     min-height: 100vh;
     position: relative;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Grid pattern background */
-body::before {
-    content: '';
+/* Typography - Hero Style */
+h1 {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 300;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    color: var(--foreground);
+}
+
+h2 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 300;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--foreground);
+}
+
+h3 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--foreground);
+}
+
+/* Hero Grid Pattern - Clean Background Like Home Hero */
+.hero-grid-pattern {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-    background-size: 40px 40px;
     pointer-events: none;
-    z-index: -2;
+    z-index: 0;
+    opacity: 0.7;
+    overflow: visible;
 }
 
-/* Spotlight effect */
-body::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
+.hero-grid-squares {
     width: 100%;
     height: 100%;
-    background: radial-gradient(
-        ellipse 1000px 800px at 50% 0%,
-        rgba(255, 255, 255, 0.15) 0%,
-        rgba(255, 255, 255, 0.1) 20%,
-        rgba(255, 255, 255, 0.05) 40%,
-        transparent 60%
-    );
-    pointer-events: none;
-    z-index: -1;
 }
 
-/* Header styles removed - not used in current HTML */
+.hero-grid-square {
+    fill: rgba(255, 255, 255, 0.25);
+    stroke: none;
+    opacity: 0;
+    animation: gridSquarePulse 4s ease-in-out infinite;
+    transition: opacity 0.3s ease;
+}
+
+@keyframes gridSquarePulse {
+    0% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 0.6;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* All old background effects removed - Using only Hero grid pattern */
 
 /* Buttons */
 .btn-primary,
