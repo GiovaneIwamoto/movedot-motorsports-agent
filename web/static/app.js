@@ -194,8 +194,8 @@ class MotorsportsAnalytics {
                             });
                             // Small delay to ensure DOM is updated before reloading
                             await new Promise(resolve => setTimeout(resolve, 100));
-                            // Reload conversation
-                            await this.bootstrapConversation();
+                            // Reload conversation without showing welcome modal
+                            await this.bootstrapConversation(false);
                             // Close menu
                             const menuDropdown = document.getElementById('user-menu-dropdown');
                             if (menuDropdown) {
@@ -260,7 +260,7 @@ class MotorsportsAnalytics {
         }
     }
 
-    async bootstrapConversation() {
+    async bootstrapConversation(showWelcomeIfNew = true) {
         try {
             const res = await fetch(`${this.apiBase}/chat/conversations`, { credentials: 'include' });
             let isNewUser = false;
@@ -283,10 +283,13 @@ class MotorsportsAnalytics {
             // Show welcome message for new users
             if (isNewUser) {
                 this.showWelcomeMessage();
-                // Small delay to ensure page is loaded
-                setTimeout(() => {
-                    this.showWelcomeModal();
-                }, 500);
+                // Only show modal if requested (not when clearing history)
+                if (showWelcomeIfNew) {
+                    // Small delay to ensure page is loaded
+                    setTimeout(() => {
+                        this.showWelcomeModal();
+                    }, 500);
+                }
             }
             
             const createRes = await fetch(`${this.apiBase}/chat/conversations`, {
@@ -2800,87 +2803,79 @@ class MotorsportsAnalytics {
                     </div>
                     
                     <div class="welcome-visual-section">
-                        <div class="welcome-visual-background">
-                            <div class="welcome-visual-layer welcome-layer-3">
-                                <div class="welcome-visual-card">
-                                    <div class="welcome-card-icon-small">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                                            <path d="M2 17l10 5 10-5"></path>
-                                            <path d="M2 12l10 5 10-5"></path>
+                        <div class="display-cards-container">
+                            <!-- Card 1: DISCOVER -->
+                            <div class="display-card display-card-1">
+                                <div class="display-card-header">
+                                    <span class="display-card-icon-wrapper">
+                                        <svg class="display-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <path d="m21 21-4.35-4.35"/>
                                         </svg>
-                                    </div>
-                                    <span>Data Studio</span>
+                                    </span>
+                                    <p class="display-card-title">DISCOVER</p>
                                 </div>
+                                <p class="display-card-description">Explore data sources</p>
+                                <p class="display-card-date">Real-time</p>
                             </div>
-                            <div class="welcome-visual-layer welcome-layer-2">
-                                <div class="welcome-workflow-canvas">
-                                    <div class="welcome-workflow-header">Analytics Pipeline</div>
-                                    <div class="welcome-workflow-lines">
-                                        <div class="welcome-workflow-line"></div>
-                                        <div class="welcome-workflow-line"></div>
-                                        <div class="welcome-workflow-line"></div>
-                                    </div>
+                            <!-- Card 2: QUERY -->
+                            <div class="display-card display-card-2">
+                                <div class="display-card-header">
+                                    <span class="display-card-icon-wrapper">
+                                        <svg class="display-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                        </svg>
+                                    </span>
+                                    <p class="display-card-title">QUERY</p>
                                 </div>
+                                <p class="display-card-description">Analyze datasets</p>
+                                <p class="display-card-date">Active</p>
                             </div>
-                            <div class="welcome-visual-layer welcome-layer-1">
-                                <div class="welcome-feature-cards">
-                                    <div class="welcome-feature-card">
-                                        <div class="welcome-feature-card-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                                            </svg>
-                                        </div>
-                                        <span>Fetch Data</span>
-                                        <div class="welcome-card-toggle"></div>
-                                    </div>
-                                    <div class="welcome-feature-card welcome-card-active">
-                                        <div class="welcome-feature-card-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M9 11l3 3L22 4"></path>
-                                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                                            </svg>
-                                        </div>
-                                        <span>Analyze</span>
-                                        <div class="welcome-card-toggle welcome-toggle-on"></div>
-                                    </div>
-                                    <div class="welcome-feature-card welcome-card-active">
-                                        <div class="welcome-feature-card-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                                            </svg>
-                                        </div>
-                                        <span>Visualize</span>
-                                        <div class="welcome-card-toggle welcome-toggle-on"></div>
-                                    </div>
-                                    <div class="welcome-feature-card welcome-card-active">
-                                        <div class="welcome-feature-card-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                                                <polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline>
-                                                <polyline points="7.5 19.79 7.5 14.6 3 12"></polyline>
-                                                <polyline points="21 12 16.5 14.6 16.5 19.79"></polyline>
-                                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                                            </svg>
-                                        </div>
-                                        <span>Insights</span>
-                                        <div class="welcome-card-toggle welcome-toggle-on"></div>
-                                    </div>
-                                    <div class="welcome-feature-card">
-                                        <div class="welcome-feature-card-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                                <polyline points="7 10 12 15 17 10"></polyline>
-                                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                                            </svg>
-                                        </div>
-                                        <span>Export</span>
-                                        <div class="welcome-card-toggle"></div>
-                                    </div>
+                            <!-- Card 3: PROCESS -->
+                            <div class="display-card display-card-3">
+                                <div class="display-card-header">
+                                    <span class="display-card-icon-wrapper">
+                                        <svg class="display-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M12 2v4M12 18v4"/>
+                                            <path d="m4.93 4.93 2.83 2.83m8.48 8.48 2.83 2.83"/>
+                                            <path d="M2 12h4M18 12h4"/>
+                                            <path d="m4.93 19.07 2.83-2.83m8.48-8.48 2.83-2.83"/>
+                                        </svg>
+                                    </span>
+                                    <p class="display-card-title">PROCESS</p>
                                 </div>
+                                <p class="display-card-description">Transform data</p>
+                                <p class="display-card-date">Processing</p>
+                            </div>
+                            <!-- Card 4: INSIGHTS -->
+                            <div class="display-card display-card-4">
+                                <div class="display-card-header">
+                                    <span class="display-card-icon-wrapper">
+                                        <svg class="display-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                                        </svg>
+                                    </span>
+                                    <p class="display-card-title">INSIGHTS</p>
+                                </div>
+                                <p class="display-card-description">Get key insights</p>
+                                <p class="display-card-date">Live</p>
+                            </div>
+                            <!-- Card 5: EXPORT -->
+                            <div class="display-card display-card-5">
+                                <div class="display-card-header">
+                                    <span class="display-card-icon-wrapper">
+                                        <svg class="display-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="7 10 12 15 17 10"></polyline>
+                                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                                        </svg>
+                                    </span>
+                                    <p class="display-card-title">EXPORT</p>
+                                </div>
+                                <p class="display-card-description">Download results</p>
+                                <p class="display-card-date">Ready</p>
                             </div>
                         </div>
                     </div>

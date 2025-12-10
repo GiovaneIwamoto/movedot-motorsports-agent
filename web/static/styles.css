@@ -3457,13 +3457,14 @@ h3 {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    animation: welcomeFadeIn 0.3s ease-out;
+    animation: fadeIn 200ms ease-in-out;
     padding: 1rem;
 }
 
@@ -3636,36 +3637,38 @@ h3 {
     justify-content: flex-end;
 }
 
+/* Settings Modal Buttons - Matching Alert Dialog Style */
 .btn-minimal {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.8125rem;
+    height: 2.5rem;
+    padding: 0 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 150ms ease-in-out;
+    border: none;
+    outline: none;
+}
+
+.settings-modal .btn-primary {
+    background: #fafafa;
+    color: #0a0a0a;
     border: none;
 }
 
-.btn-primary {
-    background: rgba(255, 255, 255, 0.08);
+.settings-modal .btn-primary:hover:not(:disabled) {
+    background: #e5e5e5;
+}
+
+.settings-modal .btn-secondary {
+    background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
+    color: #fafafa;
 }
 
-.btn-primary:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.12);
+.settings-modal .btn-secondary:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.15);
-}
-
-.btn-secondary {
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.15);
-    color: #ef4444;
-}
-
-.btn-secondary:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.2);
 }
 
 .btn-minimal:disabled {
@@ -3684,15 +3687,17 @@ h3 {
 }
 
 .welcome-modal {
-    background: rgba(20, 20, 20, 0.98);
+    background: #0a0a0a;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
+    border-radius: 0.75rem;
     max-width: 900px;
     width: 100%;
     max-height: 85vh;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    animation: welcomeSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.3),
+        0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    animation: contentFadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     flex-direction: column;
 }
@@ -3897,7 +3902,7 @@ h3 {
 .welcome-visual-section {
     flex: 1.2;
     position: relative;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+    background: linear-gradient(135deg, #0a0a0a 0%, #0d0d0d 5%, #0f0f0f 10%, #0e0e0e 15%, #0c0c0c 20%, #0a0a0a 25%);
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -3913,10 +3918,10 @@ h3 {
     width: 100%;
     height: 100%;
     background-image: 
-        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0);
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
     background-size: 30px 30px;
     background-position: 0 0;
-    opacity: 0.6;
+    opacity: 0.4;
     pointer-events: none;
     animation: welcomeGrainMove 15s linear infinite;
 }
@@ -3926,239 +3931,313 @@ h3 {
     100% { background-position: 50px 50px; }
 }
 
-.welcome-visual-background {
+/* Display Cards 3D Stack */
+.display-cards-container {
+    display: grid;
+    grid-template-areas: 'stack';
+    place-items: center;
+    opacity: 1;
+    animation: fadeIn 700ms ease-in-out;
+    width: 100%;
+    height: 100%;
     position: relative;
-    width: 100%;
-    height: 100%;
+}
+
+.display-card {
+    grid-area: stack;
+    position: relative;
     display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Decorative elements */
-.welcome-visual-background::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: 
-        radial-gradient(ellipse at 20% 30%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 70%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
-    pointer-events: none;
-}
-
-/* Visual Layers */
-.welcome-visual-layer {
-    position: absolute;
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-}
-
-.welcome-layer-1 {
-    width: 85%;
-    height: 75%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem;
-}
-
-.welcome-layer-2 {
-    width: 70%;
-    height: 60%;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 9rem;
+    width: 22rem;
+    transform: skewY(-8deg);
+    user-select: none;
+    border-radius: 0.75rem;
+    border: 2px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    z-index: 2;
-    top: 15%;
-    left: 10%;
+    backdrop-filter: blur(8px);
+    padding: 0.75rem 1rem;
+    transition: all 700ms ease;
+    cursor: pointer;
+    overflow: hidden;
 }
 
-.welcome-layer-3 {
-    width: 55%;
-    height: 45%;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    z-index: 1;
-    top: 25%;
-    left: 20%;
-}
-
-/* Feature Cards Stack */
-.welcome-feature-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    width: 100%;
-    max-width: 280px;
-}
-
-.welcome-feature-card {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
-    padding: 0.875rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.welcome-feature-card.welcome-card-active {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.welcome-feature-card-icon {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.9);
-    flex-shrink: 0;
-}
-
-.welcome-feature-card-icon svg {
-    width: 20px;
-    height: 20px;
-    stroke-width: 2.5;
-}
-
-.welcome-feature-card span {
-    flex: 1;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.95);
-    text-align: left;
-}
-
-.welcome-card-toggle {
-    width: 36px;
-    height: 20px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.15);
-    position: relative;
-    transition: background 0.3s ease;
-    flex-shrink: 0;
-}
-
-.welcome-card-toggle::after {
+.display-card::after {
     content: '';
     position: absolute;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: white;
-    top: 2px;
-    left: 2px;
-    transition: transform 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    top: -5%;
+    right: -1px;
+    height: 110%;
+    width: 20rem;
+    background: linear-gradient(to left, rgba(10, 10, 10, 1), transparent);
+    pointer-events: none;
+    border-radius: 0 0.75rem 0.75rem 0;
 }
 
-.welcome-toggle-on {
-    background: rgba(255, 255, 255, 0.4);
+.display-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
 }
 
-.welcome-toggle-on::after {
-    transform: translateX(16px);
-}
-
-/* Workflow Canvas */
-.welcome-workflow-canvas {
-    width: 100%;
-    height: 100%;
-    padding: 1.25rem;
+.display-card-header {
     display: flex;
-    flex-direction: column;
-}
-
-.welcome-workflow-header {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.welcome-workflow-lines {
-    display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 0.5rem;
-    flex: 1;
 }
 
-.welcome-workflow-line {
-    height: 2px;
-    background: linear-gradient(90deg, 
-        rgba(255, 255, 255, 0.2) 0%, 
-        rgba(255, 255, 255, 0.08) 50%, 
-        rgba(255, 255, 255, 0.2) 100%);
-    border-radius: 1px;
+.display-card-icon-wrapper {
+    position: relative;
+    display: inline-block;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.2);
+    padding: 0.25rem;
 }
 
-.welcome-visual-card {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8125rem;
+.display-card-icon {
+    width: 1rem;
+    height: 1rem;
+    color: rgba(147, 197, 253, 1);
+}
+
+.display-card-title {
+    font-size: 1.125rem;
     font-weight: 500;
+    color: rgba(96, 165, 250, 1);
+    margin: 0;
 }
 
-.welcome-card-icon-small {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.6);
+.display-card-description {
+    font-size: 1.125rem;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    margin: 0;
 }
 
-.welcome-card-icon-small svg {
-    width: 18px;
-    height: 18px;
+.display-card-date {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+}
+
+/* Card 1 - Back */
+.display-card-1 {
+    transform: skewY(-8deg) translateX(-2rem) translateY(-3.5rem);
+    transition: all 700ms ease;
+}
+
+.display-card-1:hover {
+    transform: skewY(-8deg) translateX(-2rem) translateY(-5.5rem);
+}
+
+/* Card 2 - Middle-Back */
+.display-card-2 {
+    transform: skewY(-8deg) translateX(1rem) translateY(-1.5rem);
+    transition: all 700ms ease;
+}
+
+.display-card-2:hover {
+    transform: skewY(-8deg) translateX(1rem) translateY(-3.5rem);
+}
+
+/* Card 3 - Middle */
+.display-card-3 {
+    transform: skewY(-8deg) translateX(4rem) translateY(0.5rem);
+    transition: all 700ms ease;
+}
+
+.display-card-3:hover {
+    transform: skewY(-8deg) translateX(4rem) translateY(-1.5rem);
+}
+
+/* Card 4 - Front-Middle */
+.display-card-4 {
+    transform: skewY(-8deg) translateX(7rem) translateY(2.5rem);
+    transition: all 700ms ease;
+}
+
+.display-card-4:hover {
+    transform: skewY(-8deg) translateX(7rem) translateY(0);
+}
+
+/* Card 5 - Front */
+.display-card-5 {
+    transform: skewY(-8deg) translateX(10rem) translateY(4.5rem);
+    transition: all 700ms ease;
+}
+
+.display-card-5:hover {
+    transform: skewY(-8deg) translateX(10rem) translateY(1.5rem);
+}
+
+/* Card specific colors - Base (softer) */
+.display-card-1 .display-card-icon-wrapper {
+    background: rgba(59, 130, 246, 0.15);
+    transition: all 700ms ease;
+}
+
+.display-card-1 .display-card-icon {
+    color: rgba(147, 197, 253, 0.7);
+    transition: all 700ms ease;
+}
+
+.display-card-1 .display-card-title {
+    color: rgba(96, 165, 250, 0.8);
+    transition: all 700ms ease;
+}
+
+.display-card-2 .display-card-icon-wrapper {
+    background: rgba(34, 197, 94, 0.15);
+    transition: all 700ms ease;
+}
+
+.display-card-2 .display-card-icon {
+    color: rgba(134, 239, 172, 0.7);
+    transition: all 700ms ease;
+}
+
+.display-card-2 .display-card-title {
+    color: rgba(74, 222, 128, 0.8);
+    transition: all 700ms ease;
+}
+
+.display-card-3 .display-card-icon-wrapper {
+    background: rgba(251, 146, 60, 0.15);
+    transition: all 700ms ease;
+}
+
+.display-card-3 .display-card-icon {
+    color: rgba(253, 186, 116, 0.7);
+    transition: all 700ms ease;
+}
+
+.display-card-3 .display-card-title {
+    color: rgba(251, 146, 60, 0.8);
+    transition: all 700ms ease;
+}
+
+.display-card-4 .display-card-icon-wrapper {
+    background: rgba(168, 85, 247, 0.15);
+    transition: all 700ms ease;
+}
+
+.display-card-4 .display-card-icon {
+    color: rgba(196, 181, 253, 0.7);
+    transition: all 700ms ease;
+}
+
+.display-card-4 .display-card-title {
+    color: rgba(167, 139, 250, 0.8);
+    transition: all 700ms ease;
+}
+
+.display-card-5 .display-card-icon-wrapper {
+    background: rgba(236, 72, 153, 0.15);
+    transition: all 700ms ease;
+}
+
+.display-card-5 .display-card-icon {
+    color: rgba(244, 114, 182, 0.7);
+    transition: all 700ms ease;
+}
+
+.display-card-5 .display-card-title {
+    color: rgba(236, 72, 153, 0.8);
+    transition: all 700ms ease;
+}
+
+/* Hover - Intense colors */
+.display-card-1:hover .display-card-icon-wrapper {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.display-card-1:hover .display-card-icon {
+    color: rgba(147, 197, 253, 1);
+}
+
+.display-card-1:hover .display-card-title {
+    color: rgba(96, 165, 250, 1);
+}
+
+.display-card-2:hover .display-card-icon-wrapper {
+    background: rgba(34, 197, 94, 0.3);
+}
+
+.display-card-2:hover .display-card-icon {
+    color: rgba(134, 239, 172, 1);
+}
+
+.display-card-2:hover .display-card-title {
+    color: rgba(74, 222, 128, 1);
+}
+
+.display-card-3:hover .display-card-icon-wrapper {
+    background: rgba(251, 146, 60, 0.3);
+}
+
+.display-card-3:hover .display-card-icon {
+    color: rgba(253, 186, 116, 1);
+}
+
+.display-card-3:hover .display-card-title {
+    color: rgba(251, 146, 60, 1);
+}
+
+.display-card-4:hover .display-card-icon-wrapper {
+    background: rgba(168, 85, 247, 0.3);
+}
+
+.display-card-4:hover .display-card-icon {
+    color: rgba(196, 181, 253, 1);
+}
+
+.display-card-4:hover .display-card-title {
+    color: rgba(167, 139, 250, 1);
+}
+
+.display-card-5:hover .display-card-icon-wrapper {
+    background: rgba(236, 72, 153, 0.3);
+}
+
+.display-card-5:hover .display-card-icon {
+    color: rgba(244, 114, 182, 1);
+}
+
+.display-card-5:hover .display-card-title {
+    color: rgba(236, 72, 153, 1);
+}
+
+/* Fix icon size */
+.display-card-icon {
+    width: 1rem;
+    height: 1rem;
+    stroke-width: 2;
 }
 
 
 .welcome-button-primary {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.75rem;
-    border-radius: 8px;
-    font-size: 0.9375rem;
-    font-weight: 600;
+    height: 2.5rem;
+    padding: 0 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transition: all 150ms ease-in-out;
+    border: none;
+    outline: none;
+    background: #fafafa;
+    color: #0a0a0a;
     align-self: flex-start;
     flex-shrink: 0;
     margin-top: auto;
 }
 
 .welcome-button-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    background: #e5e5e5;
 }
 
 .welcome-button-primary:active {
-    transform: translateY(0);
+    transform: scale(0.98);
 }
 
 /* Welcome Modal Responsive */
@@ -4187,14 +4266,49 @@ h3 {
         padding: 1.5rem;
     }
     
-    .welcome-feature-cards {
-        max-width: 100%;
+    .display-card {
+        width: 16rem;
+        height: 7rem;
     }
     
-    .welcome-layer-1,
-    .welcome-layer-2,
-    .welcome-layer-3 {
-        width: 90%;
+    .display-card-1 {
+        transform: skewY(-8deg) translateX(-1rem) translateY(-1.5rem);
+    }
+    
+    .display-card-1:hover {
+        transform: skewY(-8deg) translateX(-1rem) translateY(-3rem);
+    }
+    
+    .display-card-2 {
+        transform: skewY(-8deg) translateX(0.5rem) translateY(-0.25rem);
+    }
+    
+    .display-card-2:hover {
+        transform: skewY(-8deg) translateX(0.5rem) translateY(-1.75rem);
+    }
+    
+    .display-card-3 {
+        transform: skewY(-8deg) translateX(2rem) translateY(1rem);
+    }
+    
+    .display-card-3:hover {
+        transform: skewY(-8deg) translateX(2rem) translateY(-0.5rem);
+    }
+    
+    .display-card-4 {
+        transform: skewY(-8deg) translateX(3.5rem) translateY(2.25rem);
+    }
+    
+    .display-card-4:hover {
+        transform: skewY(-8deg) translateX(3.5rem) translateY(0.5rem);
+    }
+    
+    .display-card-5 {
+        transform: skewY(-8deg) translateX(5rem) translateY(3.5rem);
+    }
+    
+    .display-card-5:hover {
+        transform: skewY(-8deg) translateX(5rem) translateY(1.5rem);
     }
 }
 
