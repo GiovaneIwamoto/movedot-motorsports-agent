@@ -230,13 +230,23 @@ class MarkdownRenderer {
 }
 
 /* Tables */
+/* Table wrapper for horizontal scroll */
+.minimalist-markdown .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    margin: 0.8rem 0;
+    border-radius: 0.4rem;
+    -webkit-overflow-scrolling: touch;
+}
+
 .minimalist-markdown table {
     width: 100%;
+    min-width: 100%;
     border-collapse: collapse;
-    margin: 0.8rem 0;
+    margin: 0;
     background: var(--bg-secondary);
     border-radius: 0.4rem;
-    overflow: hidden;
     border: 1px solid var(--border-color);
 }
 
@@ -765,7 +775,7 @@ class MarkdownRenderer {
     convertTableToHtml(tableLines) {
         if (tableLines.length < 2) return tableLines.join('\n');
         
-        let html = '<table>\n';
+        let html = '<div class="table-wrapper">\n<table>\n';
         
         // Header line
         const headerCells = tableLines[0].split('|').slice(1, -1).map(cell => cell.trim());
@@ -787,7 +797,7 @@ class MarkdownRenderer {
         }
         html += '</tbody>\n';
         
-        html += '</table>';
+        html += '</table>\n</div>';
         return html;
     }
     
