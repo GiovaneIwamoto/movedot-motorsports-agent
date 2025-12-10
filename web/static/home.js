@@ -8,10 +8,105 @@ class HomePage {
     init() {
         this.setupEventListeners();
         this.setupHeroGridPattern();
+        this.setupAuth();
         // Delay animations significantly to ensure no scroll interference
         setTimeout(() => {
             this.setupScrollAnimations();
         }, 500);
+    }
+    
+    async setupAuth() {
+        const loginBtn = document.getElementById('loginBtn');
+        const userProfile = document.getElementById('userProfile');
+        const logoutBtn = document.getElementById('logoutBtn');
+        
+        try {
+            const response = await fetch('/api/auth/me', { 
+                credentials: 'include' 
+            });
+            
+            if (response.ok) {
+                const user = await response.json();
+                console.log('User authenticated:', user.email);
+                this.showUserProfile(user);
+            } else {
+                if (loginBtn) {
+                    loginBtn.style.display = 'inline-flex';
+                    loginBtn.addEventListener('click', () => this.handleLogin());
+                }
+            }
+        } catch (error) {
+            console.error('Auth error:', error);
+            if (loginBtn) {
+                loginBtn.style.display = 'inline-flex';
+                loginBtn.addEventListener('click', () => this.handleLogin());
+            }
+        }
+        
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => this.handleLogout());
+        }
+    }
+    
+    showUserProfile(user) {
+        console.log('[DEBUG] User data:', user);
+        console.log('[DEBUG] Picture URL:', user.picture);
+        
+        const loginBtn = document.getElementById('loginBtn');
+        const userProfile = document.getElementById('userProfile');
+        const userName = document.getElementById('userName');
+        const userAvatar = document.getElementById('userAvatar');
+        const avatarPlaceholder = document.getElementById('userAvatarPlaceholder');
+        
+        console.log('[DEBUG] Elements:', {
+            userAvatar: userAvatar ? 'found' : 'missing',
+            avatarPlaceholder: avatarPlaceholder ? 'found' : 'missing'
+        });
+        
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (userProfile) userProfile.style.display = 'flex';
+        if (userName) userName.textContent = user.name || user.email;
+        
+        // Handle avatar
+        if (user.picture && user.picture.trim() && userAvatar) {
+            userAvatar.setAttribute('referrerpolicy', 'no-referrer');
+            userAvatar.setAttribute('crossorigin', 'anonymous');
+            userAvatar.src = user.picture;
+            userAvatar.alt = user.name || 'User';
+            userAvatar.style.display = 'block';
+            if (avatarPlaceholder) avatarPlaceholder.style.display = 'none';
+            
+            userAvatar.onerror = () => {
+                console.warn('Avatar failed to load, using placeholder');
+                userAvatar.style.display = 'none';
+                if (avatarPlaceholder) avatarPlaceholder.style.display = 'flex';
+            };
+        } else {
+            if (avatarPlaceholder) avatarPlaceholder.style.display = 'flex';
+            if (userAvatar) userAvatar.style.display = 'none';
+        }
+    }
+    
+    handleLogin() {
+        // Redirect to existing backend login with return_to parameter
+        window.location.href = '/api/auth/login?return_to=/home.html';
+    }
+    
+    async handleLogout() {
+        try {
+            // Call existing backend logout
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            
+            // Redirect to homepage after logout
+            window.location.href = '/home.html';
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Force redirect anyway
+            window.location.href = '/home.html';
+        }
     }
 
     setupEventListeners() {

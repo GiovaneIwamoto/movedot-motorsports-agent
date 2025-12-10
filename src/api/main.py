@@ -101,6 +101,7 @@ app = FastAPI(
     description="AI-powered analytics platform for motorsports data analysis",
     version="1.0.0"
 )
+
 # Initialize DB at startup
 @app.on_event("startup")
 async def _startup():
@@ -190,9 +191,20 @@ async def auth_login():
 
 
 @app.get("/api/auth/callback")
-async def auth_callback(code: str):
+async def auth_callback(code: str, state: str = None):
     settings = _require_google_config()
     import httpx
+    import base64
+    import json
+    
+    # Decode state to get return_to
+    return_to = "/"
+    if state:
+        try:
+            state_data = json.loads(base64.urlsafe_b64decode(state.encode()).decode())
+            return_to = state_data.get("return_to", "/")
+        except Exception as e:
+            logger.warning(f"Failed to decode state: {e}")
 
     async with httpx.AsyncClient() as client:
         token_resp = await client.post(
@@ -232,6 +244,7 @@ async def auth_callback(code: str):
     email = user_info.get("email")
     name = user_info.get("name")
     picture = user_info.get("picture")
+    
     if not google_sub:
         raise HTTPException(status_code=400, detail="Invalid Google user")
 
@@ -240,7 +253,9 @@ async def auth_callback(code: str):
     session_id = f"sess_{int(datetime.datetime.now().timestamp())}_{google_sub}"
     create_session(session_id, user_id)
 
-    resp = RedirectResponse(url="/index.html")
+    # Redirect to return_to or default to index
+    redirect_url = return_to if return_to and return_to.startswith('/') else "/index.html"
+    resp = RedirectResponse(url=redirect_url)
     _set_session_cookie(resp, session_id)
     return resp
 
@@ -257,14 +272,18 @@ async def auth_logout(request: Request):
 
 @app.get("/api/auth/me")
 async def auth_me(user=Depends(current_user)):
-    # Ensure picture is returned as string or None, not empty string
-    user_data = {
+    picture = user.get("picture")
+    if picture and isinstance(picture, str) and picture.strip():
+        picture_url = picture.strip()
+    else:
+        picture_url = None
+    
+    return {
         "id": user["id"],
         "email": user["email"],
         "name": user["name"],
-        "picture": user.get("picture") if user.get("picture") else None
+        "picture": picture_url
     }
-    return user_data
 
 @app.get("/")
 async def read_root():

@@ -137,7 +137,8 @@ class MotorsportsAnalytics {
                 try {
                     await fetch(`${this.apiBase}/auth/logout`, { method: 'POST', credentials: 'include' });
                 } finally {
-                    window.location.href = `${this.apiBase}/auth/login`;
+                    // Redirect to home page after logout
+                    window.location.href = '/home.html';
                 }
             });
         }
