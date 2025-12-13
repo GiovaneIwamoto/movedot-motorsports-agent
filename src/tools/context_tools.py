@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any, Optional
 
 import httpx
-from langchain_core.tools import tool
+from langchain_core.tools import tool, StructuredTool
 
 from ..core import get_csv_memory
 from ..utils import generate_csv_name
@@ -14,17 +14,12 @@ from ..mcp.langchain_adapter import get_global_mcp_client
 logger = logging.getLogger(__name__)
 
 
-@tool
-async def read_mcp_resource(uri: str) -> str:
+async def _read_mcp_resource_impl(uri: str) -> str:
     """
-    Read a resource (PRP/documentation) from an MCP server.
-    
-    MCP servers provide documentation resources that explain how to use their APIs.
-    Use this tool to read documentation before constructing API calls.
+    Implementation function for reading MCP resources.
     
     Args:
         uri: The resource URI in format 'prp://<mcp_server>/<endpoint>'
-             Example: 'prp://<server_name>/<endpoint_name>'
     
     Returns:
         The documentation content as a string
@@ -48,6 +43,18 @@ async def read_mcp_resource(uri: str) -> str:
     except Exception as e:
         logger.error(f"Error reading MCP resource {uri}: {e}", exc_info=True)
         return f"Error reading resource '{uri}': {str(e)}"
+
+
+read_mcp_resource = StructuredTool.from_function(
+    coroutine=_read_mcp_resource_impl,
+    name="read_mcp_resource",
+    description=(
+        "Read a resource (PRP/documentation) from an MCP server. "
+        "MCP servers provide documentation resources that explain how to use their APIs. "
+        "Use this tool to read documentation before constructing API calls. "
+        "URI format: 'prp://<mcp_server>/<endpoint>'"
+    ),
+)
 
 
 @tool
