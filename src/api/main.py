@@ -97,15 +97,25 @@ def _validate_dataset_exists(dataset_name: str) -> pd.DataFrame:
 
 # Create FastAPI app
 app = FastAPI(
-    title="MoveDot Motorsports Analytics Agent",
-    description="AI-powered analytics platform for motorsports data analysis",
-    version="1.0.0"
+    title="MoveDot Data Analytics Platform",
+    description="AI-powered analytics platform for data analysis across multiple sources via MCP",
+    version="2.0.0"
 )
 
 # Initialize DB at startup
 @app.on_event("startup")
 async def _startup():
     init_db()
+    
+    # Import MCP routes
+    from .mcp_routes import router as mcp_router
+    app.include_router(mcp_router)
+    
+    # Initialize MCP integration using langchain-mcp-adapters
+    try:
+        logger.info("MCP integration initialized. MCP servers will be loaded on-demand per user using langchain-mcp-adapters.")
+    except Exception as e:
+        logger.warning(f"Failed to initialize MCP integration: {e}")
 
 
 # CORS middleware
@@ -420,7 +430,8 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
         config = {"configurable": {"thread_id": str(conv_id)}}
         
         # Get user's API configuration
-        user_api_config = get_user_api_config(int(user["id"]))
+        user_id = int(user["id"])
+        user_api_config = get_user_api_config(user_id)
         user_config_dict = None
         if user_api_config:
             user_config_dict = {
@@ -428,14 +439,29 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
                 "api_key": user_api_config["api_key"],
                 "model": user_api_config["model"],
                 "temperature": user_api_config["temperature"],
+                "user_id": user_id,  # Include user_id for MCP server loading
             }
+        else:
+            # Still include user_id even if no API config
+            user_config_dict = {"user_id": user_id}
         
         async def generate_sse_stream():
             """Generate SSE stream from agent response."""
             full_content = ""  # Accumulate all streamed content
+            logger.info(f"Starting SSE stream for conversation {conv_id}")
+            logger.info(f"User message: {request.message[:100]}...")
             try:
+                # Load MCP servers for user BEFORE creating agent (in same event loop)
+                # Following LangChain MCP best practices - uses langchain-mcp-adapters
+                from ..mcp.loader import ensure_user_mcp_servers_loaded_async
+                logger.info(f"Loading MCP servers for user {user_id}...")
+                servers_loaded = await ensure_user_mcp_servers_loaded_async(user_id)
+                logger.info(f"Loaded {servers_loaded} MCP servers for user {user_id}")
+                
                 # Stream tokens from the agent with history
+                logger.info("Calling stream_analytics_agent_with_history...")
                 async for event_type, data in stream_analytics_agent_with_history(messages_history, config, user_config_dict):
+                    logger.debug(f"SSE event: {event_type}")
                     if event_type == "token":
                         # Send token event
                         content = data.get("content", "") if isinstance(data, dict) else ""
@@ -457,7 +483,7 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
                         break
                         
             except Exception as e:
-                logger.error(f"Error in SSE stream: {e}")
+                logger.error(f"Error in SSE stream: {e}", exc_info=True)
                 yield f"event: error\n"
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
         
