@@ -83,6 +83,24 @@ def init_db() -> None:
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS mcp_servers (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                server_type TEXT NOT NULL,
+                command TEXT,
+                args TEXT,
+                env TEXT,
+                url TEXT,
+                headers TEXT,
+                enabled BOOLEAN DEFAULT 1,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
         conn.commit()
 
 
