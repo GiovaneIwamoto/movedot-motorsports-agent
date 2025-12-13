@@ -1,5 +1,6 @@
 """Analytics agent that combines all functionality for data analysis and insights."""
 
+import asyncio
 import logging
 import os
 from datetime import datetime
@@ -54,13 +55,19 @@ class AnalyticsAgentManager:
             logger.info(f"Logging configured with level: {settings.log_level}")
             self._logging_configured = True
     
-    def get_agent(self, force_reload: bool = False, user_config: Optional[Dict[str, Any]] = None) -> Any:
+    async def get_agent_async(self, force_reload: bool = False, user_config: Optional[Dict[str, Any]] = None) -> Any:
         """
-        Get or create the analytics agent.
+        Get or create the analytics agent (async version).
+        
+        This is the preferred way to get the agent - call from async context.
+        Following MCP SDK best practices - loads tools in same event loop.
         
         Args:
             force_reload: Force reload of the agent
             user_config: Optional user-specific config with provider, api_key, model, temperature
+            
+        Returns:
+            LangGraph agent instance
         """
         # Check if we need to reload (config changed or force reload)
         config_changed = False
@@ -71,7 +78,7 @@ class AnalyticsAgentManager:
                 self._agent_config = config_key
         
         if self._agent is None or force_reload or config_changed:
-            from ..tools import get_all_tools
+            from ..tools import get_all_tools_async
             
             # Setup LangSmith tracing
             self._setup_langsmith_tracing()
@@ -95,18 +102,112 @@ class AnalyticsAgentManager:
                 llm = get_openai_client()
                 logger.info("Using default OpenAI client")
             
-            tools = get_all_tools()
+            # Get all tools (including MCP tools) - async version
+            logger.info("Loading all tools for agent (async)...")
+            try:
+                tools = await get_all_tools_async()
+                logger.info(f"Agent will have {len(tools)} tools available")
+            except Exception as e:
+                logger.error(f"Error loading tools: {e}", exc_info=True)
+                # Fallback to just analysis tools if MCP tools fail to load
+                from ..tools.analysis_tools import get_analysis_tools
+                tools = get_analysis_tools()
+                logger.warning(f"Using only analysis tools ({len(tools)} tools) due to MCP loading error")
             
-            self._agent = create_react_agent(
-                model=llm,
-                tools=tools,
-                prompt=formatted_prompt,
-                checkpointer=InMemorySaver(),
-                name=DEFAULT_AGENT_NAME
-            )
+            try:
+                logger.info("Creating LangGraph agent...")
+                self._agent = create_react_agent(
+                    model=llm,
+                    tools=tools,
+                    prompt=formatted_prompt,
+                    checkpointer=InMemorySaver(),
+                    name=DEFAULT_AGENT_NAME
+                )
+                
+                action = "reloaded" if (force_reload or config_changed) else "created"
+                logger.info(f"Analytics agent {action} successfully with {len(tools)} tools (LangSmith tracing enabled, date: {current_date})")
+            except Exception as e:
+                logger.error(f"Failed to create agent: {e}", exc_info=True)
+                raise RuntimeError(f"Failed to create analytics agent: {str(e)}") from e
+        
+        return self._agent
+    
+    def get_agent(self, force_reload: bool = False, user_config: Optional[Dict[str, Any]] = None) -> Any:
+        """
+        Get or create the analytics agent.
+        
+        Args:
+            force_reload: Force reload of the agent
+            user_config: Optional user-specific config with provider, api_key, model, temperature
+        """
+        # Check if we need to reload (config changed or force reload)
+        config_changed = False
+        if user_config:
+            config_key = f"{user_config.get('provider')}:{user_config.get('model')}:{user_config.get('api_key', '')[:10]}"
+            if self._agent_config != config_key:
+                config_changed = True
+                self._agent_config = config_key
+        
+        if self._agent is None or force_reload or config_changed:
+            from ..tools import get_all_tools
+            from ..mcp.loader import ensure_user_mcp_servers_loaded
             
-            action = "reloaded" if (force_reload or config_changed) else "created"
-            logger.info(f"Analytics agent {action} with LangSmith tracing and current date: {current_date}")
+            # Setup LangSmith tracing
+            self._setup_langsmith_tracing()
+            
+            # NOTE: MCP servers should be loaded BEFORE calling get_agent()
+            # They are loaded in the API endpoint (stream_chat_with_agent) in async context
+            # This ensures they use the same event loop as the FastAPI application
+            # Following MCP SDK best practices - no manual loop management
+            
+            # Get current date for temporal context
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            
+            # Format the prompt with temporal context
+            formatted_prompt = ANALYTICS_AGENT_PROMPT.format(current_date=current_date)
+            
+            # Use user config if provided, otherwise fallback to global settings
+            if user_config and user_config.get("api_key"):
+                llm = get_llm_client(
+                    provider=user_config.get("provider", "openai"),
+                    api_key=user_config["api_key"],
+                    model=user_config.get("model", "gpt-4o-mini"),
+                    temperature=0.0  # Always use lowest temperature
+                )
+                logger.info(f"Using user-provided {user_config.get('provider', 'openai')} model: {user_config.get('model', 'gpt-4o-mini')}")
+            else:
+                llm = get_openai_client()
+                logger.info("Using default OpenAI client")
+            
+            # Get all tools (including MCP tools if servers are loaded)
+            # Note: MCP tools are loaded dynamically, so they may not be available immediately
+            # The agent will work with whatever tools are available at creation time
+            logger.info("Loading all tools for agent...")
+            try:
+                tools = get_all_tools()
+                logger.info(f"Agent will have {len(tools)} tools available")
+            except Exception as e:
+                logger.error(f"Error loading tools: {e}", exc_info=True)
+                # Fallback to just analysis tools if MCP tools fail to load
+                from ..tools.analysis_tools import get_analysis_tools
+                tools = get_analysis_tools()
+                logger.warning(f"Using only analysis tools ({len(tools)} tools) due to MCP loading error")
+            
+            try:
+                logger.info("Creating LangGraph agent...")
+                self._agent = create_react_agent(
+                    model=llm,
+                    tools=tools,
+                    prompt=formatted_prompt,
+                    checkpointer=InMemorySaver(),
+                    name=DEFAULT_AGENT_NAME
+                )
+                
+                action = "reloaded" if (force_reload or config_changed) else "created"
+                logger.info(f"Analytics agent {action} successfully with {len(tools)} tools (LangSmith tracing enabled, date: {current_date})")
+            except Exception as e:
+                logger.error(f"Failed to create agent: {e}", exc_info=True)
+                raise RuntimeError(f"Failed to create analytics agent: {str(e)}") from e
         
         return self._agent
     
@@ -207,27 +308,48 @@ async def stream_analytics_agent_with_history(messages_history: list, config: Op
     config = _prepare_agent_config(config)
 
     try:
-        agent = get_analytics_agent(user_config=user_config)
+        logger.info("Starting agent stream with history")
+        # Use async version to properly load MCP tools
+        agent_manager = AnalyticsAgentManager()
+        agent = await agent_manager.get_agent_async(user_config=user_config)
+        logger.info("Agent created, starting stream...")
         
         # Stream only messages mode to get LLM tokens
         # This approach filters out tool outputs and intermediate steps
-        async for chunk, metadata in agent.astream(
-            {"messages": messages_history},
-            config,
-            stream_mode="messages"
-        ):
-            # Only stream content from LLM responses, not tool outputs
-            if hasattr(chunk, 'content') and chunk.content:
-                # Get the node name from metadata
+        chunk_count = 0
+        try:
+            async for chunk, metadata in agent.astream(
+                {"messages": messages_history},
+                config,
+                stream_mode="messages"
+            ):
+                chunk_count += 1
                 node_name = metadata.get("langgraph_node", "")
                 
-                # Filter to only include final agent responses
-                # Skip tool execution nodes and intermediate steps
-                # The main agent node typically has names like "agent", "analytics_agent", or is empty
-                if (not node_name or  # Empty node name often indicates main agent
-                    node_name in ["agent", "analytics_agent", DEFAULT_AGENT_NAME] or
-                    "agent" in node_name.lower()):
-                    yield ("token", {"content": chunk.content})
+                # Log tool execution nodes for debugging
+                if "tool" in node_name.lower() or "mcp" in node_name.lower():
+                    logger.info(f"Tool execution detected: {node_name}")
+                
+                # Only stream content from LLM responses, not tool outputs
+                if hasattr(chunk, 'content') and chunk.content:
+                    # Filter to only include final agent responses
+                    # Skip tool execution nodes and intermediate steps
+                    # The main agent node typically has names like "agent", "analytics_agent", or is empty
+                    if (not node_name or  # Empty node name often indicates main agent
+                        node_name in ["agent", "analytics_agent", DEFAULT_AGENT_NAME] or
+                        "agent" in node_name.lower()):
+                        yield ("token", {"content": chunk.content})
+            
+            logger.info(f"Agent stream completed successfully ({chunk_count} chunks processed)")
+            
+        except asyncio.TimeoutError:
+            logger.error("Agent stream timed out")
+            yield ("error", {"error": "Agent stream timed out. The request took too long to process."})
+            return
+        except Exception as stream_error:
+            logger.error(f"Error during agent stream: {stream_error}", exc_info=True)
+            yield ("error", {"error": f"Error during agent execution: {str(stream_error)}"})
+            return
         
         # Yield completion event
         yield ("complete", {
@@ -236,7 +358,7 @@ async def stream_analytics_agent_with_history(messages_history: list, config: Op
         })
         
     except Exception as e:
-        logger.error(f"Failed to stream analytics agent with history: {str(e)}")
+        logger.error(f"Failed to stream analytics agent with history: {str(e)}", exc_info=True)
         yield ("error", {"error": f"Agent streaming failed: {str(e)}"})
 
 
