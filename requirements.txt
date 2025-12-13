@@ -39,3 +39,7 @@ e2b-code-interpreter>=1.0.0
 
 # LangSmith for observability
 langsmith>=0.1.0
+
+# Model Context Protocol
+mcp[cli]>=0.1.0
+langchain-mcp-adapters>=0.1.0
