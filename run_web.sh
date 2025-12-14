@@ -50,7 +50,7 @@ fi
 
 # Create necessary directories
 echo "[INFO] Creating directories..."
-mkdir -p data plots web/static logs
+mkdir -p data plots web/static
 
 # Start the web server
 echo ""

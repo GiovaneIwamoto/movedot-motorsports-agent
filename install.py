@@ -60,7 +60,7 @@ def main():
     
     # Create necessary directories
     print("[INFO] Creating directories...")
-    directories = ["data", "plots", "logs"]
+    directories = ["data", "plots"]
     for directory in directories:
         Path(directory).mkdir(exist_ok=True)
         print(f"[SUCCESS] Created {directory}/ directory")
