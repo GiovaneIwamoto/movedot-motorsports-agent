@@ -1265,8 +1265,7 @@ class DataAnalytics {
             'Which data do you want to analyze?',
             'What insights are you looking for?',
             'Ready to explore your data?',
-            'What would you like to discover?',
-            'Let\'s analyze some race data!'
+            'What would you like to discover?'
         ];
 
         let currentIndex = 0;
