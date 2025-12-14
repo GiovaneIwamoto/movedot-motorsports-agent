@@ -2503,35 +2503,35 @@ class DataAnalytics {
                 <div class="welcome-modal-content-wrapper">
                     <div class="welcome-text-section">
                         <div class="welcome-header-content">
-                            <h2>${forceShow ? 'How Our Agents Work' : 'Welcome to MoveDot Analytics'}</h2>
-                            <p class="welcome-description">AI-powered analytics platform for analysts. Transform data into insights through natural language. Autonomous agents connect, navigate, and analyze data efficiently by executing code and strategically sourcing from multiple tools.</p>
+                            <h2>${forceShow ? 'Native Tools & Capabilities' : 'Welcome to MoveDot Analytics'}</h2>
+                            <p class="welcome-description">Built-in tools for documentation discovery, data fetching, and code execution. Enables autonomous agent workflows through MCP architecture.</p>
                         </div>
                         
                         <div class="welcome-features-carousel-wrapper">
                             <div class="welcome-features-carousel">
                                 <div class="welcome-feature-slide active">
-                                    <h3>Autonomous Data Strategy</h3>
-                                    <p>Our AI agents autonomously determine where to source data from available tools. They strategically navigate data sources, making intelligent decisions about which tools and endpoints to access for comprehensive analysis.</p>
+                                    <h3>MCP Resource Discovery</h3>
+                                    <p>Enumerates all available MCP servers and their documentation resources. Returns URIs, names, descriptions, and MIME types. Enables the agent to discover what data sources and PRPs are available before constructing queries.</p>
                                 </div>
                                 <div class="welcome-feature-slide">
-                                    <h3>Natural Language Analytics</h3>
-                                    <p>Transform data into insights through natural language conversations. Designed for analysts, our platform lets you explore data and generate analysis using simple questions - no technical barriers.</p>
+                                    <h3>Documentation Reading</h3>
+                                    <p>Reads documentation from MCP servers to extract domain knowledge, entity relationships, API endpoint structures, and parameter schemas. Parses markdown documentation to build comprehensive understanding of data domains.</p>
                                 </div>
                                 <div class="welcome-feature-slide">
-                                    <h3>Intelligent Data Navigation</h3>
-                                    <p>AI agents connect and traverse through complex data structures. They understand relationships, dependencies, and can efficiently navigate across multiple data sources to find exactly what you need.</p>
+                                    <h3>HTTP Data Fetching</h3>
+                                    <p>Executes HTTP GET requests with automatic content-type detection and intelligent response handling. Converts JSON arrays to CSV format automatically and stores data in persistent memory with caching.</p>
                                 </div>
                                 <div class="welcome-feature-slide">
-                                    <h3>Code Execution Agents</h3>
-                                    <p>Agents execute Python code to analyze data efficiently. Complex pandas operations, statistical analysis, and visualizations are generated automatically - agents handle the technical execution while you focus on insights.</p>
+                                    <h3>Python Code Execution</h3>
+                                    <p>Executes arbitrary Python code in isolated E2B sandboxes with full data science stack pre-installed: pandas, numpy, matplotlib, seaborn, and scipy. CSV files automatically mounted at /data/ directory with configurable timeouts.</p>
                                 </div>
                                 <div class="welcome-feature-slide">
-                                    <h3>Context-Aware Analysis</h3>
-                                    <p>Maintains full conversation history across sessions. Build on previous analyses, ask follow-up questions, and refine insights - agents remember your entire analytical journey and adapt accordingly.</p>
+                                    <h3>Data Management Tools</h3>
+                                    <p>Query and inspect the persistent CSV memory layer and cache state. Check dataset availability, debug cache performance, and monitor storage. Essential for understanding data context before analysis.</p>
                                 </div>
                                 <div class="welcome-feature-slide">
-                                    <h3>Secure Execution Environment</h3>
-                                    <p>All code execution happens in isolated E2B sandboxes. Your system stays safe while agents analyze data with full Python capabilities - enterprise-grade security without compromising functionality.</p>
+                                    <h3>Sandbox Lifecycle</h3>
+                                    <p>Manage E2B sandbox lifecycle and invalidate CSV memory cache. Clean up expired sandboxes, reset execution environments, and force cache reloads from disk. Ensures resource efficiency and data freshness.</p>
                                 </div>
                             </div>
                             <div class="welcome-carousel-bottom">
@@ -2549,78 +2549,86 @@ class DataAnalytics {
                     
                     <div class="welcome-visual-section">
                         <div class="display-cards-container">
-                            <!-- Card 1: DISCOVER -->
+                            <!-- Card 1: MCP Resources -->
                             <div class="display-card display-card-1">
                                 <div class="display-card-header">
                                     <span class="display-card-icon-wrapper">
                                         <svg class="display-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="11" cy="11" r="8"/>
-                                            <path d="m21 21-4.35-4.35"/>
+                                            <circle cx="12" cy="12" r="2.5"/>
+                                            <circle cx="6" cy="6" r="1.5"/>
+                                            <circle cx="18" cy="6" r="1.5"/>
+                                            <circle cx="6" cy="18" r="1.5"/>
+                                            <circle cx="18" cy="18" r="1.5"/>
+                                            <line x1="12" y1="9.5" x2="7.5" y2="7.5"/>
+                                            <line x1="12" y1="9.5" x2="16.5" y2="7.5"/>
+                                            <line x1="12" y1="14.5" x2="7.5" y2="16.5"/>
+                                            <line x1="12" y1="14.5" x2="16.5" y2="16.5"/>
                                         </svg>
                                     </span>
-                                    <p class="display-card-title">DISCOVER</p>
+                                    <p class="display-card-title">MCP RESOURCES</p>
                                 </div>
-                                <p class="display-card-description">Explore data sources</p>
-                                <p class="display-card-date">Real-time</p>
+                                <p class="display-card-description">Discover MCP servers</p>
+                                <p class="display-card-date">Discovery</p>
                             </div>
-                            <!-- Card 2: QUERY -->
+                            <!-- Card 2: Sandbox -->
                             <div class="display-card display-card-2">
                                 <div class="display-card-header">
                                     <span class="display-card-icon-wrapper">
                                         <svg class="display-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                            <rect x="7" y="7" width="3" height="9"/>
+                                            <rect x="14" y="7" width="3" height="5"/>
                                         </svg>
                                     </span>
-                                    <p class="display-card-title">QUERY</p>
+                                    <p class="display-card-title">SANDBOX</p>
                                 </div>
-                                <p class="display-card-description">Analyze datasets</p>
-                                <p class="display-card-date">Active</p>
+                                <p class="display-card-description">E2B Execution</p>
+                                <p class="display-card-date">Isolated</p>
                             </div>
-                            <!-- Card 3: PROCESS -->
+                            <!-- Card 3: Data Fetching -->
                             <div class="display-card display-card-3">
                                 <div class="display-card-header">
                                     <span class="display-card-icon-wrapper">
                                         <svg class="display-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <path d="M12 2v4M12 18v4"/>
-                                            <path d="m4.93 4.93 2.83 2.83m8.48 8.48 2.83 2.83"/>
-                                            <path d="M2 12h4M18 12h4"/>
-                                            <path d="m4.93 19.07 2.83-2.83m8.48-8.48 2.83-2.83"/>
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="7 10 12 15 17 10"/>
+                                            <line x1="12" y1="15" x2="12" y2="3"/>
                                         </svg>
                                     </span>
-                                    <p class="display-card-title">PROCESS</p>
+                                    <p class="display-card-title">DATA FETCH</p>
                                 </div>
-                                <p class="display-card-description">Transform data</p>
-                                <p class="display-card-date">Processing</p>
+                                <p class="display-card-description">Fetch API data</p>
+                                <p class="display-card-date">HTTP GET</p>
                             </div>
-                            <!-- Card 4: INSIGHTS -->
+                            <!-- Card 4: Code Execution -->
                             <div class="display-card display-card-4">
                                 <div class="display-card-header">
                                     <span class="display-card-icon-wrapper">
                                         <svg class="display-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                            <rect x="7" y="7" width="3" height="9"/>
+                                            <rect x="14" y="7" width="3" height="5"/>
                                         </svg>
                                     </span>
-                                    <p class="display-card-title">INSIGHTS</p>
+                                    <p class="display-card-title">CODE EXEC</p>
                                 </div>
-                                <p class="display-card-description">Get key insights</p>
-                                <p class="display-card-date">Live</p>
+                                <p class="display-card-description">Execute Python code</p>
+                                <p class="display-card-date">E2B Sandbox</p>
                             </div>
-                            <!-- Card 5: EXPORT -->
+                            <!-- Card 5: Data Management -->
                             <div class="display-card display-card-5">
                                 <div class="display-card-header">
                                     <span class="display-card-icon-wrapper">
                                         <svg class="display-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                            <polyline points="7 10 12 15 17 10"></polyline>
-                                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="17 8 12 3 7 8"/>
+                                            <line x1="12" y1="3" x2="12" y2="15"/>
                                         </svg>
                                     </span>
-                                    <p class="display-card-title">EXPORT</p>
+                                    <p class="display-card-title">DATA MGMT</p>
                                 </div>
-                                <p class="display-card-description">Download results</p>
-                                <p class="display-card-date">Ready</p>
+                                <p class="display-card-description">Manage datasets</p>
+                                <p class="display-card-date">Memory Layer</p>
                             </div>
                         </div>
                     </div>
