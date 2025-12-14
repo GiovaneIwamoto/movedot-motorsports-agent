@@ -37,13 +37,11 @@ def setup_environment():
 def interactive_mode():
     """Run the system in interactive mode."""
     print("Agent System - Interactive Mode")
-    print("=" * 50)
-    print("Available commands:")
+    print("\nAvailable commands:")
     print("  - Ask questions about data and APIs")
     print("  - Request data analysis and visualizations")
     print("  - Get help with API usage")
-    print("  - Type 'quit' or 'exit' to stop")
-    print("=" * 50)
+    print("  - Type 'quit' or 'exit' to stop\n")
     
     while True:
         try:

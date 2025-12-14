@@ -47,7 +47,6 @@ from src.core.memory import get_csv_memory  # noqa: E402
 logger = logging.getLogger(__name__)
 
 
-# Helper function to load DataFrames for API endpoints (preview, download)
 def _load_dataframe_from_csv(csv_name: str):
     """Load DataFrame from CSV data for API preview/download."""
     csv_memory = get_csv_memory()
@@ -57,7 +56,6 @@ def _load_dataframe_from_csv(csv_name: str):
     
     return pd.read_csv(StringIO(csv_content))
 
-# Helper function to serve HTML pages
 def _serve_html_page(page_name: str) -> HTMLResponse:
     """Serve HTML page with error handling."""
     html_path = WEB_DIR / f"{page_name}.html"
@@ -74,30 +72,25 @@ def _validate_dataset_exists(dataset_name: str) -> pd.DataFrame:
         raise HTTPException(status_code=404, detail="Dataset not found or empty")
     return df
 
-# Create FastAPI app
 app = FastAPI(
     title="MoveDot Data Analytics Platform",
     description="AI-powered analytics platform for data analysis across multiple sources via MCP",
     version="2.0.0"
 )
 
-# Initialize DB at startup
 @app.on_event("startup")
 async def _startup():
     init_db()
     
-    # Import MCP routes
     from .mcp_routes import router as mcp_router
     app.include_router(mcp_router)
     
-    # Initialize MCP integration using langchain-mcp-adapters
     try:
         logger.info("MCP integration initialized. MCP servers will be loaded on-demand per user using langchain-mcp-adapters.")
     except Exception as e:
         logger.warning(f"Failed to initialize MCP integration: {e}")
 
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In production, specify actual origins
@@ -106,7 +99,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic models
 class ChatMessage(BaseModel):
     message: str
     conversation_id: Optional[str] = None
@@ -127,9 +119,7 @@ class DataOverview(BaseModel):
     available_datasets: List[DataSource]
     total_datasets: int
 
-# -----------------
 # Auth & Sessions
-# -----------------
 
 def _require_google_config():
     settings = get_settings()
@@ -139,7 +129,6 @@ def _require_google_config():
 
 
 def _set_session_cookie(response: Response, session_id: str):
-    # Set secure cookie attributes
     response.set_cookie(
         key="session_id",
         value=session_id,
@@ -164,7 +153,6 @@ def current_user(request: Request):
 @app.get("/api/auth/login")
 async def auth_login():
     settings = _require_google_config()
-    # Build Google OAuth URL
     from urllib.parse import urlencode
     params = {
         "client_id": settings.google_client_id,
@@ -186,7 +174,6 @@ async def auth_callback(code: str, state: str = None):
     import base64
     import json
     
-    # Decode state to get return_to
     return_to = "/"
     if state:
         try:
@@ -237,12 +224,10 @@ async def auth_callback(code: str, state: str = None):
     if not google_sub:
         raise HTTPException(status_code=400, detail="Invalid Google user")
 
-    # Upsert user and create session
     user_id = upsert_user(google_sub, email, name, picture)
     session_id = f"sess_{int(datetime.datetime.now().timestamp())}_{google_sub}"
     create_session(session_id, user_id)
 
-    # Redirect to return_to or default to index
     redirect_url = return_to if return_to and return_to.startswith('/') else "/index.html"
     resp = RedirectResponse(url=redirect_url)
     _set_session_cookie(resp, session_id)
@@ -312,7 +297,6 @@ async def health_check():
 async def get_data_overview():
     """Get overview of available data sources."""
     try:
-        # Get available data directly from memory
         csv_memory = get_csv_memory()
         csv_data = csv_memory.load_csv_memory().get("csv_data", {})
         
@@ -339,16 +323,13 @@ async def get_dataset_preview(dataset_name: str):
     try:
         df = _validate_dataset_exists(dataset_name)
         
-        # Get basic info
         rows = len(df)
         columns = len(df.columns)
         
-        # Calculate approximate size
         memory_usage = df.memory_usage(deep=True).sum()
         size_str = f"{memory_usage / 1024:.1f} KB"
         
-        # Get preview data (first 15 rows) - handle NaN values
-        preview_df = df.head(15).fillna('N/A')  # Replace NaN with 'N/A'
+        preview_df = df.head(15).fillna('N/A')
         preview_data = preview_df.to_dict('records')
         
         return {
@@ -370,10 +351,8 @@ async def download_dataset(dataset_name: str):
     try:
         df = _validate_dataset_exists(dataset_name)
         
-        # Convert to CSV
         csv_content = df.to_csv(index=False)
         
-        # Return as downloadable file
         return Response(
             content=csv_content,
             media_type="text/csv",
@@ -392,13 +371,10 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
     try:
         # Ensure conversation exists
         conv_id = ensure_conversation(user_id=int(user["id"]), conversation_id=request.conversation_id)
-        # Save user message
         add_message(conv_id, "user", request.message)
         
-        # Load conversation history for context (includes the message we just added)
         history = get_messages(conv_id, limit=50)
         
-        # Convert history to agent message format
         messages_history = []
         for msg in history:
             role = msg["role"]
@@ -408,12 +384,8 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
             elif role == "assistant":
                 messages_history.append({"role": "assistant", "content": content})
         
-        # Current user message is already in history, no need to add again
-        
-        # Configuration for the agent
         config = {"configurable": {"thread_id": str(conv_id)}}
         
-        # Get user's API configuration
         user_id = int(user["id"])
         user_api_config = get_user_api_config(user_id)
         user_config_dict = None
@@ -423,10 +395,9 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
                 "api_key": user_api_config["api_key"],
                 "model": user_api_config["model"],
                 "temperature": user_api_config["temperature"],
-                "user_id": user_id,  # Include user_id for MCP server loading
+                "user_id": user_id,
             }
         else:
-            # Still include user_id even if no API config
             user_config_dict = {"user_id": user_id}
         
         async def generate_sse_stream():
@@ -435,8 +406,6 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
             logger.info(f"Starting SSE stream for conversation {conv_id}")
             logger.info(f"User message: {request.message[:100]}...")
             try:
-                # Load MCP servers for user BEFORE creating agent (in same event loop)
-                # This creates/reloads the MultiServerMCPClient used by the agent
                 from ..mcp.loader import ensure_user_mcp_servers_loaded_async
                 logger.info(f"Loading MCP servers for user {user_id} (for agent)...")
                 servers_loaded = await ensure_user_mcp_servers_loaded_async(user_id)
@@ -445,31 +414,23 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
                 else:
                     logger.warning("No MCP servers loaded for agent - check server configuration")
                 
-                # Stream tokens from the agent with history
-                # The agent will be created/reloaded in stream_analytics_agent_with_history
-                # We pass force_reload=True via user_config to ensure MCP tools are included
                 logger.info("Calling stream_analytics_agent_with_history...")
-                # Always ensure force_reload_agent flag is set to reload agent with MCP tools
                 final_user_config = user_config_dict.copy() if user_config_dict else {}
                 final_user_config['force_reload_agent'] = True
                 async for event_type, data in stream_analytics_agent_with_history(messages_history, config, final_user_config):
                     logger.debug(f"SSE event: {event_type}")
                     if event_type == "token":
-                        # Send token event
                         content = data.get("content", "") if isinstance(data, dict) else ""
-                        full_content += content  # Accumulate content
+                        full_content += content
                         yield f"event: token\n"
                         yield f"data: {json.dumps(data)}\n\n"
                     elif event_type == "complete":
-                        # Send completion event
                         yield f"event: complete\n"
                         yield f"data: {json.dumps(data)}\n\n"
-                        # Persist complete assistant message
                         if full_content:
                             add_message(conv_id, "assistant", full_content)
                         break
                     elif event_type == "error":
-                        # Send error event
                         yield f"event: error\n"
                         yield f"data: {json.dumps(data)}\n\n"
                         break
@@ -515,7 +476,6 @@ async def list_available_models(provider: str, api_key: Optional[str] = None, us
             )
         ) if api_key else False
         
-        # Use provided API key or get from saved config
         if api_key and not is_placeholder:
             api_key_to_use = api_key
         else:
@@ -523,7 +483,6 @@ async def list_available_models(provider: str, api_key: Optional[str] = None, us
             if not user_config:
                 raise HTTPException(status_code=400, detail=f"Please provide an API key or configure your {provider} API key first")
             
-            # Check if provider matches
             if user_config["provider"] != provider.lower():
                 raise HTTPException(status_code=400, detail=f"Your configured provider is {user_config['provider']}, but you requested {provider}")
             
@@ -546,7 +505,6 @@ async def list_available_models(provider: str, api_key: Optional[str] = None, us
                         detail=f"OpenAI API error: {error_detail}"
                     )
                 data = response.json()
-                # Filter for chat models (gpt-*, o1-*) and exclude deprecated models
                 models = [
                     {
                         "id": model["id"],
@@ -588,7 +546,6 @@ async def list_available_models(provider: str, api_key: Optional[str] = None, us
                     }
                     for model in data.get("data", [])
                 ]
-                # Sort by created_at (newest first)
                 models.sort(key=lambda x: x.get("created_at", ""), reverse=True)
                 return {"provider": "anthropic", "models": models}
         
@@ -606,16 +563,12 @@ async def list_available_models(provider: str, api_key: Optional[str] = None, us
 async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)):
     """Save or update user's API configuration."""
     try:
-        # Validate provider
         if config.provider.lower() not in ["openai", "anthropic"]:
             raise HTTPException(status_code=400, detail="Provider must be 'openai' or 'anthropic'")
         
-        # Get existing config to preserve API key if not provided
         existing_config = get_user_api_config(int(user["id"]))
         api_key_to_use = config.api_key
         
-        # If API key is placeholder (bullet points) or empty and we have existing config, use existing
-        # Check for various bullet point characters: •, •, ●
         is_placeholder = (
             not api_key_to_use or 
             api_key_to_use.startswith('•') or 
@@ -630,7 +583,6 @@ async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)
         if not api_key_to_use:
             raise HTTPException(status_code=400, detail="API key is required")
         
-        # Validate API key by trying to list models
         import httpx
         try:
             if config.provider.lower() == "openai":
@@ -664,13 +616,12 @@ async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)
             logger.error(f"Error validating API key: {e}")
             raise HTTPException(status_code=400, detail=f"Failed to validate API key: {str(e)}")
         
-        # Save configuration (always use lowest temperature)
         upsert_user_api_config(
             user_id=int(user["id"]),
             provider=config.provider.lower(),
             api_key=api_key_to_use,
             model=config.model,
-            temperature=0.0  # Always use lowest temperature
+            temperature=0.0
         )
         
         return {"status": "success", "message": "API configuration saved successfully"}
@@ -712,9 +663,7 @@ async def delete_user_api_config_endpoint(user=Depends(current_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# -----------------
 # Chat History APIs
-# -----------------
 
 class ConversationCreate(BaseModel):
     title: Optional[str] = None

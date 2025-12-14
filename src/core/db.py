@@ -215,17 +215,14 @@ def delete_user_conversations(user_id: int) -> int:
     """Delete all conversations and messages for a user."""
     with _connect() as conn:
         cur = conn.cursor()
-        # Get all conversation IDs for this user
         cur.execute("SELECT id FROM conversations WHERE user_id = ?", (user_id,))
         conversation_ids = [row["id"] for row in cur.fetchall()]
         
-        # Delete all messages for these conversations
         deleted_messages = 0
         for conv_id in conversation_ids:
             cur.execute("DELETE FROM messages WHERE conversation_id = ?", (conv_id,))
             deleted_messages += cur.rowcount
         
-        # Delete all conversations
         cur.execute("DELETE FROM conversations WHERE user_id = ?", (user_id,))
         deleted_conversations = cur.rowcount
         

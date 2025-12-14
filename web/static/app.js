@@ -69,9 +69,7 @@ class MotorsportsAnalytics {
         this.init();
     }
 
-    // -----------------
     // Auth & Conversations
-    // -----------------
     async ensureAuthenticated() {
         try {
             const res = await fetch(`${this.apiBase}/auth/me`, { credentials: 'include' });
