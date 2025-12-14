@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple installation script for MoveDot Motorsports Analytics Agent.
+Simple installation script for MoveDot Analytics Agent.
 """
 
 import os
@@ -69,7 +69,7 @@ def main():
     env_file = Path(".env")
     if not env_file.exists():
         print("[INFO] Creating .env file...")
-        env_content = """# MoveDot Motorsports Analytics Agent - Environment Configuration
+        env_content = """# MoveDot Analytics Agent - Environment Configuration
 
 # OpenAI API Key (Required)
 OPENAI_API_KEY=your-openai-api-key-here

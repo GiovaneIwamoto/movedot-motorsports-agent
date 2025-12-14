@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(..., env="OPENAI_API_KEY")
     e2b_api_key: Optional[str] = Field(default=None, env="E2B_API_KEY")
     langsmith_api_key: Optional[str] = Field(default=None, env="LANGSMITH_API_KEY")
-    langsmith_project: str = Field(default="movedot-motorsports-agent", env="LANGSMITH_PROJECT")
+    langsmith_project: str = Field(default="movedot-analytics-agent", env="LANGSMITH_PROJECT")
     
     # Model configurations
     agent_model: str = Field(default="gpt-4o-mini", env="AGENT_MODEL")

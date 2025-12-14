@@ -1,4 +1,4 @@
-"""FastAPI application for the motorsports analytics agent web interface."""
+"""FastAPI application for the analytics agent web interface."""
 
 import datetime
 import json
@@ -265,7 +265,7 @@ async def read_root():
     try:
         return _serve_html_page("home")
     except HTTPException:
-        return {"message": "MoveDot Motorsports Analytics Agent API", "status": "running"}
+        return {"message": "MoveDot Analytics Agent API", "status": "running"}
 
 @app.get("/home.html")
 async def read_home():
@@ -291,7 +291,7 @@ async def read_mcp_servers():
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "service": "motorsports-analytics-agent"}
+    return {"status": "healthy", "service": "analytics-agent"}
 
 @app.get("/api/data/overview", response_model=DataOverview)
 async def get_data_overview():

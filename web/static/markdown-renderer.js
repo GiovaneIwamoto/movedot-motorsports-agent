@@ -52,7 +52,7 @@ class MarkdownRenderer {
     
     getStyles() {
         return `
-/* Minimalist Markdown Renderer - MoveDot Motorsports theme */
+/* Minimalist Markdown Renderer - MoveDot Analytics theme */
 .minimalist-markdown {
     font-family: var(--font-sans);
     line-height: 1.6;

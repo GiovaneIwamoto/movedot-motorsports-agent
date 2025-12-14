@@ -1,4 +1,4 @@
-// Modern JavaScript for MoveDot Motorsports Analytics Web Interface
+// Modern JavaScript for MoveDot Analytics Web Interface
 
 // Global navigation function - works on all pages (must be defined early)
 if (typeof window.navigateTo === 'undefined') {
@@ -9,7 +9,7 @@ if (typeof window.navigateTo === 'undefined') {
     };
 }
 
-class MotorsportsAnalytics {
+class DataAnalytics {
     constructor() {
         this.apiBase = '/api';
         this.sessionId = this.generateSessionId();
@@ -1264,7 +1264,7 @@ class MotorsportsAnalytics {
             'How can I help you today?',
             'Which data do you want to analyze?',
             'What insights are you looking for?',
-            'Ready to explore motorsports data?',
+            'Ready to explore your data?',
             'What would you like to discover?',
             'Let\'s analyze some race data!'
         ];
@@ -2503,7 +2503,7 @@ class MotorsportsAnalytics {
                 <div class="welcome-modal-content-wrapper">
                     <div class="welcome-text-section">
                         <div class="welcome-header-content">
-                            <h2>${forceShow ? 'How Our Agents Work' : 'Welcome to MoveDot Motorsports Analytics'}</h2>
+                            <h2>${forceShow ? 'How Our Agents Work' : 'Welcome to MoveDot Analytics'}</h2>
                             <p class="welcome-description">AI-powered analytics platform for analysts. Transform data into insights through natural language. Autonomous agents connect, navigate, and analyze data efficiently by executing code and strategically sourcing from multiple tools.</p>
                         </div>
                         
@@ -3219,7 +3219,7 @@ document.head.appendChild(style);
 
 // Initialize the application on all pages
 document.addEventListener('DOMContentLoaded', () => {
-    window.app = new MotorsportsAnalytics();
+    window.app = new DataAnalytics();
 });
 
 // Global functions for HTML onclick handlers
