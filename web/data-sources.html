@@ -353,6 +353,10 @@
                                     <!-- Table content will be populated here -->
                                 </table>
                             </div>
+                            <div class="dataset-preview-disclaimer">
+                                <i class="fas fa-info-circle"></i>
+                                This is a preview of the first 15 rows. Download the full dataset to see all data.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -417,7 +421,7 @@
                 // Hide loading, show preview
                 document.querySelector('.loading-dataset').style.display = 'none';
                 const preview = document.querySelector('.dataset-preview');
-                preview.style.display = 'block';
+                preview.style.display = 'flex';
                 
                 // Update dataset info
                 document.getElementById('dataset-rows').textContent = data.rows || '-';
@@ -433,6 +437,9 @@
                     throw new Error('No valid data found in response');
                 }
                 
+                // Adjust modal height based on number of rows
+                adjustModalHeight(data.data?.length || data.preview?.length || 0);
+                
             } catch (error) {
                 console.error('Error loading dataset:', error);
                 document.querySelector('.loading-dataset').innerHTML = `
@@ -446,6 +453,23 @@
                     </button>
                 `;
             }
+        }
+        
+        // Adjust modal height based on content
+        function adjustModalHeight(rowCount) {
+            const modal = document.querySelector('.dataset-modal');
+            if (!modal) return;
+            
+            // Calculate appropriate height based on rows
+            // Each row is approximately 40px, header is ~100px, info bar ~60px, disclaimer ~40px
+            const baseHeight = 200; // Header + info + disclaimer + padding
+            const rowHeight = 40;
+            const maxDisplayRows = Math.min(rowCount, 15);
+            const contentHeight = baseHeight + (maxDisplayRows * rowHeight);
+            
+            // Set height with min and max constraints
+            const finalHeight = Math.min(Math.max(contentHeight, 400), window.innerHeight * 0.85);
+            modal.style.height = `${finalHeight}px`;
         }
         
         // Populate dataset table
