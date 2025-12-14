@@ -1,11 +1,25 @@
 """LangChain MCP Adapters integration."""
 
 import logging
+import shutil
 from typing import Any, Dict, List, Optional
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 logger = logging.getLogger(__name__)
+
+
+def _get_python_command() -> str:
+    """Get the available Python command (python3 or python)."""
+    # Try python3 first (preferred on macOS/Linux)
+    if shutil.which("python3"):
+        return "python3"
+    # Fall back to python
+    if shutil.which("python"):
+        return "python"
+    # Default to python3 if neither is found
+    logger.warning("Neither 'python3' nor 'python' found in PATH, defaulting to 'python3'")
+    return "python3"
 
 _global_mcp_client: Optional[MultiServerMCPClient] = None
 _global_server_names: List[str] = []
@@ -45,9 +59,20 @@ async def create_mcp_client_from_config(
             continue
         
         if server_type == "stdio":
+            # Get command and validate/fix it
+            command = server_config.get("command", "python")
+            
+            # If command is just "python" without path, check if it exists
+            if command in ("python", "python3"):
+                if not shutil.which(command):
+                    # Command doesn't exist, try to find a working Python command
+                    working_command = _get_python_command()
+                    logger.warning(f"Command '{command}' not found in PATH for server '{name}', using '{working_command}' instead")
+                    command = working_command
+            
             servers_config[name] = {
                 "transport": "stdio",
-                "command": server_config.get("command", "python"),
+                "command": command,
                 "args": server_config.get("args", []),
             }
             if server_config.get("env"):
