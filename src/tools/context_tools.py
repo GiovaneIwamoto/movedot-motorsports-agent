@@ -1,8 +1,10 @@
 """Tools for the context agent."""
 
 import json
+import csv
+import io
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 import httpx
 from langchain_core.tools import tool, StructuredTool
@@ -12,6 +14,63 @@ from ..utils import generate_csv_name
 from ..mcp.langchain_adapter import get_global_mcp_client, get_mcp_server_names
 
 logger = logging.getLogger(__name__)
+
+
+def _json_to_csv(json_data: Any) -> Optional[str]:
+    """
+    Convert JSON data to CSV format.
+    
+    Args:
+        json_data: JSON data (list of dicts or single dict)
+        
+    Returns:
+        CSV string or None if conversion fails
+    """
+    try:
+        # Handle single dict - wrap in list
+        if isinstance(json_data, dict):
+            json_data = [json_data]
+        
+        # Must be a list
+        if not isinstance(json_data, list):
+            logger.warning(f"Cannot convert JSON to CSV: expected list or dict, got {type(json_data)}")
+            return None
+        
+        # Empty list
+        if len(json_data) == 0:
+            logger.warning("Cannot convert empty JSON array to CSV")
+            return None
+        
+        # Get all keys from all objects to handle inconsistent schemas
+        all_keys = set()
+        for item in json_data:
+            if isinstance(item, dict):
+                all_keys.update(item.keys())
+        
+        if not all_keys:
+            logger.warning("No keys found in JSON objects")
+            return None
+        
+        # Sort keys for consistent column order
+        fieldnames = sorted(list(all_keys))
+        
+        # Create CSV in memory
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction='ignore')
+        writer.writeheader()
+        
+        # Write rows
+        for item in json_data:
+            if isinstance(item, dict):
+                writer.writerow(item)
+        
+        csv_content = output.getvalue()
+        logger.info(f"Converted JSON to CSV: {len(json_data)} rows, {len(fieldnames)} columns")
+        return csv_content
+        
+    except Exception as e:
+        logger.error(f"Error converting JSON to CSV: {e}")
+        return None
 
 
 async def _read_mcp_resource_impl(uri: str) -> str:
@@ -27,20 +86,12 @@ async def _read_mcp_resource_impl(uri: str) -> str:
     try:
         client = get_global_mcp_client()
         if not client:
-            return "No MCP client available. MCP servers may not be connected."
+            return "No MCP client available."
         
         blobs = await client.get_resources(uris=[uri])
         
         if not blobs:
-            return (
-                f"Resource '{uri}' not found.\n\n"
-                "IMPORTANT: Do not invent resource URIs. Instead:\n"
-                "1. Use list_mcp_resources() FIRST to see all available resources and their URIs\n"
-                "2. Copy the exact URI from list_mcp_resources() output\n"
-                "3. Use that URI with read_mcp_resource() to read the documentation\n"
-                "4. Also check available MCP tools - they are automatically loaded in your toolset\n"
-                "5. Use MCP tools directly - they handle API calls correctly"
-            )
+            return f"Resource '{uri}' not found. Use list_mcp_resources() to see available URIs."
         
         blob = blobs[0]
         if blob.mimetype.startswith("text/"):
@@ -53,66 +104,35 @@ async def _read_mcp_resource_impl(uri: str) -> str:
         error_repr = repr(e)
         combined_error = (error_str + " " + error_repr).lower()
         
-        # Check for "Unknown resource" errors - this covers ExceptionGroup errors too
         if "unknown resource" in combined_error or "not found" in combined_error or "mcp error" in combined_error:
             logger.warning(f"Resource not found: {uri} - {error_str}")
-            return (
-                f"Resource '{uri}' not found.\n\n"
-                "🚨 CRITICAL ERROR: You are trying to access a resource that does not exist.\n"
-                "❌ STOP inventing resource URIs!\n\n"
-                "✅ CORRECT APPROACH:\n"
-                "1. Use list_mcp_resources() FIRST to see all available resources and their exact URIs\n"
-                "2. Copy the URI from list_mcp_resources() output - use only URIs that were returned\n"
-                "3. Then use read_mcp_resource() with that exact URI\n"
-                "4. Also check available MCP tools - they are automatically loaded in your toolset\n"
-                "5. Use MCP tools directly - they handle API calls correctly\n"
-                "6. Do NOT guess or invent resource URIs - always use list_mcp_resources() first"
-            )
+            return f"Resource '{uri}' not found."
         
         logger.error(f"Error reading MCP resource {uri}: {e}", exc_info=True)
-        return (
-            f"Error reading resource '{uri}': {error_str}\n\n"
-            "⚠️ IMPORTANT: Use the MCP tools that are already available in your toolset instead of trying to read resources directly.\n"
-            "MCP tools are automatically loaded and handle API calls correctly."
-        )
+        return f"Error reading resource '{uri}': {error_str}"
 
 
 read_mcp_resource = StructuredTool.from_function(
     coroutine=_read_mcp_resource_impl,
     name="read_mcp_resource",
-    description=(
-        "Read a resource (PRP/documentation) from an MCP server. "
-        "Use list_mcp_resources() FIRST to discover available resources and their URIs. "
-        "Then use this tool with a known resource URI to read the documentation."
-    ),
+    description="Read documentation from an MCP resource using its URI.",
 )
 
 
 @tool
 async def list_mcp_resources() -> str:
-    """
-    List all available MCP resources (PRP/documentation) from connected MCP servers.
-    
-    This is the FIRST tool you should use when working with MCP servers. It shows you:
-    - Which MCP servers are connected
-    - What resources (documentation) are available from each server
-    - The exact URIs you need to use with read_mcp_resource()
-    
-    Returns:
-        A formatted list of all available resources with their URIs, names, and descriptions
-    """
+    """List all available MCP resources with URIs, names, and descriptions."""
     try:
         client = get_global_mcp_client()
         if not client:
             return "No MCP client available. MCP servers may not be connected. Check your MCP server configuration."
         
         try:
-            # Get server names from the client
             server_names = await get_mcp_server_names(client)
             logger.info(f"Found {len(server_names)} MCP servers: {server_names}")
             
             if not server_names:
-                return "No MCP servers configured or available."
+                return "No MCP servers available."
             
             all_resources = []
             for server_name in server_names:
@@ -133,20 +153,10 @@ async def list_mcp_resources() -> str:
                     continue
             
             if not all_resources:
-                return (
-                    "No resources returned from MCP servers.\n\n"
-                    "This could mean:\n"
-                    "1. The MCP servers don't expose resources (they may only provide tools)\n"
-                    "2. The servers are not properly connected\n"
-                    "3. The servers need to be configured to expose resources\n\n"
-                    "**Alternative:** Check your available MCP tools - they are automatically loaded and handle API calls directly.\n"
-                    "MCP tools are often more useful than resources for fetching data."
-                )
+                return "No resources available from MCP servers."
             
-            # Format the response
             result = f"Available MCP Resources ({len(all_resources)} total):\n\n"
             
-            # Group resources by server
             resources_by_server = {}
             for resource_dict in all_resources:
                 server_name = resource_dict.get('server', 'unknown')
@@ -154,28 +164,21 @@ async def list_mcp_resources() -> str:
                     resources_by_server[server_name] = []
                 resources_by_server[server_name].append(resource_dict)
             
-            # Format output grouped by server
             for server_name, resources in resources_by_server.items():
-                result += f"**Server: {server_name}** ({len(resources)} resources)\n\n"
+                result += f"Server: {server_name} ({len(resources)} resources)\n"
                 for res in resources:
-                    result += f"- **URI**: `{res['uri']}`\n"
+                    result += f"  - URI: {res['uri']}\n"
                     if res.get('name'):
-                        result += f"  Name: {res['name']}\n"
+                        result += f"    Name: {res['name']}\n"
                     if res.get('description'):
-                        result += f"  Description: {res['description']}\n"
-                    result += f"  Type: {res.get('mime_type', 'text/markdown')}\n"
-                    result += "\n"
-            
-            result += "\n**How to use:**\n"
-            result += "1. Copy the URI of a resource you want to read\n"
-            result += "2. Use read_mcp_resource() with that URI to read the documentation\n"
-            result += "3. Use the MCP tools (automatically loaded) to fetch actual data\n"
+                        result += f"    Description: {res['description']}\n"
+                result += "\n"
             
             return result
             
         except Exception as e:
             logger.error(f"Error listing MCP resources: {e}", exc_info=True)
-            return f"Error listing resources: {str(e)}. The MCP servers may not be properly connected."
+            return f"Error listing resources: {str(e)}"
             
     except Exception as e:
         logger.error(f"Error in list_mcp_resources: {e}", exc_info=True)
@@ -185,35 +188,26 @@ async def list_mcp_resources() -> str:
 @tool
 def fetch_api_data(url: str) -> str:
     """
-    Fetch data from a specified API URL.
-    
-    This tool performs an HTTP GET request to the provided URL and returns the response content.
-    The URL must be complete and properly formatted as specified in the API documentation.
-    
-    IMPORTANT: Before using this tool, read the API documentation using read_mcp_resource()
-    to understand the exact URL format, base URL, required parameters, and valid parameter values.
-    Construct the complete URL based on the documentation before calling this tool.
+    Fetch data from an API URL via HTTP GET request.
+    Automatically converts JSON arrays to CSV format and stores them.
     
     Args:
-        url: Complete API URL including protocol, domain, path, and all query parameters
-             Example: 'https://api.example.com/v1/endpoint?param1=value1&param2=value2'
+        url: Complete API URL with query parameters
     
     Returns:
-        Confirmation message with stored CSV name if CSV response detected, or API response content
+        Confirmation message if data was stored, or raw response for non-tabular data
     """
     try:
         logger.info(f"Fetching API data from: {url}")
         
-        # Check if URL is valid
         if not url.startswith(("http://", "https://")):
-            return f"Error: URL must start with 'http://' or 'https://'. Provided: {url}"
+            return f"Error: Invalid URL protocol. Provided: {url}"
         
-        # Check for existing CSV in cache
         csv_memory = get_csv_memory()
         csv_name = generate_csv_name(url, None)
         existing_csv = csv_memory.get_csv_data(csv_name)
         if existing_csv:
-            return f"CSV data already exists in memory as '{csv_name}' from {url}"
+            return f"✓ Data already cached as '{csv_name}'. Use analyze_data_with_pandas() to work with it."
         
         with httpx.Client() as client:
             response = client.get(url, timeout=30.0)
@@ -221,40 +215,58 @@ def fetch_api_data(url: str) -> str:
             
             content_type = response.headers.get('content-type', '').lower()
             
-            # Auto-detect and store CSV responses
+            # Handle CSV content
             if content_type.startswith('text/csv') or (
                 content_type.startswith('text/plain') and 
                 ',' in response.text and 
                 '\n' in response.text and
                 response.text.count(',') > response.text.count('{')
             ):
-                csv_memory = get_csv_memory()
-                csv_name = generate_csv_name(url, None)
                 csv_memory.store_csv_data(csv_name, response.text, "API")
-                return f"CSV data fetched and stored as '{csv_name}' from {url}"
+                return f"✓ CSV data stored as '{csv_name}'. Dataset is ready for analysis."
             
-            # Handle JSON responses
+            # Handle JSON content
             if content_type.startswith('application/json'):
                 try:
                     data = response.json()
-                    return f"API Response from {url}:\n\n{json.dumps(data, indent=2)}"
-                except json.JSONDecodeError:
-                    return f"API Response from {url}:\n\n{response.text}"
+                    
+                    # Try to convert JSON to CSV if it's a list or dict
+                    if isinstance(data, (list, dict)):
+                        csv_content = _json_to_csv(data)
+                        
+                        if csv_content:
+                            # Successfully converted to CSV
+                            csv_memory.store_csv_data(csv_name, csv_content, "API")
+                            
+                            # Count rows for user feedback
+                            row_count = len(data) if isinstance(data, list) else 1
+                            return f"✓ JSON data converted to CSV and stored as '{csv_name}'. Dataset contains {row_count} records and is ready for analysis."
+                        else:
+                            # Couldn't convert to CSV, return JSON
+                            logger.warning(f"Could not convert JSON to CSV for {url}")
+                            return f"⚠ Received JSON data but could not convert to CSV format:\n{json.dumps(data, indent=2)[:500]}..."
+                    else:
+                        # Not a list or dict, just return the JSON
+                        return f"Received non-tabular JSON data:\n{json.dumps(data, indent=2)}"
+                        
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse JSON from {url}: {e}")
+                    return f"Error: Invalid JSON response: {str(e)}"
             
-            # Handle other text responses
+            # Handle other text content
             if content_type.startswith('text/'):
-                return f"API Response from {url}:\n\n{response.text}"
+                return f"Received text response ({len(response.text)} characters):\n{response.text[:500]}..."
             
-            # Handle binary or unknown content types
-            return f"API Response from {url} (Content-Type: {content_type}, Size: {len(response.content)} bytes)"
+            # Binary content
+            return f"Binary response ({content_type}, {len(response.content)} bytes)"
                 
     except httpx.HTTPStatusError as e:
-        return f"HTTP Error {e.response.status_code} when fetching {url}: {e.response.text}"
+        return f"HTTP Error {e.response.status_code}: {e.response.text[:200]}"
     except httpx.TimeoutException:
-        return f"Timeout error when fetching {url}. The request took too long."
+        return "Request timeout (30s). The API may be slow or unavailable."
     except Exception as e:
         logger.error(f"Error fetching data from {url}: {str(e)}")
-        return f"Error fetching data from {url}: {str(e)}"
+        return f"Error: {str(e)}"
 
 
 def get_context_tools():

@@ -25,38 +25,24 @@ def analyze_data_with_pandas(python_code: str, csv_names: Optional[str] = None) 
     Use pandas normally to read and analyze the data.
     
     Args:
-        python_code: Python code to execute for data analysis.
-                    CSV files are available at /data/ directory.
-                    Example: "df = pd.read_csv('/data/openf1_sessions.csv'); df.head()"
-        csv_names: Optional comma-separated list of specific CSVs to load into sandbox.
-                   If None, loads all available CSVs.
+        python_code: Python code to execute (pandas, numpy, matplotlib, seaborn, scipy available)
+        csv_names: Comma-separated CSV names to load (loads all if None)
         
     Returns:
-        Results of code execution including output, plots, and any errors.
-        The response will list which CSV files are available in the sandbox.
-        
-    Examples:
-        - analyze_data_with_pandas("import pandas as pd; df = pd.read_csv('/data/openf1_sessions_meeting_key_1224.csv'); df.head()")
-        - analyze_data_with_pandas("import pandas as pd; df = pd.read_csv('/data/openf1_laps.csv'); df['lap_duration'].mean()")
-        - analyze_data_with_pandas("import pandas as pd; import matplotlib.pyplot as plt; df = pd.read_csv('/data/openf1_laps.csv'); plt.hist(df['lap_duration']); plt.show()")
-        
-    Available libraries: pandas, numpy, matplotlib, seaborn, scipy
+        Execution results including output and plots
     """
     try:
         logger.info(f"Executing Python code in E2B sandbox...")
         logger.info(f"Code: {python_code[:200]}...")
         
-        # Get list of available CSVs
         csv_memory = get_csv_memory()
         available_csvs = csv_memory.list_available_csvs()
         
         if "message" in available_csvs:
-            return "No CSV datasets available. Please fetch some data from OpenF1 API first."
+            return "No CSV datasets available."
         
-        # Get available CSV names
         available_names = list(available_csvs["available_datasets"].keys())
         
-        # Determine which CSVs to analyze
         if csv_names:
             csv_list = [name.strip() for name in csv_names.split(',')]
             csv_list = [name for name in csv_list if name in available_names]
@@ -64,33 +50,24 @@ def analyze_data_with_pandas(python_code: str, csv_names: Optional[str] = None) 
             csv_list = available_names
         
         if not csv_list:
-            return "No valid CSV names provided or no CSVs available."
+            return "No valid CSV names available."
         
-        # Get or create E2B sandbox with CSVs uploaded to filesystem
         try:
             sandbox, loaded_csvs = get_or_create_e2b_sandbox(csv_list, csv_memory)
         except Exception as e:
             logger.error(f"Failed to create E2B sandbox: {e}")
-            return f"E2B sandbox error: {str(e)}. Make sure E2B_API_KEY is configured."
+            return f"Sandbox error: {str(e)}"
         
-        # Execute code in E2B sandbox
-        e2b_repl = E2BPythonREPL(sandbox, loaded_csvs)  # Pass CSV names for reference
+        e2b_repl = E2BPythonREPL(sandbox, loaded_csvs)
         result = e2b_repl.run(python_code)
         
-        # Return result with clear CSV file listing
-        csv_files_list = "\n".join([f"  • /data/{csv}" for csv in loaded_csvs])
-        return f"""
-Available CSV files ({len(loaded_csvs)}):
-{csv_files_list}
-
-Result:
-{result}"""
+        csv_files = ", ".join(loaded_csvs)
+        return f"CSV files loaded: {csv_files}\n\n{result}"
         
     except Exception as e:
         logger.error(f"E2B analysis error: {str(e)}")
-        # Cleanup sandbox on error
         cleanup_e2b_sandbox()
-        return f"E2B analysis error: {str(e)}"
+        return f"Analysis error: {str(e)}"
 
 
 @tool
@@ -102,14 +79,12 @@ def debug_csv_storage() -> str:
     try:
         result = "CSV STORAGE DEBUG\n\n"
         
-        # Check persistent storage
         csv_memory = get_csv_memory()
         csv_data = csv_memory.load_csv_memory().get("csv_data", {})
         result += f"Persistent CSV storage: {len(csv_data)} items\n"
         for name, data in csv_data.items():
             result += f"  - {name}\n"
         
-        # Check cache status
         result += f"\nCache status:\n"
         result += f"  - Cache enabled: {csv_memory._cache is not None}\n"
         result += f"  - Cache timestamp: {csv_memory._cache_timestamp}\n"
@@ -119,27 +94,25 @@ def debug_csv_storage() -> str:
         
     except Exception as e:
         logger.error(f"Error in debug_csv_storage: {str(e)}")
-        return f"Error in debug_csv_storage: {str(e)}"
+        return f"Error: {str(e)}"
 
 
 @tool
 def list_available_data() -> str:
     """
-    List all available data sources for analysis.
+    List all available CSV data sources for analysis.
     This provides a comprehensive view of what data is available.
     """
     try:
-        result = "AVAILABLE DATA SOURCES \n\n"
-        
-        # Persistent Storage
-        result += "CSV Storage:\n"
         csv_memory = get_csv_memory()
         csv_data = csv_memory.load_csv_memory().get("csv_data", {})
-        if csv_data:
-            for name, data in csv_data.items():
-                result += f"   - {name}\n"
-        else:
-            result += "   - No CSV data available\n"
+        
+        if not csv_data:
+            return "No CSV data available"
+        
+        result = f"Available datasets ({len(csv_data)}):\n"
+        for name in csv_data.keys():
+            result += f"  - {name}\n"
         
         return result
         
@@ -159,8 +132,7 @@ def quick_data_check() -> str:
         csv_data = csv_memory.load_csv_memory().get("csv_data", {})
         
         if csv_data:
-            count = len(csv_data)
-            return f"{count} dataset(s) available for analysis"
+            return f"{len(csv_data)} dataset(s) available"
         else:
             return "No datasets available. Please fetch data first."
         
@@ -202,7 +174,7 @@ def cleanup_e2b_sandbox_tool() -> str:
 def get_analysis_tools():
     """Get all analysis tools."""
     return [
-        analyze_data_with_pandas,  # Now uses E2B sandbox for secure execution
+        analyze_data_with_pandas,
         quick_data_check,
         list_available_data,
         debug_csv_storage,
