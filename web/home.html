@@ -199,7 +199,7 @@
     <section id="features" class="features">
         <div class="container">
             <div class="features-header scroll-animate">
-                <h2 class="features-title">How It Works</h2>
+                <h2 class="features-title">Platform Overview</h2>
                 <p class="features-subtitle">A ReAct orchestrator discovers your data landscape and builds domain knowledge from documentation, then delegates to specialized agents—an Analysis Agent for data fetching and transformation, a CodeAct Agent for autonomous code generation and execution in isolated sandboxes. Full observability across every reasoning step and action.</p>
             </div>
             
@@ -405,7 +405,7 @@
     <section class="infrastructure-section">
         <div class="container">
             <div class="infrastructure-header scroll-animate">
-                <h2 class="infrastructure-title">Stop Building Agent Infrastructure</h2>
+                <h2 class="infrastructure-title">Stop Building Infrastructure</h2>
                 <p class="infrastructure-subtitle">We've already solved tool orchestration, prompt engineering, conversational memory, secure code execution, and behavior constraints. Just connect your data sources and start analyzing. Extend with custom tools when needed, but focus on insights, not infrastructure.</p>
             </div>
             
@@ -466,6 +466,75 @@
                     </div>
                     <div class="infrastructure-card-content">
                         <p class="infrastructure-card-text">Add custom tools beyond our built-in set. Highly customizable interface that adapts to your workflow.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Agent Workflow Section -->
+    <section class="agent-workflow-section">
+        <div class="container">
+            <div class="workflow-header scroll-animate">
+                <h2 class="workflow-title">The Agent Workflow</h2>
+                <p class="workflow-subtitle">A seamless flow from your question to actionable insights. The agent orchestrates data discovery, fetching, analysis, and response generation autonomously.</p>
+            </div>
+            
+            <div class="workflow-card scroll-animate">
+                <div class="workflow-timeline">
+                    <!-- Timeline Line -->
+                    <div class="workflow-timeline-line"></div>
+                    
+                    <div class="workflow-steps">
+                        <!-- Step 1: User Query -->
+                        <div class="workflow-step" data-step="1">
+                            <div class="workflow-step-dot">
+                                <div class="workflow-step-dot-inner"></div>
+                            </div>
+                            <div class="workflow-step-badge">Step 1</div>
+                            <h4 class="workflow-step-title">User Query</h4>
+                            <p class="workflow-step-description">You ask a question in natural language. The agent receives your query and conversation history.</p>
+                        </div>
+
+                        <!-- Step 2: Resource Discovery -->
+                        <div class="workflow-step" data-step="2">
+                            <div class="workflow-step-dot">
+                                <div class="workflow-step-dot-inner"></div>
+                            </div>
+                            <div class="workflow-step-badge">Step 2</div>
+                            <h4 class="workflow-step-title">Resource Discovery</h4>
+                            <p class="workflow-step-description">Agent discovers available data sources via MCP servers and reads documentation to understand the domain.</p>
+                        </div>
+
+                        <!-- Step 3: Data Fetching -->
+                        <div class="workflow-step" data-step="3">
+                            <div class="workflow-step-dot">
+                                <div class="workflow-step-dot-inner"></div>
+                            </div>
+                            <div class="workflow-step-badge">Step 3</div>
+                            <h4 class="workflow-step-title">Data Fetching</h4>
+                            <p class="workflow-step-description">Agent constructs API queries based on documentation and fetches data from external sources.</p>
+                        </div>
+
+                        <!-- Step 4: Analysis Execution -->
+                        <div class="workflow-step" data-step="4">
+                            <div class="workflow-step-dot">
+                                <div class="workflow-step-dot-inner"></div>
+                            </div>
+                            <div class="workflow-step-badge">Step 4</div>
+                            <h4 class="workflow-step-title">Analysis Execution</h4>
+                            <p class="workflow-step-description">Agent executes Python code in secure sandbox to analyze data, generate statistics, and create visualizations.</p>
+                        </div>
+
+                        <!-- Step 5: Response Generation -->
+                        <div class="workflow-step" data-step="5">
+                            <div class="workflow-step-dot">
+                                <div class="workflow-step-dot-inner"></div>
+                            </div>
+                            <div class="workflow-step-badge">Step 5</div>
+                            <h4 class="workflow-step-title">Response Generation</h4>
+                            <p class="workflow-step-description">Agent synthesizes insights and streams a formatted response with markdown, insights, and visualizations.</p>
+                        </div>
                     </div>
                 </div>
             </div>

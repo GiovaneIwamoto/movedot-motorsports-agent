@@ -253,13 +253,20 @@ class HomePage {
             ...document.querySelectorAll('.hero-cta'),
             ...document.querySelectorAll('.features-header, .features-title, .features-subtitle'),
             ...document.querySelectorAll('.feature-item'),
-            ...document.querySelectorAll('.cta-title, .cta-text, .cta .btn-primary, .database-api-visual')
+            ...document.querySelectorAll('.cta-title, .cta-text, .cta .btn-primary, .database-api-visual'),
+            ...document.querySelectorAll('.workflow-header'),
+            ...document.querySelectorAll('.workflow-step')
         ];
 
         elements.forEach((el, index) => {
             el.classList.add('scroll-animate');
             if (el.classList.contains('feature-item')) {
                 el.style.setProperty('--animation-delay', `${index * 0.08}s`);
+            }
+            if (el.classList.contains('workflow-step')) {
+                // Add staggered delay for workflow steps
+                const stepIndex = Array.from(document.querySelectorAll('.workflow-step')).indexOf(el);
+                el.style.transitionDelay = `${stepIndex * 0.15}s`;
             }
             observer.observe(el);
         });
