@@ -66,27 +66,6 @@ def _serve_html_page(page_name: str) -> HTMLResponse:
     else:
         raise HTTPException(status_code=404, detail=f"{page_name.title()} page not found")
 
-# Helper function for PRP operations
-def _get_prp_path() -> Path:
-    """Get the PRP file path."""
-    return PROMPT_DIR / "product_requirement_prompt.md"
-
-def _read_prp_content() -> str:
-    """Read PRP content from file."""
-    try:
-        prp_path = _get_prp_path()
-        if prp_path.exists():
-            return prp_path.read_text(encoding='utf-8')
-        return ""
-    except Exception as e:
-        logger.error(f"Error reading PRP content: {e}")
-        return ""
-
-def _write_prp_content(content: str) -> None:
-    """Write PRP content to file."""
-    prp_path = _get_prp_path()
-    prp_path.parent.mkdir(exist_ok=True)
-    prp_path.write_text(content, encoding='utf-8')
 
 def _validate_dataset_exists(dataset_name: str) -> pd.DataFrame:
     """Validate dataset exists and return DataFrame."""
@@ -732,45 +711,6 @@ async def delete_user_api_config_endpoint(user=Depends(current_user)):
         logger.error(f"Error deleting API config: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# PRP Editor API endpoints
-@app.get("/api/prp/content")
-async def get_prp_content():
-    """Get current PRP content."""
-    content = _read_prp_content()
-    return {"content": content}
-
-@app.get("/api/prp/default")
-async def get_default_prp():
-    """Get default PRP content as plain text."""
-    content = _read_prp_content()
-    if not content:
-        content = "# Default PRP\nNo default content available."
-    return Response(content=content, media_type="text/plain")
-
-@app.post("/api/prp/save")
-async def save_prp(request: dict):
-    """Save custom PRP content."""
-    content = request.get("content", "")
-    if not content:
-        raise HTTPException(status_code=400, detail="Content cannot be empty")
-    
-    _write_prp_content(content)
-    logger.info(f"PRP saved successfully, {len(content)} characters")
-    return {"status": "success", "message": "PRP saved successfully"}
-
-@app.post("/api/prp/update-agent")
-async def update_agent_prp(request: dict):
-    """Update the agent with new PRP content."""
-    content = request.get("content", "")
-    if not content:
-        raise HTTPException(status_code=400, detail="Content cannot be empty")
-    
-    _write_prp_content(content)
-    reload_analytics_agent()
-    
-    logger.info(f"Agent PRP updated successfully, {len(content)} characters")
-    return {"status": "success", "message": "Agent updated with new PRP"}
 
 # -----------------
 # Chat History APIs

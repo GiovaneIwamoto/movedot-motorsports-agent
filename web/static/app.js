@@ -108,6 +108,10 @@ class MotorsportsAnalytics {
                 if (this.currentUser.picture && pictureEl) {
                     pictureEl.src = this.currentUser.picture;
                     pictureEl.style.display = 'block';
+                    pictureEl.style.width = '24px';
+                    pictureEl.style.height = '24px';
+                    pictureEl.style.borderRadius = '50%';
+                    pictureEl.style.objectFit = 'cover';
                     pictureEl.onerror = () => {
                         console.warn('Failed to load user picture:', this.currentUser.picture);
                         pictureEl.style.display = 'none';
@@ -459,15 +463,7 @@ class MotorsportsAnalytics {
         
         if (currentPath.includes('data-sources')) {
             // If on data-sources page, handle hash navigation
-            if (urlHash === '#prp-editor') {
-                // Stay on data-sources page, just scroll to PRP editor
-                setTimeout(() => {
-                    const prpSection = document.getElementById('prp-editor-section');
-                    if (prpSection) {
-                        prpSection.scrollIntoView({ behavior: 'smooth' });
-                    }
-                }, 500);
-            } else if (urlHash === '#analytics') {
+            if (urlHash === '#analytics') {
                 // Stay on data-sources page, just scroll to analytics
                 setTimeout(() => {
                     const analyticsSection = document.getElementById('analytics-section');
@@ -481,11 +477,7 @@ class MotorsportsAnalytics {
         }
         
         // Only handle hash navigation on main dashboard page
-        if (urlHash === '#prp-editor') {
-            setTimeout(() => {
-                this.showPRPEditor();
-            }, 500);
-        } else if (urlHash === '#analytics') {
+        if (urlHash === '#analytics') {
             setTimeout(() => {
                 this.scrollToSection('analytics');
             }, 500);
@@ -1974,7 +1966,6 @@ class MotorsportsAnalytics {
     }
 
     scrollToSection(section) {
-        const prpSection = document.getElementById('prp-editor-section');
         const chatSection = document.querySelector('.chat-section');
         const analyticsSection = document.getElementById('analytics-section');
         
@@ -1983,11 +1974,6 @@ class MotorsportsAnalytics {
             top: 0,
             behavior: 'smooth'
         });
-        
-        // Hide PRP Editor if visible
-        if (prpSection) {
-            prpSection.style.display = 'none';
-        }
         
         // Show both chat and analytics sections
         if (chatSection) {
@@ -2396,190 +2382,6 @@ class MotorsportsAnalytics {
             this.preservedChatMessages = messagesContainer.innerHTML;
         }
     }
-
-    // PRP Editor Methods
-    clearPRPContent() {
-        const textarea = document.getElementById('prp-editor-textarea');
-        if (textarea) {
-            textarea.value = '';
-            this.updateCharCount();
-            textarea.focus();
-        } else {
-            console.error('Textarea not found');
-        }
-    }
-
-    showPRPEditor() {
-        // Hide other sections
-        const chatSection = document.querySelector('.chat-section');
-        const analyticsSection = document.getElementById('analytics-section');
-        const prpSection = document.getElementById('prp-editor-section');
-        
-        if (chatSection) {
-            // Preserve chat section state before hiding
-            this.preserveChatSection();
-            chatSection.style.display = 'none';
-        }
-        if (analyticsSection) {
-            analyticsSection.style.display = 'none';
-        }
-        
-        // Show PRP Editor section
-        if (prpSection) {
-        prpSection.style.display = 'block';
-            
-            // Scroll to top of page to show PRP section at the beginning
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        
-        // Load current PRP content
-        this.loadPRPContent();
-        
-        // Setup PRP Editor event listeners
-        this.setupPRPEditorListeners();
-        
-        // Update active section
-        this.activeSection = 'prp-editor';
-        
-        // Scroll to PRP Editor
-        prpSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }
-
-    setupPRPEditorListeners() {
-        // Save PRP button
-        const saveBtn = document.getElementById('save-prp-btn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => this.savePRP());
-        }
-        
-        // Reset PRP button
-        const resetBtn = document.getElementById('reset-prp-btn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => this.resetPRP());
-        }
-        
-        
-        // Character count
-        const textarea = document.getElementById('prp-editor-textarea');
-        if (textarea) {
-            textarea.addEventListener('input', () => this.updateCharCount());
-        }
-        
-    }
-
-    async loadPRPContent() {
-        try {
-            const response = await fetch('/api/prp/content');
-            if (response.ok) {
-                const data = await response.json();
-                const textarea = document.getElementById('prp-editor-textarea');
-                if (textarea) {
-                    textarea.value = data.content || '';
-                    this.updateCharCount();
-                }
-            } else {
-                // Load default content if API fails
-                this.loadDefaultPRPContent();
-            }
-        } catch (error) {
-            console.error('Error loading PRP content:', error);
-            this.loadDefaultPRPContent();
-        }
-    }
-
-    async loadDefaultPRPContent() {
-        const textarea = document.getElementById('prp-editor-textarea');
-        if (!textarea) {
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/prp/default');
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            const content = await response.text();
-            textarea.value = content || '';
-        } catch (error) {
-            console.error('Error loading default PRP:', error);
-            textarea.value = '';
-            this.showNotification('Failed to load PRP from server. Editor is empty.', 'error');
-        }
-
-        this.updateCharCount();
-    }
-
-    async savePRP() {
-        const textarea = document.getElementById('prp-editor-textarea');
-        const content = textarea.value.trim();
-        
-        if (!content) {
-            alert('Please enter some PRP content before saving.');
-            return;
-        }
-        
-        try {
-            const response = await fetch('/api/prp/save', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ content: content })
-            });
-            
-            if (response.ok) {
-                // Show success message
-                this.showNotification('PRP saved successfully!', 'success');
-                
-                // Update agent with new PRP
-                await this.updateAgentPRP(content);
-            } else {
-                throw new Error('Failed to save PRP');
-            }
-        } catch (error) {
-            console.error('Error saving PRP:', error);
-            this.showNotification('Error saving PRP. Please try again.', 'error');
-        }
-    }
-
-    async updateAgentPRP(content) {
-        try {
-            const response = await fetch('/api/prp/update-agent', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ content: content })
-            });
-            
-            if (response.ok) {
-                this.showNotification('Agent updated with new PRP!', 'success');
-            }
-        } catch (error) {
-            console.error('Error updating agent:', error);
-            this.showNotification('PRP saved but agent update failed.', 'warning');
-        }
-    }
-
-    resetPRP() {
-        if (confirm('Are you sure you want to reset the PRP to default? This will lose any customizations.')) {
-            this.loadDefaultPRPContent();
-            this.showNotification('PRP reset to default.', 'info');
-        }
-    }
-
-    updateCharCount() {
-        const textarea = document.getElementById('prp-editor-textarea');
-        const charCount = document.getElementById('char-count');
-        
-        if (textarea && charCount) {
-            charCount.textContent = textarea.value.length;
-        }
-    }
-
 
     showNotification(message, type = 'info') {
         // Remove existing notifications to prevent overlap
@@ -3416,13 +3218,6 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-
-// Global function for clear button
-function clearPRPContent() {
-    if (window.app) {
-        window.app.clearPRPContent();
-    }
-}
 
 // Initialize the application on all pages
 document.addEventListener('DOMContentLoaded', () => {

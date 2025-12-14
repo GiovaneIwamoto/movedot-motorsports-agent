@@ -57,9 +57,9 @@
                     <div id="user-auth" style="margin-left:auto; display:flex; align-items:center; gap:0.75rem; position:relative;">
                         <div class="user-menu-container">
                             <button id="user-menu-trigger" class="user-menu-trigger" title="User menu">
-                                <img id="user-picture" src="" alt="User" class="user-avatar" style="display:none;" crossorigin="anonymous" referrerpolicy="no-referrer">
-                                <span id="user-name" style="font-size:0.9rem; opacity:0.9;"></span>
-                                <i class="fas fa-chevron-down" style="font-size:0.7rem; opacity:0.6; margin-left:0.25rem;"></i>
+                                <img id="user-picture" src="" alt="User" class="user-avatar" style="display:none; width:24px; height:24px; border-radius:50%; object-fit:cover;" crossorigin="anonymous" referrerpolicy="no-referrer">
+                                <span id="user-name" style="font-size:0.875rem; opacity:0.9; line-height:1.2;"></span>
+                                <i class="fas fa-chevron-down" style="font-size:0.7rem; opacity:0.6; margin-left:0.125rem;"></i>
                             </button>
                             <div id="user-menu-dropdown" class="user-menu-dropdown" style="display:none;">
                                 <button class="user-menu-item" id="menu-manage-conversations">
@@ -271,84 +271,6 @@
                 </div>
             </section>
 
-            <!-- PRP Editor Section -->
-            <section class="prp-editor-section framer-card framer-hover-lift data-flow" id="prp-editor-section" style="display: none;">
-                
-                <div class="prp-editor-content">
-                    <div class="prp-info-panel">
-                        <div class="info-card">
-                            <div class="info-icon">
-                                <i class="fas fa-lightbulb"></i>
-                            </div>
-                            <div class="info-content">
-                                <h3>What is Product Requirements Prompt Editor?</h3>
-                                <p>Product Requirements Prompt Editor is a <strong>Context Engineering</strong> technique that provides comprehensive instructions to the AI agent about how to interact with APIs and fetch data.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="info-card">
-                            <div class="info-icon">
-                                <i class="fas fa-cogs"></i>
-                            </div>
-                            <div class="info-content">
-                                <h3>Customize Your Agent</h3>
-                                <p>Edit this prompt to guide your AI agent on specific API endpoints, data formats, and analysis patterns. This makes your agent smarter and more context-aware.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="info-card">
-                            <div class="info-icon">
-                                <i class="fas fa-rocket"></i>
-                            </div>
-                            <div class="info-content">
-                                <h3>Better Results</h3>
-                                <p>Well-crafted PRPs lead to more accurate API calls, better data analysis, and more relevant insights from your motorsports data.</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="prp-editor-panel">
-                        <!-- Header -->
-                        <div class="editor-header">
-                            <h3 class="card-title">Product Requirements Prompt Editor</h3>
-                            <div class="editor-actions">
-                                <button class="clear-btn" onclick="clearPRPContent()" title="Clear all content">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                <button class="action-btn" id="reset-prp-btn" title="Reset to default">
-                                    <i class="fas fa-undo"></i>
-                                </button>
-                                <button class="action-btn primary" id="save-prp-btn">
-                                    <i class="fas fa-save"></i>
-                                    Save PRP
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Divider -->
-                        <div class="editor-divider"></div>
-                        
-                        <!-- Textarea -->
-                        <div class="editor-textarea-container">
-                            <textarea 
-                                id="prp-editor-textarea"
-                                class="prp-editor-textarea"
-                                placeholder="Enter your Product Requirements Prompt here..."
-                                spellcheck="false"
-                            ></textarea>
-                        </div>
-                        
-                        <!-- Footer -->
-                        <div class="editor-footer">
-                            <div class="char-count">
-                                <span id="char-count">0</span> characters
-                            </div>
-                            <div class="format-indicator">Markdown</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
         </main>
 
         <!-- Loader Overlay -->
@@ -399,13 +321,6 @@
                     <i class="fas fa-plug"></i>
                 </div>
                 <div class="dock-item-tooltip">MCP Servers</div>
-            </button>
-            
-            <button class="dock-item" data-page="prp-editor" id="prp-editor-btn">
-                <div class="dock-item-icon">
-                    <i class="fas fa-code"></i>
-                </div>
-                <div class="dock-item-tooltip">PRP Editor</div>
             </button>
         </nav>
     </div>
