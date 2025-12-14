@@ -3317,13 +3317,14 @@ h3 {
 .settings-row {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.375rem;
+    margin-bottom: 1.25rem;
 }
 
 .settings-label {
     font-size: 0.75rem;
     font-weight: 500;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.95);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     opacity: 0.8;
@@ -3394,7 +3395,7 @@ h3 {
 }
 
 .loading-minimal {
-    margin-top: 0.375rem;
+    margin-top: 0.25rem;
     font-size: 0.6875rem;
     color: var(--text-secondary);
     opacity: 0.6;
@@ -3446,6 +3447,24 @@ h3 {
 .btn-minimal:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Server Modal - Uses exact same styles as Settings Modal */
+#server-modal.settings-modal-overlay {
+    /* Inherits all styles from .settings-modal-overlay */
+}
+
+#server-modal .settings-modal {
+    /* Inherits all styles from .settings-modal */
+    /* Uses default max-width: 420px from .settings-modal */
+}
+
+/* Textarea specific styling for code input */
+#server-modal textarea.input-minimal {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 80px;
 }
 
 
@@ -4218,146 +4237,330 @@ h3 {
     }
 }
 
-/* MCP Servers Styles - Following dataset-item pattern */
-.mcp-server-card {
+/* MCP Servers - Compact Minimalist Design */
+.mcp-server-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
-    padding: 0.8rem;
-    background: var(--bg-tertiary) !important;
+    gap: 0;
+    margin-bottom: 0.0rem;
+}
+
+.mcp-server-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.625rem 0.875rem;
+    background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    margin-bottom: 0.75rem;
     cursor: default;
     transition: var(--transition-normal);
     position: relative;
-    overflow: hidden;
 }
 
-.mcp-server-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--secondary);
-    opacity: 0;
-    transition: var(--transition-normal);
-    z-index: -1;
-}
-
-.mcp-server-card:hover::before {
-    opacity: 0.3;
-}
-
-.mcp-server-card:hover {
-    background: var(--bg-hover) !important;
+.mcp-server-item:hover {
+    background: var(--bg-hover);
     border-color: var(--ring);
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
 }
 
-.server-card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.server-info {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    flex: 1;
-    min-width: 0;
-}
-
-.server-icon {
+.mcp-server-item .server-icon {
     width: 40px;
     height: 40px;
     border-radius: var(--radius-md);
     background: var(--muted);
+    color: var(--foreground);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--foreground);
-    font-size: 1rem;
-    border: 1px solid var(--border);
+    font-size: 1.125rem;
     flex-shrink: 0;
+    transition: var(--transition-normal);
 }
 
-.server-details {
+.mcp-server-item .server-details {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
-.server-details h4 {
-    margin: 0 0 0.25rem 0;
+.mcp-server-item .server-details h4 {
+    font-size: 0.9375rem;
+    font-weight: 500;
     color: var(--foreground);
-    font-size: 0.875rem;
-    font-weight: 500;
+    margin: 0;
+    letter-spacing: -0.01em;
     line-height: 1.4;
-}
-
-.server-meta {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    font-size: 0.75rem;
+    gap: 0.625rem;
 }
 
-.server-type {
-    color: var(--muted-foreground);
-    background: var(--secondary);
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    border: 1px solid var(--border-color);
+.server-status-divider {
+    color: rgba(255, 255, 255, 0.15);
+    font-weight: 300;
+    font-size: 0.875rem;
 }
 
-.server-status {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
 
-.server-status.connected {
-    color: #4ade80;
-}
-
-.server-status.disconnected {
-    color: var(--muted-foreground);
-}
-
-.server-status i {
-    font-size: 0.75rem;
-}
-
-.server-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+/* Server Status Indicator - Pulsing Light */
+.server-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
     flex-shrink: 0;
 }
 
-.server-card-body {
+.server-status-indicator.online {
+    background: #00ff41;
+    box-shadow: 0 0 8px rgba(0, 255, 65, 0.6), 0 0 0 1px rgba(0, 255, 65, 0.4);
+    animation: onlinePulse 2s infinite;
+}
+
+.server-status-indicator.offline {
+    background: #ff0000;
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.6), 0 0 0 1px rgba(255, 0, 0, 0.4);
+    animation: offlinePulse 2s infinite;
+}
+
+@keyframes offlinePulse {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 8px rgba(255, 0, 0, 0.6), 0 0 0 1px rgba(255, 0, 0, 0.4);
+    }
+    50% {
+        opacity: 0.7;
+        box-shadow: 0 0 12px rgba(255, 0, 0, 0.8), 0 0 0 2px rgba(255, 0, 0, 0.5);
+    }
+}
+
+.server-status-text {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #ffffff;
+}
+
+
+.server-actions-group {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border-color);
+    align-items: center;
+    gap: 0.375rem;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.server-action-btn {
+    font-size: 0.875rem;
+    background: transparent;
+    border: none;
+    padding: 0.375rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: var(--muted-foreground);
+}
+
+.server-action-btn:hover {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.server-action-btn.server-info-btn i {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.server-action-btn.server-info-btn.active i {
+    transform: rotate(180deg);
+}
+
+.server-action-btn.server-delete-btn:hover {
+    color: var(--destructive);
+    background: var(--destructive-light);
+}
+
+.server-action-btn.server-connect-btn {
+    color: var(--muted-foreground);
+}
+
+.server-action-btn.server-connect-btn:hover {
+    color: var(--success);
+    background: var(--success-light);
+}
+
+.server-action-btn i {
+    font-size: 0.875rem;
+}
+
+/* Server Toggle Switch - Compact Minimal Design */
+.server-toggle {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 20px;
+}
+
+.server-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+    pointer-events: none;
+}
+
+.server-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: var(--transition-normal);
+    border-radius: 20px;
+    pointer-events: auto;
+}
+
+.server-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
+    background: rgba(255, 255, 255, 0.6);
+    transition: var(--transition-normal);
+    border-radius: 50%;
+}
+
+.server-toggle input:checked + .server-toggle-slider {
+    background: #22c55e;
+    border-color: #22c55e;
+}
+
+.server-toggle input:checked + .server-toggle-slider:before {
+    transform: translateX(18px);
+    background: #ffffff;
+}
+
+.server-toggle input:focus + .server-toggle-slider {
+    box-shadow: 0 0 0 2px var(--ring);
+}
+
+/* Server Details Expanded - Animated Accordion */
+.server-details-expanded {
+    margin-top: 0.625rem;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(10px);
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.server-details-expanded.expanded {
+    max-height: 800px;
+    opacity: 1;
+    padding: 0.75rem;
+}
+
+.details-section {
+    margin-bottom: 0.75rem;
+}
+
+.details-section:last-child {
+    margin-bottom: 0;
+}
+
+.details-section h5 {
+    margin: 0 0 0.5rem 0;
+    color: var(--foreground);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: var(--font-sans);
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.details-section h5::before {
+    content: '';
+    width: 2px;
+    height: 10px;
+    background: var(--primary);
+    border-radius: 2px;
 }
 
 .server-actions-row {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     flex-wrap: wrap;
     align-items: center;
+}
+
+/* Compact minimal buttons for server cards */
+.server-actions-row .btn-minimal {
+    height: 2rem;
+    padding: 0 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms ease-in-out;
+    border: none;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.server-actions-row .btn-minimal:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.server-actions-row .btn-minimal.btn-primary {
+    background: #fafafa;
+    color: #0a0a0a;
+    border: none;
+}
+
+.server-actions-row .btn-minimal.btn-primary:hover:not(:disabled) {
+    background: #e5e5e5;
+}
+
+.server-actions-row .btn-minimal.btn-danger {
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: rgba(239, 68, 68, 0.9);
+}
+
+.server-actions-row .btn-minimal.btn-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: rgba(239, 68, 68, 1);
+}
+
+.server-actions-row .btn-minimal i {
+    font-size: 0.6875rem;
 }
 
 .btn-sm {
@@ -4445,56 +4648,50 @@ button.btn-secondary.btn-sm:hover {
     box-shadow: var(--shadow-md);
 }
 
-.server-details-expanded {
-    margin-top: 0.5rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border-color);
-}
-
-.details-section {
-    margin-bottom: 1rem;
-}
-
-.details-section:last-child {
-    margin-bottom: 0;
-}
-
-.details-section h5 {
-    margin: 0 0 0.5rem 0;
-    color: var(--foreground);
-    font-size: 0.8125rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-family: var(--font-sans);
-}
 
 .tools-list,
 .resources-list {
     list-style: none;
     padding: 0;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
 }
 
 .tools-list li,
 .resources-list li {
-    padding: 0.625rem 0.75rem;
-    background: var(--secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
     transition: var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.tools-list li::before,
+.resources-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--primary);
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
 .tools-list li:hover,
 .resources-list li:hover {
-    background: var(--accent);
-    border-color: var(--ring);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
-.tools-list li:last-child,
-.resources-list li:last-child {
-    margin-bottom: 0;
+.tools-list li:hover::before,
+.resources-list li:hover::before {
+    opacity: 1;
 }
 
 .tools-list li strong,
@@ -4502,8 +4699,8 @@ button.btn-secondary.btn-sm:hover {
     display: block;
     color: var(--foreground);
     font-size: 0.8125rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
+    font-weight: 500;
+    margin-bottom: 0.1875rem;
     font-family: var(--font-sans);
 }
 
@@ -4512,32 +4709,36 @@ button.btn-secondary.btn-sm:hover {
     margin: 0;
     color: var(--muted-foreground);
     font-size: 0.75rem;
-    line-height: 1.5;
+    line-height: 1.4;
     font-family: var(--font-sans);
 }
 
 .loading-state {
     color: var(--muted-foreground);
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-style: italic;
-    padding: 0.5rem 0;
+    padding: 0.375rem 0;
     font-family: var(--font-sans);
+    opacity: 0.6;
 }
 
 .text-muted {
     color: var(--muted-foreground);
+    font-size: 0.75rem;
+    opacity: 0.7;
 }
 
 .text-error {
     color: var(--destructive);
+    font-size: 0.75rem;
 }
 
 /* Toggle Switch */
 .toggle-switch {
     position: relative;
     display: inline-block;
-    width: 48px;
-    height: 24px;
+    width: 40px;
+    height: 20px;
 }
 
 .toggle-switch input {
@@ -4558,7 +4759,7 @@ button.btn-secondary.btn-sm:hover {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     transition: var(--transition-normal);
-    border-radius: 24px;
+    border-radius: 20px;
     pointer-events: auto;
     z-index: 1;
 }
@@ -4566,8 +4767,8 @@ button.btn-secondary.btn-sm:hover {
 .toggle-slider:before {
     position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
+    height: 14px;
+    width: 14px;
     left: 2px;
     bottom: 2px;
     background-color: var(--text-secondary);
@@ -4576,12 +4777,12 @@ button.btn-secondary.btn-sm:hover {
 }
 
 .toggle-switch input:checked + .toggle-slider {
-    background-color: var(--primary);
-    border-color: var(--primary);
+    background-color: #4ade80;
+    border-color: #4ade80;
 }
 
 .toggle-switch input:checked + .toggle-slider:before {
-    transform: translateX(24px);
+    transform: translateX(20px);
     background-color: var(--background);
 }
 
@@ -4804,29 +5005,48 @@ button.btn-secondary.btn-sm:hover {
 }
 
 /* Notification styles */
+/* MCP Server Notifications - Minimal Bottom Right Style */
 .notification {
     position: fixed;
-    top: 1rem;
-    right: 1rem;
-    background: var(--card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 1rem 1.5rem;
-    box-shadow: var(--shadow-lg);
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    padding: 0.875rem 1.25rem;
+    box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.3),
+        0 4px 6px -2px rgba(0, 0, 0, 0.2);
     z-index: 10000;
-    animation: slideInRight 0.3s ease-out;
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    max-width: 400px;
+    min-width: 280px;
+    max-width: 420px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
-.notification.success {
-    border-left: 3px solid #4ade80;
+.notification i {
+    font-size: 1rem;
+    flex-shrink: 0;
+    opacity: 0.9;
 }
 
-.notification.error {
-    border-left: 3px solid var(--destructive);
+.notification span {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.notification.success i {
+    color: #4ade80;
+}
+
+.notification.error i {
+    color: #ef4444;
 }
 
 @keyframes slideInRight {
@@ -4837,6 +5057,17 @@ button.btn-secondary.btn-sm:hover {
     to {
         transform: translateX(0);
         opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
     }
 }
 
