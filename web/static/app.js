@@ -1,5 +1,14 @@
 // Modern JavaScript for MoveDot Motorsports Analytics Web Interface
 
+// Global navigation function - works on all pages (must be defined early)
+if (typeof window.navigateTo === 'undefined') {
+    window.navigateTo = function(url) {
+        if (url && url !== '#') {
+            window.location.href = url;
+        }
+    };
+}
+
 class MotorsportsAnalytics {
     constructor() {
         this.apiBase = '/api';
@@ -338,20 +347,34 @@ class MotorsportsAnalytics {
     }
 
     async init() {
-        this.setupEventListeners();
-        await this.loadDataOverview();
-        this.startStatusUpdater();
-        this.updateConnectionStatus(true); // SSE is always available
-        this.initAnimatedPlaceholder();
-        this.setupBgGridPattern();
+        // Detect current page from URL
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('data-sources')) {
+            this.currentPage = 'data-sources';
+        } else if (currentPath.includes('mcp-servers')) {
+            this.currentPage = 'mcp-servers';
+        } else if (currentPath.includes('home')) {
+            this.currentPage = 'home';
+        }
         
-        // Only require authentication on pages that need it (not data-sources.html)
-        const isDataSourcesPage = window.location.pathname.includes('data-sources.html');
-        if (!isDataSourcesPage) {
+        this.setupEventListeners();
+        
+        // Only load data and setup chat features on dashboard page
+        const isDataSourcesPage = currentPath.includes('data-sources.html');
+        const isMCPServersPage = currentPath.includes('mcp-servers.html');
+        const isHomePage = currentPath.includes('home.html');
+        
+        if (!isDataSourcesPage && !isMCPServersPage && !isHomePage) {
+            await this.loadDataOverview();
+            this.startStatusUpdater();
+            this.updateConnectionStatus(true); // SSE is always available
+            this.initAnimatedPlaceholder();
             await this.ensureAuthenticated();
             this.setupAuthUI();
             await this.bootstrapConversation();
         }
+        
+        this.setupBgGridPattern();
         
         this.checkPendingDatasetAnalysis();
         this.checkNavigationContext();
@@ -471,11 +494,16 @@ class MotorsportsAnalytics {
 
 
     setupEventListeners() {
-        // Chat input
+        // Floating Dock event listeners - setup first so it works on all pages
+        this.setupFloatingDock();
+        
+        // Chat input - only setup if elements exist
         const chatInput = document.getElementById('chat-input');
         const sendButton = document.getElementById('send-button');
         
         if (!chatInput || !sendButton) {
+            // Still setup tab system and other non-chat features
+            this.setupTabSystem();
             return;
         }
         
@@ -557,11 +585,6 @@ class MotorsportsAnalytics {
             }
         });
 
-
-
-        // Floating Dock event listeners
-        this.setupFloatingDock();
-        
         // Tab system
         this.setupTabSystem();
         
@@ -1875,9 +1898,7 @@ class MotorsportsAnalytics {
     }
 
     setupFloatingDock() {
-        const dockItems = document.querySelectorAll('.dock-item');
         const floatingDock = document.getElementById('floating-dock');
-        
         
         if (!floatingDock) {
             return;
@@ -1888,19 +1909,9 @@ class MotorsportsAnalytics {
             floatingDock.classList.add('mobile');
         }
 
+        // Just add hover animations, navigation is handled by onclick handlers
+        const dockItems = document.querySelectorAll('.dock-item');
         dockItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                // Check if the item has an onclick handler (like in data-sources.html)
-                if (item.hasAttribute('onclick')) {
-                    // Let the onclick handler take precedence
-                    return;
-                }
-                
-                e.preventDefault();
-                this.handleDockItemClick(item);
-            });
-
-            // Add hover animations
             item.addEventListener('mouseenter', () => {
                 this.animateDockItem(item, 'enter');
             });
@@ -1909,73 +1920,6 @@ class MotorsportsAnalytics {
                 this.animateDockItem(item, 'leave');
             });
         });
-    }
-
-    handleDockItemClick(item) {
-        const page = item.dataset.page;
-        const href = item.dataset.href;
-        
-        // Don't do anything if clicking the same active page
-        if (item.classList.contains('active') && this.currentPage === page) {
-            return;
-        }
-        
-        // Remove active class from all items
-        document.querySelectorAll('.dock-item').forEach(dockItem => {
-            dockItem.classList.remove('active');
-        });
-        
-        // Add active class to clicked item
-        item.classList.add('active');
-        this.currentPage = page;
-        
-        // Add bounce animation
-        item.classList.add('animate');
-        setTimeout(() => {
-            item.classList.remove('animate');
-        }, 600);
-        
-        // Check current page context
-        const currentPath = window.location.pathname;
-        const isDataSourcesPage = currentPath.includes('data-sources');
-        
-        // Simple navigation logic
-        if (page === 'home' && href && href !== '#') {
-            window.location.href = href;
-        } else if (page === 'data-sources') {
-            // Navigate to data sources page
-            if (!isDataSourcesPage) {
-            window.location.href = 'data-sources.html';
-            }
-            return;
-        } else if (page === 'prp-editor') {
-            if (isDataSourcesPage) {
-                // Stay on data-sources page, just scroll to PRP editor
-                const prpSection = document.getElementById('prp-editor-section');
-                if (prpSection) {
-                    prpSection.scrollIntoView({ behavior: 'smooth' });
-                }
-            } else {
-            this.showPRPEditor();
-            }
-        } else if (page === 'analytics') {
-            if (isDataSourcesPage) {
-                // Stay on data-sources page, just scroll to analytics
-                const analyticsSection = document.getElementById('analytics-section');
-                if (analyticsSection) {
-                    analyticsSection.scrollIntoView({ behavior: 'smooth' });
-                }
-            } else {
-                this.scrollToSection('analytics');
-            }
-        } else if (page === 'dashboard') {
-            if (isDataSourcesPage) {
-                // Go back to main dashboard page
-                window.location.href = 'index.html';
-            } else {
-                this.scrollToSection('dashboard');
-            }
-        }
     }
 
     animateDockItem(item, action) {
@@ -3487,7 +3431,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Global functions for HTML onclick handlers
 window.selectDataSource = (datasetName) => {
-    window.app.selectDataSource(datasetName);
+    if (window.app && window.app.selectDataSource) {
+        window.app.selectDataSource(datasetName);
+    }
 };
 
 window.previewDataSource = (datasetName) => {

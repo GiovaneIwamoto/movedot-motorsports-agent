@@ -318,6 +318,11 @@ async def read_data_sources():
     """Serve the data sources page."""
     return _serve_html_page("data-sources")
 
+@app.get("/mcp-servers.html")
+async def read_mcp_servers():
+    """Serve the MCP servers management page."""
+    return _serve_html_page("mcp-servers")
+
 
 @app.get("/api/health")
 async def health_check():
@@ -452,15 +457,23 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
             logger.info(f"User message: {request.message[:100]}...")
             try:
                 # Load MCP servers for user BEFORE creating agent (in same event loop)
-                # Following LangChain MCP best practices - uses langchain-mcp-adapters
+                # This creates/reloads the MultiServerMCPClient used by the agent
                 from ..mcp.loader import ensure_user_mcp_servers_loaded_async
-                logger.info(f"Loading MCP servers for user {user_id}...")
+                logger.info(f"Loading MCP servers for user {user_id} (for agent)...")
                 servers_loaded = await ensure_user_mcp_servers_loaded_async(user_id)
-                logger.info(f"Loaded {servers_loaded} MCP servers for user {user_id}")
+                if servers_loaded > 0:
+                    logger.info(f"Successfully loaded {servers_loaded} MCP server(s) for agent")
+                else:
+                    logger.warning("No MCP servers loaded for agent - check server configuration")
                 
                 # Stream tokens from the agent with history
+                # The agent will be created/reloaded in stream_analytics_agent_with_history
+                # We pass force_reload=True via user_config to ensure MCP tools are included
                 logger.info("Calling stream_analytics_agent_with_history...")
-                async for event_type, data in stream_analytics_agent_with_history(messages_history, config, user_config_dict):
+                # Always ensure force_reload_agent flag is set to reload agent with MCP tools
+                final_user_config = user_config_dict.copy() if user_config_dict else {}
+                final_user_config['force_reload_agent'] = True
+                async for event_type, data in stream_analytics_agent_with_history(messages_history, config, final_user_config):
                     logger.debug(f"SSE event: {event_type}")
                     if event_type == "token":
                         # Send token event

@@ -3,6 +3,8 @@
 from .langchain_adapter import (
     create_mcp_client_from_config,
     get_global_mcp_client,
+    get_global_server_names,
+    get_mcp_server_names,
     get_mcp_tools_from_client,
     set_global_mcp_client,
 )
@@ -16,6 +18,8 @@ __all__ = [
     # langchain-mcp-adapters API (preferred)
     "create_mcp_client_from_config",
     "get_global_mcp_client",
+    "get_global_server_names",
+    "get_mcp_server_names",
     "get_mcp_tools_from_client",
     "set_global_mcp_client",
     "load_user_mcp_servers",

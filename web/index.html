@@ -366,34 +366,40 @@
 
         <!-- Floating Dock -->
         <nav class="floating-dock" id="floating-dock">
-            <button class="dock-item" data-page="home" data-href="home.html">
+            <button class="dock-item" data-page="home" onclick="navigateTo('home.html')">
                 <div class="dock-item-icon">
                     <i class="fas fa-home"></i>
                 </div>
                 <div class="dock-item-tooltip">Home</div>
             </button>
             
-            <button class="dock-item active" data-page="dashboard" data-href="#">
+            <button class="dock-item active" data-page="dashboard" onclick="navigateTo('index.html')">
                 <div class="dock-item-icon">
                     <i class="fas fa-tachometer-alt"></i>
                 </div>
                 <div class="dock-item-tooltip">Dashboard</div>
             </button>
             
-            <button class="dock-item" data-page="analytics" data-href="#">
+            <button class="dock-item" data-page="analytics" onclick="navigateTo('index.html')">
                 <div class="dock-item-icon">
                     <i class="fas fa-chart-bar"></i>
                 </div>
                 <div class="dock-item-tooltip">Analytics</div>
             </button>
             
-            <button class="dock-item" data-page="data-sources" id="data-sources-toggle">
+            <button class="dock-item" data-page="data-sources" onclick="navigateTo('data-sources.html')">
                 <div class="dock-item-icon">
                     <i class="fas fa-database"></i>
                 </div>
                 <div class="dock-item-tooltip">Data Sources</div>
             </button>
             
+            <button class="dock-item" data-page="mcp-servers" onclick="navigateTo('mcp-servers.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-plug"></i>
+                </div>
+                <div class="dock-item-tooltip">MCP Servers</div>
+            </button>
             
             <button class="dock-item" data-page="prp-editor" id="prp-editor-btn">
                 <div class="dock-item-icon">

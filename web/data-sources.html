@@ -74,11 +74,18 @@
                 <div class="dock-item-tooltip">Analytics</div>
             </button>
             
-            <button class="dock-item active" data-page="data-sources">
+            <button class="dock-item active" data-page="data-sources" onclick="navigateTo('data-sources.html')">
                 <div class="dock-item-icon">
                     <i class="fas fa-database"></i>
                 </div>
                 <div class="dock-item-tooltip">Data Sources</div>
+            </button>
+            
+            <button class="dock-item" data-page="mcp-servers" onclick="navigateTo('mcp-servers.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-plug"></i>
+                </div>
+                <div class="dock-item-tooltip">MCP Servers</div>
             </button>
             
             <button class="dock-item" data-page="prp-editor" onclick="navigateTo('index.html')">
@@ -295,7 +302,7 @@
             }
         }
         
-        // Navigation function
+        // Navigation function (can use global or local)
         function navigateTo(page) {
             window.location.href = page;
         }

@@ -311,7 +311,11 @@ async def stream_analytics_agent_with_history(messages_history: list, config: Op
         logger.info("Starting agent stream with history")
         # Use async version to properly load MCP tools
         agent_manager = AnalyticsAgentManager()
-        agent = await agent_manager.get_agent_async(user_config=user_config)
+        # Force reload if requested (e.g., after MCP servers are loaded)
+        force_reload = user_config.get('force_reload_agent', False) if user_config else False
+        # Clean up the flag so it doesn't interfere with config checking
+        agent_config_clean = {k: v for k, v in (user_config or {}).items() if k != 'force_reload_agent'}
+        agent = await agent_manager.get_agent_async(force_reload=force_reload, user_config=agent_config_clean if agent_config_clean else None)
         logger.info("Agent created, starting stream...")
         
         # Stream only messages mode to get LLM tokens

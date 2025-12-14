@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,23 @@ ENDPOINT_DOCS = {
     "race_control": "prp_race_control.md",
     "team_radio": "prp_team_radio.md",
 }
+
+
+def get_all_resources() -> List[Dict[str, Any]]:
+    """Get all MCP resources (PRPs) for OpenF1 endpoints."""
+    resources = []
+    
+    for endpoint, filename in ENDPOINT_DOCS.items():
+        doc_path = DOCS_DIR / filename
+        if doc_path.exists():
+            resources.append({
+                "uri": f"prp://openf1/{endpoint}",
+                "name": f"OpenF1 {endpoint.replace('_', ' ').title()} Documentation",
+                "description": f"Complete documentation for OpenF1 API {endpoint} endpoint",
+                "mimeType": "text/markdown",
+            })
+    
+    return resources
 
 
 async def get_resource(uri: str) -> Optional[str]:

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Servers - MoveDot</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=7">
+    <link rel="shortcut icon" href="/static/favicon.svg?v=7">
+    <link rel="apple-touch-icon" href="/static/favicon.svg?v=7">
+    <meta name="theme-color" content="#000000">
+    <link rel="stylesheet" href="static/styles.css?v=5">
+    <link rel="stylesheet" href="static/effects.css?v=5">
+    <link rel="stylesheet" href="static/framer-components.css?v=5">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Animated Grid Pattern Background - Same as Hero -->
+    <svg class="hero-grid-pattern" aria-hidden="true">
+        <defs>
+            <pattern id="hero-grid" width="40" height="40" patternUnits="userSpaceOnUse" x="0" y="0">
+                <path d="M.5 40V.5H40" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="0.5"/>
+            </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#hero-grid)" />
+        <g class="hero-grid-squares"></g>
+    </svg>
+
+    <div id="app">
+        <!-- Main Content -->
+        <main class="datasets-main">
+            <!-- MCP Servers Card -->
+            <div class="datasets-card">
+                <!-- Card Header -->
+                <div class="card-header">
+                    <h1 class="card-title">MCP Servers</h1>
+                    <div class="header-controls" style="display:flex; align-items:center; gap:0.5rem;">
+                        <span class="dataset-count" id="server-count">Loading...</span>
+                        <button class="refresh-btn" onclick="refreshServers()" title="Refresh servers">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="btn-minimal" onclick="showAddServerModal()">
+                            <i class="fas fa-plus"></i> Add Server
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Scrollable Content -->
+                <div class="card-content">
+                    <div class="datasets-list" id="mcp-servers-list">
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </div>
+                            <h3>Loading...</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Dock -->
+        <nav class="floating-dock" id="floating-dock">
+            <button class="dock-item" data-page="home" onclick="navigateTo('home.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <div class="dock-item-tooltip">Home</div>
+            </button>
+            
+            <button class="dock-item" data-page="dashboard" onclick="navigateTo('index.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <div class="dock-item-tooltip">Dashboard</div>
+            </button>
+            
+            <button class="dock-item" data-page="analytics" onclick="navigateTo('index.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="dock-item-tooltip">Analytics</div>
+            </button>
+            
+            <button class="dock-item" data-page="data-sources" onclick="navigateTo('data-sources.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="dock-item-tooltip">Data Sources</div>
+            </button>
+            
+            <button class="dock-item active" data-page="mcp-servers" onclick="navigateTo('mcp-servers.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-plug"></i>
+                </div>
+                <div class="dock-item-tooltip">MCP Servers</div>
+            </button>
+            
+            <button class="dock-item" data-page="prp-editor" onclick="navigateTo('index.html')">
+                <div class="dock-item-icon">
+                    <i class="fas fa-code"></i>
+                </div>
+                <div class="dock-item-tooltip">PRP Editor</div>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Add/Edit Server Modal - Simplified like Cursor -->
+    <div id="server-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="modal-title">Add MCP Server</h2>
+                <button class="close-modal" onclick="closeServerModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="server-form">
+                    <input type="hidden" id="server-id" />
+                    
+                    <div class="form-group">
+                        <label for="server-name">Name *</label>
+                        <input type="text" id="server-name" required placeholder="e.g., OpenF1" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="server-command">Command *</label>
+                        <input type="text" id="server-command" required placeholder="e.g., python" />
+                        <small style="color: var(--muted-foreground); font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                            The command to run the MCP server
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="server-args">Arguments (one per line) *</label>
+                        <textarea id="server-args" rows="4" required placeholder="-m&#10;mcp_servers.openf1.server"></textarea>
+                        <small style="color: var(--muted-foreground); font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                            Each argument on a separate line
+                        </small>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="closeServerModal()">Cancel</button>
+                        <button type="submit" class="btn-primary">Add Server</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/auth-guard.js"></script>
+    <script src="static/app.js?v=5"></script>
+    <script>
+        // Initialize Grid Pattern Animation
+        function initGridPattern() {
+            const bgContainer = document.querySelector('.hero-grid-pattern');
+            const squaresContainer = document.querySelector('.hero-grid-squares');
+            
+            if (!bgContainer || !squaresContainer) {
+                console.error('Grid pattern elements not found');
+                return;
+            }
+            
+            console.log('Initializing grid pattern for MCP servers page...');
+            
+            const gridSize = 40;
+            const numSquares = 50;
+            let squares = [];
+
+            function getRandomPos() {
+                const maxX = Math.max(1, Math.floor(window.innerWidth / gridSize));
+                const maxY = Math.max(1, Math.floor(window.innerHeight / gridSize));
+                return [
+                    Math.floor(Math.random() * maxX),
+                    Math.floor(Math.random() * maxY)
+                ];
+            }
+
+            function generateSquares() {
+                squares = Array.from({ length: numSquares }, (_, i) => ({
+                    id: i,
+                    pos: getRandomPos()
+                }));
+            }
+
+            function updateSquarePosition(id) {
+                const newPos = getRandomPos();
+                squares = squares.map(sq =>
+                    sq.id === id ? { ...sq, pos: newPos } : sq
+                );
+                return newPos;
+            }
+
+            function createSquares() {
+                squaresContainer.innerHTML = '';
+                
+                squares.forEach(({ pos: [x, y], id }, index) => {
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('class', 'hero-grid-square');
+                    rect.setAttribute('width', gridSize - 1);
+                    rect.setAttribute('height', gridSize - 1);
+                    rect.setAttribute('x', x * gridSize + 1);
+                    rect.setAttribute('y', y * gridSize + 1);
+                    rect.style.animationDelay = `${index * 0.1}s`;
+                    
+                    let animationCount = 0;
+                    rect.addEventListener('animationiteration', () => {
+                        animationCount++;
+                        if (animationCount % 2 === 0) {
+                            const newPos = updateSquarePosition(id);
+                            rect.setAttribute('x', newPos[0] * gridSize + 1);
+                            rect.setAttribute('y', newPos[1] * gridSize + 1);
+                        }
+                    });
+                    
+                    squaresContainer.appendChild(rect);
+                });
+                
+                console.log(`Created ${numSquares} animated grid squares`);
+            }
+
+            setTimeout(() => {
+                generateSquares();
+                createSquares();
+            }, 100);
+
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    generateSquares();
+                    createSquares();
+                }, 200);
+            });
+        }
+        
+        // MCP Servers Manager
+        class MCPServersManager {
+            constructor() {
+                this.servers = [];
+                this.statusInterval = null;
+                this.init();
+            }
+            
+            async init() {
+                try {
+                    await this.loadServers();
+                    this.renderServers();
+                    this.startStatusPolling();
+                    this.setupFormHandlers();
+                } catch (error) {
+                    console.error('Error initializing MCP Servers Manager:', error);
+                    this.renderServers(); // Render empty state on error
+                }
+            }
+            
+            startStatusPolling() {
+                // Refresh status every 5 seconds
+                this.statusInterval = setInterval(async () => {
+                    await this.loadServerStatus();
+                    this.renderServers();
+                }, 5000);
+            }
+            
+            stopStatusPolling() {
+                if (this.statusInterval) {
+                    clearInterval(this.statusInterval);
+                    this.statusInterval = null;
+                }
+            }
+            
+            async loadServers() {
+                try {
+                    const response = await fetch('/api/mcp/servers');
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                    }
+                    const data = await response.json();
+                    this.servers = Array.isArray(data) ? data : [];
+                } catch (error) {
+                    console.error('Error loading servers:', error);
+                    this.servers = [];
+                    // Don't show error on initial load, just render empty state
+                    if (this.servers.length === 0) {
+                        this.renderServers();
+                    }
+                }
+            }
+            
+            async loadServerStatus() {
+                try {
+                    const response = await fetch('/api/mcp/servers/status');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const serversWithStatus = await response.json();
+                    
+                    // Update connection status for each server
+                    for (const serverStatus of serversWithStatus) {
+                        const server = this.servers.find(s => s.id === serverStatus.id);
+                        if (server) {
+                            server.is_connected = serverStatus.is_connected;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading server status:', error);
+                }
+            }
+            
+            renderServers() {
+                const countElement = document.getElementById('server-count');
+                const container = document.getElementById('mcp-servers-list');
+                
+                if (!countElement || !container) {
+                    console.error('Required DOM elements not found');
+                    return;
+                }
+                
+                countElement.textContent = `${this.servers.length} server${this.servers.length !== 1 ? 's' : ''}`;
+                
+                if (this.servers.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-plug"></i>
+                            </div>
+                            <h3>No MCP Servers</h3>
+                            <p>Get started by adding your first MCP server</p>
+                            <button class="btn-minimal" onclick="showAddServerModal()">
+                                <i class="fas fa-plus"></i> Add Server
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = this.servers.map(server => this.renderServerCard(server)).join('');
+                
+                // Attach event listeners
+                this.attachEventListeners();
+            }
+            
+            renderServerCard(server) {
+                const enabledClass = server.enabled ? 'enabled' : 'disabled';
+                const connectedClass = server.is_connected ? 'connected' : 'disconnected';
+                const statusIcon = server.is_connected ? 'fa-check-circle' : 'fa-times-circle';
+                const statusText = server.is_connected ? 'Connected' : 'Disconnected';
+                
+                return `
+                    <div class="mcp-server-card" data-server-id="${server.id}">
+                        <div class="server-card-header">
+                            <div class="server-info">
+                                <div class="server-icon">
+                                    <i class="fas fa-server"></i>
+                                </div>
+                                <div class="server-details">
+                                    <h4>${this.escapeHtml(server.name)}</h4>
+                                    <div class="server-meta">
+                                        <span class="server-type">${server.server_type}</span>
+                                        <span class="server-status ${connectedClass}">
+                                            <i class="fas ${statusIcon}"></i>
+                                            ${statusText}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="server-actions">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" ${server.enabled ? 'checked' : ''} 
+                                           onchange="toggleServerEnabled('${server.id}', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="server-card-body">
+                            <div class="server-actions-row">
+                                ${server.enabled ? `
+                                    ${server.is_connected ? `
+                                        <button class="btn-secondary btn-sm" onclick="disconnectServer('${server.id}')">
+                                            <i class="fas fa-unlink"></i> Disconnect
+                                        </button>
+                                    ` : `
+                                        <button class="btn-primary btn-sm" onclick="connectServer('${server.id}')">
+                                            <i class="fas fa-link"></i> Connect
+                                        </button>
+                                    `}
+                                ` : ''}
+                                <button class="btn-secondary btn-sm" onclick="showServerDetails('${server.id}')">
+                                    <i class="fas fa-info-circle"></i> Details
+                                </button>
+                                <button class="btn-danger btn-sm" onclick="deleteServer('${server.id}')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                            
+                            <div class="server-details-expanded" id="details-${server.id}" style="display: none;">
+                                <div class="details-section">
+                                    <h5>Tools</h5>
+                                    <div id="tools-${server.id}" class="loading-state">Loading...</div>
+                                </div>
+                                <div class="details-section">
+                                    <h5>Resources</h5>
+                                    <div id="resources-${server.id}" class="loading-state">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            attachEventListeners() {
+                // No complex listeners needed with simplified form
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            showError(message) {
+                console.error('MCP Servers Error:', message);
+                const container = document.getElementById('mcp-servers-list');
+                if (!container) return;
+                
+                // Just show empty state instead of error state
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-plug"></i>
+                        </div>
+                        <h3>No MCP Servers</h3>
+                        <p>Get started by adding your first MCP server</p>
+                        <button class="btn-minimal" onclick="showAddServerModal()">
+                            <i class="fas fa-plus"></i> Add Server
+                        </button>
+                    </div>
+                `;
+            }
+            
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                    <span>${message}</span>
+                `;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideInRight 0.3s ease-out reverse';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+            
+            setupFormHandlers() {
+                const form = document.getElementById('server-form');
+                if (form) {
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        await this.saveServer();
+                    });
+                }
+            }
+            
+            async saveServer() {
+                const serverId = document.getElementById('server-id').value;
+                const name = document.getElementById('server-name').value.trim();
+                const command = document.getElementById('server-command').value.trim();
+                const argsText = document.getElementById('server-args').value.trim();
+                
+                if (!name || !command || !argsText) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+                
+                // Parse arguments (one per line)
+                const args = argsText.split('\n')
+                    .map(arg => arg.trim())
+                    .filter(arg => arg.length > 0);
+                
+                const serverData = {
+                    name,
+                    server_type: 'stdio',
+                    command,
+                    args,
+                    enabled: true
+                };
+                
+                try {
+                    const url = serverId ? `/api/mcp/servers/${serverId}` : '/api/mcp/servers';
+                    const method = serverId ? 'PUT' : 'POST';
+                    
+                    const response = await fetch(url, {
+                        method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(serverData)
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ detail: 'Failed to save server' }));
+                        throw new Error(errorData.detail || `HTTP ${response.status}`);
+                    }
+                    
+                    closeServerModal();
+                    await this.loadServers();
+                    await this.loadServerStatus();
+                    this.renderServers();
+                    this.showNotification('Server added successfully', 'success');
+                } catch (error) {
+                    console.error('Error saving server:', error);
+                    alert(`Error: ${error.message}`);
+                }
+            }
+        }
+        
+        // Global functions
+        let serversManager;
+        
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+        
+        function refreshServers() {
+            if (serversManager) {
+                serversManager.loadServers().then(() => {
+                    serversManager.loadServerStatus().then(() => {
+                        serversManager.renderServers();
+                    });
+                });
+            }
+        }
+        
+        async function toggleServerEnabled(serverId, enabled) {
+            try {
+                const server = serversManager.servers.find(s => s.id === serverId);
+                if (!server) return;
+                
+                const response = await fetch(`/api/mcp/servers/${serverId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to update server');
+                }
+                
+                server.enabled = enabled;
+                await serversManager.loadServerStatus();
+                serversManager.renderServers();
+                serversManager.showNotification(
+                    `Server ${enabled ? 'enabled' : 'disabled'}`,
+                    'success'
+                );
+            } catch (error) {
+                alert(`Error updating server: ${error.message}`);
+                refreshServers();
+            }
+        }
+        
+        async function connectServer(serverId) {
+            try {
+                const response = await fetch(`/api/mcp/servers/${serverId}/connect`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to connect');
+                }
+                
+                await serversManager.loadServerStatus();
+                serversManager.renderServers();
+                serversManager.showNotification(
+                    result.status === 'connected' ? 'Server connected successfully' : 'Failed to connect',
+                    result.status === 'connected' ? 'success' : 'error'
+                );
+            } catch (error) {
+                alert(`Error connecting server: ${error.message}`);
+                refreshServers();
+            }
+        }
+        
+        async function disconnectServer(serverId) {
+            try {
+                await toggleServerEnabled(serverId, false);
+                serversManager.showNotification('Server disconnected', 'success');
+            } catch (error) {
+                alert(`Error disconnecting server: ${error.message}`);
+            }
+        }
+        
+        async function deleteServer(serverId) {
+            if (!confirm('Are you sure you want to delete this server?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/mcp/servers/${serverId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to delete server');
+                }
+                
+                await serversManager.loadServers();
+                await serversManager.loadServerStatus();
+                serversManager.renderServers();
+                serversManager.showNotification('Server deleted successfully', 'success');
+            } catch (error) {
+                alert(`Error deleting server: ${error.message}`);
+            }
+        }
+        
+        async function showServerDetails(serverId) {
+            const detailsDiv = document.getElementById(`details-${serverId}`);
+            if (!detailsDiv) return;
+            
+            const isVisible = detailsDiv.style.display !== 'none';
+            detailsDiv.style.display = isVisible ? 'none' : 'block';
+            
+            if (!isVisible) {
+                // Load tools and resources
+                await loadServerTools(serverId);
+                await loadServerResources(serverId);
+            }
+        }
+        
+        async function loadServerTools(serverId) {
+            const toolsDiv = document.getElementById(`tools-${serverId}`);
+            if (!toolsDiv) return;
+            
+            try {
+                const response = await fetch(`/api/mcp/servers/${serverId}/tools`);
+                const data = await response.json();
+                
+                if (data.status === 'not_connected') {
+                    toolsDiv.innerHTML = '<p class="text-muted">Server not connected</p>';
+                } else if (data.status === 'error') {
+                    toolsDiv.innerHTML = `<p class="text-error">Error: ${data.error}</p>`;
+                } else if (data.tools && data.tools.length > 0) {
+                    toolsDiv.innerHTML = `
+                        <ul class="tools-list">
+                            ${data.tools.map(tool => `
+                                <li>
+                                    <strong>${tool.name || tool.title || 'Unnamed Tool'}</strong>
+                                    ${tool.description ? `<p>${tool.description}</p>` : ''}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    `;
+                } else {
+                    toolsDiv.innerHTML = '<p class="text-muted">No tools available</p>';
+                }
+            } catch (error) {
+                toolsDiv.innerHTML = `<p class="text-error">Error loading tools: ${error.message}</p>`;
+            }
+        }
+        
+        async function loadServerResources(serverId) {
+            const resourcesDiv = document.getElementById(`resources-${serverId}`);
+            if (!resourcesDiv) return;
+            
+            try {
+                const response = await fetch(`/api/mcp/servers/${serverId}/resources`);
+                const data = await response.json();
+                
+                if (data.status === 'not_connected') {
+                    resourcesDiv.innerHTML = '<p class="text-muted">Server not connected</p>';
+                } else if (data.status === 'error') {
+                    resourcesDiv.innerHTML = `<p class="text-error">Error: ${data.error}</p>`;
+                } else if (data.resources && data.resources.length > 0) {
+                    resourcesDiv.innerHTML = `
+                        <ul class="resources-list">
+                            ${data.resources.map(resource => `
+                                <li>
+                                    <strong>${resource.uri || resource.name || 'Unnamed Resource'}</strong>
+                                    ${resource.description ? `<p>${resource.description}</p>` : ''}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    `;
+                } else {
+                    resourcesDiv.innerHTML = '<p class="text-muted">No resources available</p>';
+                }
+            } catch (error) {
+                resourcesDiv.innerHTML = `<p class="text-error">Error loading resources: ${error.message}</p>`;
+            }
+        }
+        
+        function showAddServerModal() {
+            document.getElementById('modal-title').textContent = 'Add MCP Server';
+            document.getElementById('server-id').value = '';
+            document.getElementById('server-form').reset();
+            document.getElementById('server-modal').style.display = 'flex';
+            // Focus on first input
+            setTimeout(() => {
+                document.getElementById('server-name').focus();
+            }, 100);
+        }
+        
+        function closeServerModal() {
+            document.getElementById('server-modal').style.display = 'none';
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                initGridPattern();
+                serversManager = new MCPServersManager();
+                
+                // Close modal on outside click
+                const modal = document.getElementById('server-modal');
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target.id === 'server-modal') {
+                            closeServerModal();
+                        }
+                    });
+                }
+                
+                // Close modal on Escape key
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        closeServerModal();
+                    }
+                });
+            } catch (error) {
+                console.error('Error initializing MCPServersManager:', error);
+            }
+        });
+    </script>
+</body>
+</html>
