@@ -1,6 +1,7 @@
-# MoveDot Analytics Agent
-
-An intelligent AI-powered data analysis platform designed for data exploration, analysis, and visualization across any domain. Built on the Model Context Protocol (MCP) architecture, this agent enables analysts to discover, fetch, analyze, and visualize complex datasets through natural language conversations.
+<img width="1470" height="828" alt="demo_home_page_01" src="https://github.com/user-attachments/assets/7d1f3093-4dde-47dd-98fa-82ba599743e3" />
+<img width="1470" height="718" alt="demo_home_page_02" src="https://github.com/user-attachments/assets/d304a1ba-7f4a-4391-8899-c439025ffafd" />
+<img width="1470" height="714" alt="demo_home_page_03" src="https://github.com/user-attachments/assets/2da6c933-838b-46c5-8612-296d21387499" />
+<img width="1470" height="718" alt="demo_home_page_04" src="https://github.com/user-attachments/assets/96b8ce5d-39a3-4432-81a6-11144663aeb4" />
 
 ## Overview
 
