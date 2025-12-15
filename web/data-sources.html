@@ -78,14 +78,14 @@
                 <div class="dock-item-icon">
                     <i class="fas fa-database"></i>
                 </div>
-                <div class="dock-item-tooltip">Data Sources</div>
+                <div class="dock-item-tooltip">Datasets</div>
             </button>
             
             <button class="dock-item" data-page="mcp-servers" onclick="navigateTo('mcp-servers.html')">
                 <div class="dock-item-icon">
                     <i class="fas fa-plug"></i>
                 </div>
-                <div class="dock-item-tooltip">MCP Servers</div>
+                <div class="dock-item-tooltip">Servers</div>
             </button>
         </nav>
     </div>
@@ -240,7 +240,15 @@
                 countElement.textContent = `${this.datasets.length} datasets`;
                 
                 if (this.datasets.length === 0) {
-                    container.innerHTML = '<div class="empty-state">No datasets available</div>';
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <h3>No datasets available</h3>
+                            <p>Get started by fetching data</p>
+                        </div>
+                    `;
                     return;
                 }
                 

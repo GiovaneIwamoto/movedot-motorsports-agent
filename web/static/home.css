@@ -2265,12 +2265,13 @@ section {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.08) 10%,
-    rgba(255, 255, 255, 0.15) 50%,
-    rgba(255, 255, 255, 0.08) 90%,
+    rgba(255, 255, 255, 0.15) 10%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.15) 90%,
     transparent 100%
   );
-  z-index: 20;
+  z-index: 100;
+  pointer-events: none;
 }
 
 /* Canvas particle background styling */
@@ -2679,18 +2680,11 @@ section {
 
 .workflow-timeline-line {
   position: absolute;
-  top: 1.5rem;
+  top: calc(var(--spacing-xl) + 7px);
   left: 0;
   right: 0;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.2) 10%,
-    rgba(255, 255, 255, 0.4) 50%,
-    rgba(255, 255, 255, 0.2) 90%,
-    transparent 100%
-  );
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
   z-index: 1;
 }
 
