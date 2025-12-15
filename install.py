@@ -26,7 +26,7 @@ def run_command(command, description):
 
 def main():
     """Main installation function."""
-    print("MoveDot Motorsports Analytics Agent - Installation")
+    print("MoveDot Data Analytics Agent - Installation")
     print("=" * 60)
     
     # Check Python version

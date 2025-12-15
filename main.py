@@ -84,7 +84,7 @@ def main():
 Examples:
   python main.py                                    # Interactive mode
   python main.py -q "What data do I have available?" # Single query
-  python main.py -q "Analyze driver performance"    # Single query
+  python main.py -q "Analyze data trends"    # Single query
   python main.py --web                              # Start web interface
         """
     )

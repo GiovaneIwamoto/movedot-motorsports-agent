@@ -477,7 +477,6 @@ class MarkdownRenderer {
         // Fix incomplete list markers
         text = text.replace(/^(\s*)[-*+]\s*$/gm, '$1- ');
         
-        // Neutralize dangling emphasis at line end (avoids suffixes like "**Pit Stops:**_")
         text = this.fixUnbalancedEmphasis(text);
         
         return text;

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# MoveDot Motorsports Analytics - Web Server Startup Script
+# MoveDot Data Analytics - Web Server Startup Script
 
-echo "MoveDot Motorsports Analytics Agent"
+echo "MoveDot Data Analytics Agent"
 echo "=================================================="
 
 # Check if virtual environment exists
@@ -21,7 +21,7 @@ if [ ! -f ".env" ]; then
     echo "[WARNING] .env file not found"
     echo "Creating .env file..."
     cat > .env << EOF
-# MoveDot Motorsports Analytics Agent - Environment Configuration
+# MoveDot Data Analytics Agent - Environment Configuration
 
 # OpenAI API Key (Required)
 OPENAI_API_KEY=your-openai-api-key-here
@@ -54,7 +54,7 @@ mkdir -p data plots web/static
 
 # Start the web server
 echo ""
-echo "[INFO] Starting MoveDot Motorsports Analytics Web Server..."
+echo "[INFO] Starting MoveDot Data Analytics Web Server..."
 echo "============================================================"
 echo "Web Interface: http://localhost:8000"
 echo "Dashboard: http://localhost:8000"

@@ -26,16 +26,16 @@ class DataAnalytics {
         
         // Animated placeholder system
         this.placeholders = [
-            "Analyze driver performance trends...",
-            "Show me the fastest lap times...",
-            "Compare team strategies...",
-            "What's the weather impact on lap times?",
-            "Find the most consistent drivers...",
-            "Analyze tire degradation patterns...",
-            "Show pit stop strategy analysis...",
-            "Compare qualifying vs race performance...",
-            "Analyze fuel consumption patterns...",
-            "Find the best overtaking opportunities..."
+            "Analyze performance trends over time...",
+            "Show me summary statistics...",
+            "Compare different data sources...",
+            "What patterns exist in the data?",
+            "Find correlations between variables...",
+            "Analyze data distribution patterns...",
+            "Show statistical analysis...",
+            "Compare metrics across categories...",
+            "Analyze time series patterns...",
+            "Find outliers and anomalies..."
         ];
         // Decorative typing placeholders for when no messages
         this.decorativePlaceholders = [
