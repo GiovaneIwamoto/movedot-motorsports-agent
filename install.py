@@ -96,7 +96,7 @@ LOG_LEVEL=INFO
     print("=" * 60)
     print("Next steps:")
     print("1. Edit .env file and add your OpenAI API key")
-    print("2. Run: ./run_web.sh (Linux/Mac) or run_web.bat (Windows)")
+    print("2. Run: ./scripts/bin/run_web.sh (Linux/Mac) or scripts/bin/run_web.bat (Windows)")
     print("3. Open http://localhost:8000 in your browser")
     print("=" * 60)
 

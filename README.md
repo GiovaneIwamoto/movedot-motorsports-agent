@@ -267,13 +267,13 @@ python install.py
 **Start MCP Servers**:
 
 ```bash
-./run_mcp_openf1.sh
+./scripts/bin/run_mcp_openf1.sh
 ```
 
 **Start Web Interface**:
 
 ```bash
-./run_web.sh
+./scripts/bin/run_web.sh
 # Access at http://localhost:8000
 ```
 
@@ -308,7 +308,7 @@ python main.py -v
 
 ### MCP Server Configuration
 
-Edit `scripts/openf1_server_config.json` to configure MCP servers:
+Edit `scripts/mcp_server_config.json` to configure MCP servers:
 
 ```json
 {
