@@ -9,15 +9,11 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
     # API Keys
-    # Note: OpenAI/Anthropic API keys are configured via web interface and stored in database
-    openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
-    e2b_api_key: Optional[str] = Field(default=None, env="E2B_API_KEY")
+    # Note: OpenAI/Anthropic/E2B API keys are configured via web interface and stored in database
+    # No fallback to environment variables - all keys must be configured in web interface
     langsmith_api_key: Optional[str] = Field(default=None, env="LANGSMITH_API_KEY")
     langsmith_project: str = Field(default="movedot-analytics-agent", env="LANGSMITH_PROJECT")
-    
-    # Model configurations
-    agent_model: str = Field(default="gpt-4o-mini", env="AGENT_MODEL")
-    
+        
     # Temperature settings
     agent_temperature: float = Field(default=0.1, env="AGENT_TEMPERATURE")
     

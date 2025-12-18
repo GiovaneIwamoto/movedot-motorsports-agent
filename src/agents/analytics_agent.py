@@ -104,6 +104,10 @@ class AnalyticsAgentManager:
             )
             logger.info(f"Using user-provided {user_config['provider']} model: {user_config['model']}")
             
+            # Set E2B API key context for tools
+            from ..tools.analysis_tools import set_e2b_api_key_context
+            set_e2b_api_key_context(user_config.get("e2b_api_key"))
+            
             # Get all tools (including MCP tools) - async version
             logger.info("Loading all tools for agent (async)...")
             try:
@@ -182,6 +186,10 @@ class AnalyticsAgentManager:
                 temperature=user_config.get("temperature", 0.0)
             )
             logger.info(f"Using user-provided {user_config['provider']} model: {user_config['model']}")
+            
+            # Set E2B API key context for tools
+            from ..tools.analysis_tools import set_e2b_api_key_context
+            set_e2b_api_key_context(user_config.get("e2b_api_key"))
             
             # Get all tools (including MCP tools if servers are loaded)
             # Note: MCP tools are loaded dynamically, so they may not be available immediately

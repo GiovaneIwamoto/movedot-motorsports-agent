@@ -2728,6 +2728,20 @@ class DataAnalytics {
                         </div>
                     </div>
                     
+                    <div class="settings-row">
+                        <label class="settings-label">E2B API Key <span style="opacity: 0.6; font-size: 0.85em;">(Required - for code execution)</span></label>
+                        <div class="input-wrapper-minimal">
+                            <input 
+                                type="password" 
+                                id="settings-e2b-api-key" 
+                                class="input-minimal" 
+                                placeholder="e2b_..."
+                                value="${currentConfig?.has_e2b_api_key ? '••••••••••••••••' : ''}"
+                                required
+                            >
+                        </div>
+                    </div>
+                    
                     <div class="settings-actions-minimal">
                         ${currentConfig ? `
                         <button id="settings-delete-btn" class="btn-minimal btn-secondary">
@@ -2920,6 +2934,8 @@ class DataAnalytics {
                 const provider = getCurrentProvider();
                 let apiKey = apiKeyInput.value.trim();
                 const model = modelSelect.value;
+                const e2bApiKeyInput = document.getElementById('settings-e2b-api-key');
+                let e2bApiKey = e2bApiKeyInput ? e2bApiKeyInput.value.trim() : '';
                 
                 // If API key field shows placeholder (••••), use saved key
                 if (!apiKey && currentConfig?.has_api_key && apiKeyInput.value === '••••••••••••••••') {
@@ -2946,6 +2962,17 @@ class DataAnalytics {
                     apiKey = ''; // Empty string will trigger using saved key on backend
                 }
                 
+                // If E2B API key is placeholder, send empty string to keep current
+                if (e2bApiKey === '••••••••••••••••') {
+                    e2bApiKey = ''; // Empty string will trigger using saved key on backend
+                }
+                
+                // Validate E2B API key is required (must be provided or already saved)
+                if (!e2bApiKey && !currentConfig?.has_e2b_api_key) {
+                    this.showNotification('E2B API key is required for code execution', 'warning');
+                    return;
+                }
+                
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
                 
@@ -2958,7 +2985,8 @@ class DataAnalytics {
                             provider: provider,
                             api_key: apiKey,
                             model: model,
-                            temperature: 0.0  // Always use lowest temperature
+                            temperature: 0.0,  // Always use lowest temperature
+                            e2b_api_key: e2bApiKey || null  // Required E2B API key
                         })
                     });
                     

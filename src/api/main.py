@@ -108,6 +108,7 @@ class UserApiConfig(BaseModel):
     api_key: Optional[str] = None  # Optional if updating existing config
     model: str
     temperature: Optional[float] = 0.1
+    e2b_api_key: Optional[str] = None  # Required E2B API key for code execution
 
 class DataSource(BaseModel):
     name: str
@@ -400,6 +401,7 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
             "api_key": user_api_config["api_key"],
             "model": user_api_config["model"],
             "temperature": user_api_config["temperature"],
+            "e2b_api_key": user_api_config.get("e2b_api_key"),
             "user_id": user_id,
         }
         
@@ -683,12 +685,33 @@ async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)
             logger.error(f"Error validating API key: {e}")
             raise HTTPException(status_code=400, detail=f"Failed to validate API key: {str(e)}")
         
+        # Handle E2B API key (required, can be placeholder to keep existing)
+        e2b_api_key_to_use = config.e2b_api_key
+        is_e2b_placeholder = (
+            not e2b_api_key_to_use or 
+            e2b_api_key_to_use.startswith('•') or 
+            e2b_api_key_to_use.startswith('\u2022') or 
+            e2b_api_key_to_use.startswith('\u25CF') or
+            all(c in ['•', '\u2022', '\u25CF'] for c in e2b_api_key_to_use) if e2b_api_key_to_use else False
+        )
+        
+        if is_e2b_placeholder and existing_config:
+            e2b_api_key_to_use = existing_config.get("e2b_api_key")
+        
+        # Validate E2B API key is required
+        if not e2b_api_key_to_use:
+            raise HTTPException(
+                status_code=400,
+                detail="E2B API key is required for code execution. Please configure your E2B API key in Settings."
+            )
+        
         upsert_user_api_config(
             user_id=int(user["id"]),
             provider=config.provider.lower(),
             api_key=api_key_to_use,
             model=config.model,
-            temperature=0.0
+            temperature=0.0,
+            e2b_api_key=e2b_api_key_to_use
         )
         
         return {"status": "success", "message": "API configuration saved successfully"}
@@ -710,7 +733,8 @@ async def get_user_api_config_endpoint(user=Depends(current_user)):
                 "provider": config["provider"],
                 "model": config["model"],
                 "temperature": config["temperature"],
-                "has_api_key": bool(config["api_key"])
+                "has_api_key": bool(config["api_key"]),
+                "has_e2b_api_key": bool(config.get("e2b_api_key"))
             }
         return None
     except Exception as e:

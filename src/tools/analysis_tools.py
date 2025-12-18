@@ -14,6 +14,18 @@ from ..services import E2BPythonREPL, get_or_create_e2b_sandbox, cleanup_e2b_san
 
 logger = logging.getLogger(__name__)
 
+# Global context for E2B API key (set per user request)
+_e2b_api_key_context: Optional[str] = None
+
+def set_e2b_api_key_context(e2b_api_key: Optional[str]) -> None:
+    """Set the E2B API key for the current execution context."""
+    global _e2b_api_key_context
+    _e2b_api_key_context = e2b_api_key
+
+def get_e2b_api_key_context() -> Optional[str]:
+    """Get the E2B API key from the current execution context."""
+    return _e2b_api_key_context
+
 
 
 @tool
@@ -53,7 +65,9 @@ def analyze_data_with_pandas(python_code: str, csv_names: Optional[str] = None) 
             return "No valid CSV names available."
         
         try:
-            sandbox, loaded_csvs = get_or_create_e2b_sandbox(csv_list, csv_memory)
+            # Get E2B API key from context (set by agent) - required, no fallback
+            e2b_api_key = get_e2b_api_key_context()
+            sandbox, loaded_csvs = get_or_create_e2b_sandbox(csv_list, csv_memory, e2b_api_key=e2b_api_key)
         except Exception as e:
             logger.error(f"Failed to create E2B sandbox: {e}")
             return f"Sandbox error: {str(e)}"

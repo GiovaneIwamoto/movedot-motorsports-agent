@@ -105,16 +105,21 @@ class E2BPythonREPL:
             return error_msg
 
 
-def get_or_create_e2b_sandbox(csv_list: list, csv_memory):
+def get_or_create_e2b_sandbox(csv_list: list, csv_memory, e2b_api_key: Optional[str] = None):
     """
     Get or create E2B sandbox with CSVs uploaded to filesystem.
     Following E2B best practices: upload files to sandbox filesystem instead of loading in memory.
+    
+    Args:
+        csv_list: List of CSV file names to load
+        csv_memory: CSV memory instance
+        e2b_api_key: E2B API key (from user config). Required - no fallback to environment.
     """
     global _e2b_sandbox, _sandbox_csv_data
     
-    settings = get_settings()
-    if not settings.e2b_api_key:
-        raise ValueError("E2B API key not configured. Please set E2B_API_KEY environment variable.")
+    # E2B API key is required - must be provided by user config
+    if not e2b_api_key:
+        raise ValueError("E2B API key not configured. Please configure your E2B API key in Settings.")
     
     # Import E2B
     try:
@@ -124,7 +129,7 @@ def get_or_create_e2b_sandbox(csv_list: list, csv_memory):
     
     # Set E2B API key as environment variable (E2B reads from env)
     import os
-    os.environ['E2B_API_KEY'] = settings.e2b_api_key
+    os.environ['E2B_API_KEY'] = e2b_api_key
     
     # Get ALL available CSVs from memory, not just the requested ones
     all_available_csvs = csv_memory.list_available_csvs()
@@ -169,6 +174,8 @@ def get_or_create_e2b_sandbox(csv_list: list, csv_memory):
         
         # Create new sandbox with timeout
         logger.info("Creating new E2B sandbox...")
+        from ..config import get_settings
+        settings = get_settings()
         timeout_seconds = settings.e2b_sandbox_timeout
         logger.info(f"E2B sandbox timeout set to {timeout_seconds} seconds ({timeout_seconds // 60} minutes)")
         _e2b_sandbox = Sandbox.create(timeout=timeout_seconds)

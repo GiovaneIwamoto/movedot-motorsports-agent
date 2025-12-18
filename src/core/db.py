@@ -78,11 +78,18 @@ def init_db() -> None:
                 api_key TEXT NOT NULL,
                 model TEXT NOT NULL,
                 temperature REAL DEFAULT 0.1,
+                e2b_api_key TEXT,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
             """
         )
+        # Add e2b_api_key column if it doesn't exist (migration)
+        try:
+            cur.execute("ALTER TABLE user_api_config ADD COLUMN e2b_api_key TEXT")
+        except sqlite3.OperationalError:
+            # Column already exists, ignore
+            pass
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS mcp_servers (
@@ -230,17 +237,17 @@ def delete_user_conversations(user_id: int) -> int:
         return deleted_conversations
 
 
-def upsert_user_api_config(user_id: int, provider: str, api_key: str, model: str, temperature: float = 0.0) -> None:
+def upsert_user_api_config(user_id: int, provider: str, api_key: str, model: str, temperature: float = 0.0, e2b_api_key: Optional[str] = None) -> None:
     """Save or update user's API configuration."""
     now = datetime.utcnow().isoformat()
     with _connect() as conn:
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT OR REPLACE INTO user_api_config (user_id, provider, api_key, model, temperature, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO user_api_config (user_id, provider, api_key, model, temperature, e2b_api_key, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (user_id, provider, api_key, model, temperature, now),
+            (user_id, provider, api_key, model, temperature, e2b_api_key, now),
         )
         conn.commit()
 
@@ -250,7 +257,7 @@ def get_user_api_config(user_id: int) -> Optional[dict]:
     with _connect() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT provider, api_key, model, temperature FROM user_api_config WHERE user_id = ?",
+            "SELECT provider, api_key, model, temperature, e2b_api_key FROM user_api_config WHERE user_id = ?",
             (user_id,),
         )
         row = cur.fetchone()
@@ -260,6 +267,7 @@ def get_user_api_config(user_id: int) -> Optional[dict]:
                 "api_key": row["api_key"],
                 "model": row["model"],
                 "temperature": row["temperature"],
+                "e2b_api_key": row["e2b_api_key"],
             }
         return None
 
