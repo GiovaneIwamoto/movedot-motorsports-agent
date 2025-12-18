@@ -12,4 +12,4 @@ if [ -d "venv" ]; then
 fi
 
 # Run the MCP server
-python -m mcp_servers.openf1.server
+python -m servers.mcp_openf1.server

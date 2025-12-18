@@ -12,16 +12,20 @@ DOCS_DIR = Path(__file__).parent / "docs"
 ENDPOINT_DOCS = {
     "car_data": "prp_car_data.md",
     "drivers": "prp_drivers.md",
-    "sessions": "prp_sessions.md",
-    "meetings": "prp_meetings.md",
-    "laps": "prp_laps.md",
-    "positions": "prp_positions.md",
-    "pit_stops": "prp_pit_stops.md",
     "intervals": "prp_intervals.md",
-    "stints": "prp_stints.md",
-    "weather": "prp_weather.md",
+    "laps": "prp_laps.md",
+    "location": "prp_location.md",
+    "meetings": "prp_meetings.md",
+    "overtakes": "prp_overtakes.md",
+    "pit": "prp_pit.md",
+    "position": "prp_position.md",
     "race_control": "prp_race_control.md",
+    "session_result": "prp_session_result.md",
+    "sessions": "prp_sessions.md",
+    "starting_grid": "prp_starting_grid.md",
+    "stints": "prp_stints.md",
     "team_radio": "prp_team_radio.md",
+    "weather": "prp_weather.md",
 }
 
 
