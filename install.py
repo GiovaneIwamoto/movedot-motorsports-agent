@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Simple installation script for MoveDot Analytics Agent.
+Installation script for MoveDot Analytics Agent.
+Automates the initial setup of the development environment.
 """
 
-import os
 import sys
 import subprocess
 import platform
+import shutil
 from pathlib import Path
 
 def run_command(command, description):
@@ -29,24 +30,38 @@ def main():
     print("MoveDot Data Analytics Agent - Installation")
     print("=" * 60)
     
-    # Check Python version
-    if sys.version_info < (3, 8):
-        print("[ERROR] Python 3.8 or higher is required")
+    # Check Python version (3.9+ as per README)
+    if sys.version_info < (3, 9):
+        print("[ERROR] Python 3.9 or higher is required")
+        print(f"Current version: {sys.version.split()[0]}")
         sys.exit(1)
     
     print(f"[SUCCESS] Python {sys.version.split()[0]} detected")
     
-    # Create virtual environment
-    if not run_command("python3 -m venv venv", "Creating virtual environment"):
-        print("[ERROR] Failed to create virtual environment")
-        sys.exit(1)
+    # Check if virtual environment already exists
+    venv_path = Path("venv")
+    if venv_path.exists():
+        print("[INFO] Virtual environment already exists")
+        response = input("[QUESTION] Recreate virtual environment? (y/N): ").strip().lower()
+        if response == 'y':
+            print("[INFO] Removing existing virtual environment...")
+            shutil.rmtree(venv_path)
+            # Create new virtual environment
+            if not run_command("python3 -m venv venv", "Creating virtual environment"):
+                print("[ERROR] Failed to create virtual environment")
+                sys.exit(1)
+        else:
+            print("[INFO] Using existing virtual environment")
+    else:
+        # Create virtual environment if it doesn't exist
+        if not run_command("python3 -m venv venv", "Creating virtual environment"):
+            print("[ERROR] Failed to create virtual environment")
+            sys.exit(1)
     
-    # Determine activation script based on OS
+    # Determine pip command based on OS
     if platform.system() == "Windows":
-        activate_script = "venv\\Scripts\\activate"
         pip_command = "venv\\Scripts\\pip"
     else:
-        activate_script = "venv/bin/activate"
         pip_command = "venv/bin/pip"
     
     # Install requirements
@@ -60,34 +75,22 @@ def main():
     
     # Create necessary directories
     print("[INFO] Creating directories...")
-    directories = ["data", "plots"]
+    directories = ["data", "plots", "web/static"]
     for directory in directories:
-        Path(directory).mkdir(exist_ok=True)
-        print(f"[SUCCESS] Created {directory}/ directory")
+        Path(directory).mkdir(parents=True, exist_ok=True)
+        print(f"[SUCCESS] Created/verified {directory}/ directory")
     
-    # Create .env file if it doesn't exist
+    # Handle .env file from .env.example
     env_file = Path(".env")
+    env_example = Path(".env.example")
+    
     if not env_file.exists():
-        print("[INFO] Creating .env file...")
-        env_content = """# MoveDot Analytics Agent - Environment Configuration
-
-# OpenAI API Key (Required)
-OPENAI_API_KEY=your-openai-api-key-here
-
-# Data Directory (Optional - defaults to ./data)
-DATA_DIR=./data
-
-# Server Configuration (Optional)
-HOST=0.0.0.0
-PORT=8000
-DEBUG=True
-
-# Logging Level (Optional)
-LOG_LEVEL=INFO
-"""
-        env_file.write_text(env_content)
-        print("[SUCCESS] Created .env file")
-        print("[WARNING] Please edit .env file and add your OpenAI API key")
+        if env_example.exists():
+            print("[INFO] Creating .env file from .env.example...")
+            shutil.copy(env_example, env_file)
+            print("[SUCCESS] Created .env file from .env.example")
+        else:
+            print("[WARNING] .env.example not found - you'll need to create .env manually")
     else:
         print("[SUCCESS] .env file already exists")
     
@@ -95,9 +98,8 @@ LOG_LEVEL=INFO
     print("[SUCCESS] Installation completed successfully!")
     print("=" * 60)
     print("Next steps:")
-    print("1. Edit .env file and add your OpenAI API key")
-    print("2. Run: ./scripts/bin/run_web.sh (Linux/Mac) or scripts/bin/run_web.bat (Windows)")
-    print("3. Open http://localhost:8000 in your browser")
+    print("1. Start web interface: ./scripts/bin/run_web.sh")
+    print("2. Open http://localhost:8000 in your browser")
     print("=" * 60)
 
 if __name__ == "__main__":

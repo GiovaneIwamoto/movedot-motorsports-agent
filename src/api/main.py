@@ -75,7 +75,6 @@ def _validate_dataset_exists(dataset_name: str) -> pd.DataFrame:
 app = FastAPI(
     title="MoveDot Data Analytics Platform",
     description="AI-powered analytics platform for data analysis across multiple sources via MCP",
-    version="2.0.0"
 )
 
 @app.on_event("startup")
