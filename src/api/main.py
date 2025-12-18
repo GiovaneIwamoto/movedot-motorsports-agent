@@ -387,17 +387,21 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
         
         user_id = int(user["id"])
         user_api_config = get_user_api_config(user_id)
-        user_config_dict = None
-        if user_api_config:
-            user_config_dict = {
-                "provider": user_api_config["provider"],
-                "api_key": user_api_config["api_key"],
-                "model": user_api_config["model"],
-                "temperature": user_api_config["temperature"],
-                "user_id": user_id,
-            }
-        else:
-            user_config_dict = {"user_id": user_id}
+        
+        # Require API configuration - no fallback allowed
+        if not user_api_config or not user_api_config.get("api_key"):
+            raise HTTPException(
+                status_code=400,
+                detail="API configuration required. Please configure your API key and model in Settings."
+            )
+        
+        user_config_dict = {
+            "provider": user_api_config["provider"],
+            "api_key": user_api_config["api_key"],
+            "model": user_api_config["model"],
+            "temperature": user_api_config["temperature"],
+            "user_id": user_id,
+        }
         
         async def generate_sse_stream():
             """Generate SSE stream from agent response."""
@@ -497,11 +501,29 @@ async def list_available_models(provider: str, api_key: Optional[str] = None, us
                     timeout=30.0
                 )
                 if response.status_code != 200:
-                    error_detail = response.text[:500] if response.text else "Unknown error"
-                    logger.error(f"OpenAI API error: {response.status_code} - {error_detail}")
+                    # Extract user-friendly error message first
+                    try:
+                        error_json = response.json()
+                        error_code = error_json.get("error", {}).get("code", "")
+                        error_message = error_json.get("error", {}).get("message", "")
+                        
+                        # Log only essential info, not full JSON
+                        if "invalid_api_key" in error_code:
+                            logger.warning(f"OpenAI API: Invalid API key (status {response.status_code})")
+                            user_message = "Invalid API key. Please check your OpenAI API key."
+                        elif error_message:
+                            logger.warning(f"OpenAI API error {response.status_code}: {error_message.split('.')[0]}")
+                            user_message = error_message.split(".")[0] if "." in error_message else error_message
+                        else:
+                            logger.warning(f"OpenAI API error: {response.status_code}")
+                            user_message = "Invalid API key or connection error."
+                    except:
+                        logger.warning(f"OpenAI API error: {response.status_code}")
+                        user_message = "Invalid API key. Please check your OpenAI API key."
+                    
                     raise HTTPException(
-                        status_code=response.status_code, 
-                        detail=f"OpenAI API error: {error_detail}"
+                        status_code=400, 
+                        detail=user_message
                     )
                 data = response.json()
                 models = [
@@ -529,11 +551,28 @@ async def list_available_models(provider: str, api_key: Optional[str] = None, us
                     timeout=30.0
                 )
                 if response.status_code != 200:
-                    error_detail = response.text[:500] if response.text else "Unknown error"
-                    logger.error(f"Anthropic API error: {response.status_code} - {error_detail}")
+                    # Extract user-friendly error message first
+                    try:
+                        error_json = response.json()
+                        error_message = error_json.get("error", {}).get("message", "")
+                        
+                        # Log only essential info, not full JSON
+                        if response.status_code == 401:
+                            logger.warning(f"Anthropic API: Invalid API key (status {response.status_code})")
+                            user_message = "Invalid API key. Please check your Anthropic API key."
+                        elif error_message:
+                            logger.warning(f"Anthropic API error {response.status_code}: {error_message.split('.')[0]}")
+                            user_message = error_message.split(".")[0] if "." in error_message else error_message
+                        else:
+                            logger.warning(f"Anthropic API error: {response.status_code}")
+                            user_message = "Invalid API key or connection error."
+                    except:
+                        logger.warning(f"Anthropic API error: {response.status_code}")
+                        user_message = "Invalid API key. Please check your Anthropic API key."
+                    
                     raise HTTPException(
-                        status_code=response.status_code, 
-                        detail=f"Anthropic API error: {error_detail}"
+                        status_code=400, 
+                        detail=user_message
                     )
                 data = response.json()
                 models = [
@@ -592,9 +631,24 @@ async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)
                         timeout=30.0
                     )
                     if response.status_code != 200:
-                        error_text = response.text[:500] if response.text else "Unknown error"
-                        logger.error(f"OpenAI API validation error: {response.status_code} - {error_text}")
-                        raise HTTPException(status_code=400, detail=f"Invalid OpenAI API key: {error_text}")
+                        # Extract user-friendly error message first
+                        try:
+                            error_json = response.json()
+                            error_code = error_json.get("error", {}).get("code", "")
+                            
+                            # Log only essential info, not full JSON
+                            if "invalid_api_key" in error_code:
+                                logger.warning(f"OpenAI API validation: Invalid API key (status {response.status_code})")
+                                user_message = "Invalid API key. Please check your OpenAI API key."
+                            else:
+                                error_message = error_json.get("error", {}).get("message", "")
+                                logger.warning(f"OpenAI API validation error {response.status_code}: {error_message.split('.')[0] if error_message else 'Unknown error'}")
+                                user_message = error_message.split(".")[0] if error_message and "." in error_message else "Invalid API key."
+                        except:
+                            logger.warning(f"OpenAI API validation error: {response.status_code}")
+                            user_message = "Invalid API key. Please check your OpenAI API key."
+                        
+                        raise HTTPException(status_code=400, detail=user_message)
             elif config.provider.lower() == "anthropic":
                 async with httpx.AsyncClient() as client:
                     response = await client.get(
@@ -606,9 +660,23 @@ async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)
                         timeout=30.0
                     )
                     if response.status_code != 200:
-                        error_text = response.text[:500] if response.text else "Unknown error"
-                        logger.error(f"Anthropic API validation error: {response.status_code} - {error_text}")
-                        raise HTTPException(status_code=400, detail=f"Invalid Anthropic API key: {error_text}")
+                        # Extract user-friendly error message first
+                        try:
+                            error_json = response.json()
+                            error_message = error_json.get("error", {}).get("message", "")
+                            
+                            # Log only essential info, not full JSON
+                            if response.status_code == 401:
+                                logger.warning(f"Anthropic API validation: Invalid API key (status {response.status_code})")
+                                user_message = "Invalid API key. Please check your Anthropic API key."
+                            else:
+                                logger.warning(f"Anthropic API validation error {response.status_code}: {error_message.split('.')[0] if error_message else 'Unknown error'}")
+                                user_message = error_message.split(".")[0] if error_message and "." in error_message else "Invalid API key."
+                        except:
+                            logger.warning(f"Anthropic API validation error: {response.status_code}")
+                            user_message = "Invalid API key. Please check your Anthropic API key."
+                        
+                        raise HTTPException(status_code=400, detail=user_message)
         except HTTPException:
             raise
         except Exception as e:

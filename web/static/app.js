@@ -2838,8 +2838,24 @@ class DataAnalytics {
                 });
                 
                 if (!modelsRes.ok) {
-                    const error = await modelsRes.json();
-                    throw new Error(error.detail || 'Failed to load models. Please check your API key.');
+                    let errorMessage = 'Failed to load models. Please check your API key.';
+                    try {
+                        const error = await modelsRes.json();
+                        errorMessage = error.detail || errorMessage;
+                        // Extract just the main message if it's too long
+                        if (errorMessage.length > 100) {
+                            const firstSentence = errorMessage.split('.')[0];
+                            errorMessage = firstSentence.length > 0 ? firstSentence : errorMessage.substring(0, 100);
+                        }
+                    } catch (e) {
+                        // If response is not JSON, use status-based message
+                        if (modelsRes.status === 401 || modelsRes.status === 403) {
+                            errorMessage = 'Invalid API key. Please check your API key.';
+                        } else if (modelsRes.status === 400) {
+                            errorMessage = 'Invalid API key or configuration.';
+                        }
+                    }
+                    throw new Error(errorMessage);
                 }
                 
                 const data = await modelsRes.json();
@@ -2947,8 +2963,23 @@ class DataAnalytics {
                     });
                     
                     if (!res.ok) {
-                        const error = await res.json();
-                        throw new Error(error.detail || 'Failed to save configuration');
+                        let errorMessage = 'Failed to save configuration.';
+                        try {
+                            const error = await res.json();
+                            errorMessage = error.detail || errorMessage;
+                            // Extract just the main message if it's too long
+                            if (errorMessage.length > 100) {
+                                const firstSentence = errorMessage.split('.')[0];
+                                errorMessage = firstSentence.length > 0 ? firstSentence : errorMessage.substring(0, 100);
+                            }
+                        } catch (e) {
+                            if (res.status === 401 || res.status === 403) {
+                                errorMessage = 'Invalid API key. Please check your API key.';
+                            } else if (res.status === 400) {
+                                errorMessage = 'Invalid API key or configuration.';
+                            }
+                        }
+                        throw new Error(errorMessage);
                     }
                     
                     this.showNotification('Configuration saved successfully', 'success');

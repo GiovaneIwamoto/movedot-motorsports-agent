@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
-from ..config import get_openai_client, get_settings, get_llm_client
+from ..config import get_settings, get_llm_client
 from ..prompt.analytics_agent_prompt import ANALYTICS_AGENT_PROMPT
 
 # Constants
@@ -89,18 +89,20 @@ class AnalyticsAgentManager:
             # Format the prompt with temporal context
             formatted_prompt = ANALYTICS_AGENT_PROMPT.format(current_date=current_date)
             
-            # Use user config if provided, otherwise fallback to global settings
-            if user_config and user_config.get("api_key"):
-                llm = get_llm_client(
-                    provider=user_config.get("provider", "openai"),
-                    api_key=user_config["api_key"],
-                    model=user_config.get("model", "gpt-4o-mini"),
-                    temperature=0.0  # Always use lowest temperature
+            # User config is required - validated by API endpoint before reaching here
+            if not user_config or not user_config.get("api_key"):
+                raise ValueError(
+                    "API configuration is required. "
+                    "Please configure your API key and model in the web interface Settings."
                 )
-                logger.info(f"Using user-provided {user_config.get('provider', 'openai')} model: {user_config.get('model', 'gpt-4o-mini')}")
-            else:
-                llm = get_openai_client()
-                logger.info("Using default OpenAI client")
+            
+            llm = get_llm_client(
+                provider=user_config["provider"],
+                api_key=user_config["api_key"],
+                model=user_config["model"],
+                temperature=user_config.get("temperature", 0.0)
+            )
+            logger.info(f"Using user-provided {user_config['provider']} model: {user_config['model']}")
             
             # Get all tools (including MCP tools) - async version
             logger.info("Loading all tools for agent (async)...")
@@ -166,18 +168,20 @@ class AnalyticsAgentManager:
             # Format the prompt with temporal context
             formatted_prompt = ANALYTICS_AGENT_PROMPT.format(current_date=current_date)
             
-            # Use user config if provided, otherwise fallback to global settings
-            if user_config and user_config.get("api_key"):
-                llm = get_llm_client(
-                    provider=user_config.get("provider", "openai"),
-                    api_key=user_config["api_key"],
-                    model=user_config.get("model", "gpt-4o-mini"),
-                    temperature=0.0  # Always use lowest temperature
+            # User config is required - validated by API endpoint before reaching here
+            if not user_config or not user_config.get("api_key"):
+                raise ValueError(
+                    "API configuration is required. "
+                    "Please configure your API key and model in the web interface Settings."
                 )
-                logger.info(f"Using user-provided {user_config.get('provider', 'openai')} model: {user_config.get('model', 'gpt-4o-mini')}")
-            else:
-                llm = get_openai_client()
-                logger.info("Using default OpenAI client")
+            
+            llm = get_llm_client(
+                provider=user_config["provider"],
+                api_key=user_config["api_key"],
+                model=user_config["model"],
+                temperature=user_config.get("temperature", 0.0)
+            )
+            logger.info(f"Using user-provided {user_config['provider']} model: {user_config['model']}")
             
             # Get all tools (including MCP tools if servers are loaded)
             # Note: MCP tools are loaded dynamically, so they may not be available immediately

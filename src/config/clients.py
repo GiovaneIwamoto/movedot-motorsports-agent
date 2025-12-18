@@ -44,15 +44,25 @@ def get_llm_client(provider: str, api_key: str, model: str, temperature: float =
 
 def get_openai_client() -> ChatOpenAI:
     """
-    Get OpenAI client instance (fallback for backward compatibility).
+    Get OpenAI client instance (fallback when user config is not available).
+    Note: In web interface, API keys are configured per-user via Settings.
+    This fallback should only be used in exceptional cases.
     
     Returns:
         ChatOpenAI client instance
+        
+    Raises:
+        ValueError: If OPENAI_API_KEY is not set in environment
     """
     global _openai_client
     
     if _openai_client is None:
         settings = get_settings()
+        if not settings.openai_api_key:
+            raise ValueError(
+                "OPENAI_API_KEY not set in environment. "
+                "Please configure your API key in the web interface Settings."
+            )
         _openai_client = ChatOpenAI(
             api_key=settings.openai_api_key,
             model=settings.agent_model,
