@@ -1,13 +1,15 @@
 """FastAPI application for the analytics agent web interface."""
 
-import datetime
+import base64
 import json
 import logging
-import sys
+from datetime import datetime
 from io import StringIO
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import urlencode
 
+import httpx
 import pandas as pd
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,23 +17,13 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-SRC_DIR = Path(__file__).resolve().parent.parent
-BASE_DIR = SRC_DIR.parent
-WEB_DIR = BASE_DIR / "web"
-STATIC_DIR = WEB_DIR / "static"
-PROMPT_DIR = SRC_DIR / "prompt"
-
-sys.path.insert(0, str(BASE_DIR))
-
-from src.agents.analytics_agent import (  # noqa: E402
-    reload_analytics_agent,
-    stream_analytics_agent_with_history,
-)
-from src.config.settings import get_settings  # noqa: E402
-from src.core.db import (  # noqa: E402
+from src.config.settings import get_settings
+from src.core.analytics_agent import stream_analytics_agent_with_history
+from src.core.db import (
     add_message,
     create_session,
     delete_session,
+    delete_user_api_config,
     delete_user_conversations,
     ensure_conversation,
     get_messages,
@@ -42,27 +34,75 @@ from src.core.db import (  # noqa: E402
     upsert_user,
     upsert_user_api_config,
 )
-from src.core.memory import get_csv_memory  # noqa: E402
+from src.core.memory import get_csv_memory
 
 logger = logging.getLogger(__name__)
 
+# Paths
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+WEB_DIR = BASE_DIR / "web"
+STATIC_DIR = WEB_DIR / "static"
 
-def _load_dataframe_from_csv(csv_name: str):
+# FastAPI app
+app = FastAPI(
+    title="MoveDot Data Analytics Platform",
+    description="AI-powered analytics platform for data analysis across multiple sources via MCP",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# Pydantic models
+class ChatMessage(BaseModel):
+    message: str
+    conversation_id: Optional[str] = None
+
+
+class UserApiConfig(BaseModel):
+    provider: str
+    api_key: Optional[str] = None
+    model: str
+    temperature: Optional[float] = 0.1
+    e2b_api_key: Optional[str] = None
+
+
+class DataSource(BaseModel):
+    name: str
+    size: int
+    source: str
+
+
+class DataOverview(BaseModel):
+    available_datasets: List[DataSource]
+    total_datasets: int
+
+
+class ConversationCreate(BaseModel):
+    title: Optional[str] = None
+
+
+# Helper functions
+def _load_dataframe_from_csv(csv_name: str) -> Optional[pd.DataFrame]:
     """Load DataFrame from CSV data for API preview/download."""
     csv_memory = get_csv_memory()
     csv_content = csv_memory.get_csv_data(csv_name)
     if csv_content is None:
         return None
-    
     return pd.read_csv(StringIO(csv_content))
+
 
 def _serve_html_page(page_name: str) -> HTMLResponse:
     """Serve HTML page with error handling."""
     html_path = WEB_DIR / f"{page_name}.html"
     if html_path.exists():
         return HTMLResponse(content=html_path.read_text(), media_type="text/html")
-    else:
-        raise HTTPException(status_code=404, detail=f"{page_name.title()} page not found")
+    raise HTTPException(status_code=404, detail=f"{page_name.title()} page not found")
 
 
 def _validate_dataset_exists(dataset_name: str) -> pd.DataFrame:
@@ -72,88 +112,287 @@ def _validate_dataset_exists(dataset_name: str) -> pd.DataFrame:
         raise HTTPException(status_code=404, detail="Dataset not found or empty")
     return df
 
-app = FastAPI(
-    title="MoveDot Data Analytics Platform",
-    description="AI-powered analytics platform for data analysis across multiple sources via MCP",
-)
 
-@app.on_event("startup")
-async def _startup():
-    init_db()
+def _is_placeholder_key(api_key: Optional[str]) -> bool:
+    """Check if API key is a placeholder (bullet points)."""
+    if not api_key:
+        return True
+    placeholder_chars = ['•', '\u2022', '\u25CF']
+    return api_key.startswith(tuple(placeholder_chars)) or all(c in placeholder_chars for c in api_key)
+
+
+def _get_api_key_to_use(
+    provided_key: Optional[str],
+    user_config: Optional[dict],
+    provider: str
+) -> str:
+    """Get API key to use, handling placeholders and validation."""
+    if provided_key and not _is_placeholder_key(provided_key):
+        return provided_key
     
-    from .mcp_routes import router as mcp_router
-    app.include_router(mcp_router)
+    if not user_config:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Please provide an API key or configure your {provider} API key first"
+        )
     
-    try:
-        logger.info("MCP integration initialized. MCP servers will be loaded on-demand per user using langchain-mcp-adapters.")
-    except Exception as e:
-        logger.warning(f"Failed to initialize MCP integration: {e}")
+    if user_config["provider"] != provider.lower():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Your configured provider is {user_config['provider']}, but you requested {provider}"
+        )
+    
+    return user_config["api_key"]
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+async def _validate_openai_key(api_key: str) -> None:
+    """Validate OpenAI API key by making a test request."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://api.openai.com/v1/models",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=30.0
+        )
+        
+        if response.status_code != 200:
+            try:
+                error_json = response.json()
+                error_code = error_json.get("error", {}).get("code", "")
+                error_message = error_json.get("error", {}).get("message", "")
+                
+                if "invalid_api_key" in error_code:
+                    user_message = "Invalid API key. Please check your OpenAI API key."
+                elif error_message:
+                    user_message = error_message.split(".")[0] if "." in error_message else error_message
+                else:
+                    user_message = "Invalid API key or connection error."
+            except Exception:
+                user_message = "Invalid API key. Please check your OpenAI API key."
+            
+            raise HTTPException(status_code=400, detail=user_message)
 
-class ChatMessage(BaseModel):
-    message: str
-    conversation_id: Optional[str] = None
+
+async def _validate_anthropic_key(api_key: str) -> None:
+    """Validate Anthropic API key by making a test request."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://api.anthropic.com/v1/models",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01"
+            },
+            timeout=30.0
+        )
+        
+        if response.status_code != 200:
+            try:
+                error_json = response.json()
+                error_message = error_json.get("error", {}).get("message", "")
+                
+                if response.status_code == 401:
+                    user_message = "Invalid API key. Please check your Anthropic API key."
+                elif error_message:
+                    user_message = error_message.split(".")[0] if "." in error_message else error_message
+                else:
+                    user_message = "Invalid API key or connection error."
+            except Exception:
+                user_message = "Invalid API key. Please check your Anthropic API key."
+            
+            raise HTTPException(status_code=400, detail=user_message)
 
 
-class UserApiConfig(BaseModel):
-    provider: str  # 'openai' or 'anthropic'
-    api_key: Optional[str] = None  # Optional if updating existing config
-    model: str
-    temperature: Optional[float] = 0.1
-    e2b_api_key: Optional[str] = None  # Required E2B API key for code execution
+async def _fetch_openai_models(api_key: str) -> dict:
+    """Fetch available models from OpenAI API."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://api.openai.com/v1/models",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=30.0
+        )
+        
+        if response.status_code != 200:
+            try:
+                error_json = response.json()
+                error_code = error_json.get("error", {}).get("code", "")
+                error_message = error_json.get("error", {}).get("message", "")
+                
+                if "invalid_api_key" in error_code:
+                    user_message = "Invalid API key. Please check your OpenAI API key."
+                elif error_message:
+                    user_message = error_message.split(".")[0] if "." in error_message else error_message
+                else:
+                    user_message = "Invalid API key or connection error."
+            except Exception:
+                user_message = "Invalid API key. Please check your OpenAI API key."
+            
+            raise HTTPException(status_code=400, detail=user_message)
+        
+        data = response.json()
+        models = [
+            {
+                "id": model["id"],
+                "display_name": model["id"],
+                "created": model.get("created"),
+                "owned_by": model.get("owned_by", "openai"),
+            }
+            for model in data.get("data", [])
+            if model.get("id", "").startswith(("gpt-", "o1-")) and "deprecated" not in model.get("id", "").lower()
+        ]
+        models.sort(key=lambda x: x.get("created", 0), reverse=True)
+        return {"provider": "openai", "models": models}
 
-class DataSource(BaseModel):
-    name: str
-    size: int
-    source: str
 
-class DataOverview(BaseModel):
-    available_datasets: List[DataSource]
-    total_datasets: int
+async def _fetch_anthropic_models(api_key: str) -> dict:
+    """Fetch available models from Anthropic API."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://api.anthropic.com/v1/models",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01"
+            },
+            timeout=30.0
+        )
+        
+        if response.status_code != 200:
+            try:
+                error_json = response.json()
+                error_message = error_json.get("error", {}).get("message", "")
+                
+                if response.status_code == 401:
+                    user_message = "Invalid API key. Please check your Anthropic API key."
+                elif error_message:
+                    user_message = error_message.split(".")[0] if "." in error_message else error_message
+                else:
+                    user_message = "Invalid API key or connection error."
+            except Exception:
+                user_message = "Invalid API key. Please check your Anthropic API key."
+            
+            raise HTTPException(status_code=400, detail=user_message)
+        
+        data = response.json()
+        models = [
+            {
+                "id": model["id"],
+                "display_name": model.get("display_name", model["id"]),
+                "created_at": model.get("created_at"),
+                "type": model.get("type", "model"),
+            }
+            for model in data.get("data", [])
+        ]
+        models.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        return {"provider": "anthropic", "models": models}
 
-# Auth & Sessions
 
 def _require_google_config():
+    """Validate Google OAuth configuration."""
     settings = get_settings()
     if not (settings.google_client_id and settings.google_client_secret and settings.google_redirect_uri):
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
     return settings
 
 
-def _set_session_cookie(response: Response, session_id: str):
+def _set_session_cookie(response: Response, session_id: str) -> None:
+    """Set session cookie on response."""
     response.set_cookie(
         key="session_id",
         value=session_id,
         httponly=True,
-        secure=False,  # set True in production behind HTTPS
+        secure=False,
         samesite="lax",
         path="/",
         max_age=7 * 24 * 3600,
     )
 
 
-def current_user(request: Request):
+def current_user(request: Request) -> dict:
+    """Dependency to get current user from session cookie."""
     session_id = request.cookies.get("session_id")
     if not session_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
     user = get_session_user(session_id)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid session")
-    return {"id": int(user["id"]), "email": user["email"], "name": user["name"], "picture": user["picture"]}
+    
+    return {
+        "id": int(user["id"]),
+        "email": user["email"],
+        "name": user["name"],
+        "picture": user["picture"]
+    }
 
 
+def _serve_favicon() -> Response:
+    """Serve favicon with no-cache headers."""
+    favicon_path = STATIC_DIR / "favicon.svg"
+    if favicon_path.exists():
+        return Response(
+            content=favicon_path.read_bytes(),
+            media_type="image/svg+xml",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+                "ETag": '"v6"'
+            }
+        )
+    return Response(status_code=404)
+
+
+# Startup
+@app.on_event("startup")
+async def _startup():
+    """Initialize database and include MCP routes."""
+    init_db()
+    from .mcp_routes import router as mcp_router
+    app.include_router(mcp_router)
+    logger.info("MCP integration initialized")
+
+
+# HTML routes
+@app.get("/")
+async def read_root():
+    """Serve the home page."""
+    return _serve_html_page("home")
+
+
+@app.get("/home.html")
+async def read_home():
+    """Serve the home page."""
+    return _serve_html_page("home")
+
+
+@app.get("/index.html")
+async def read_dashboard():
+    """Serve the dashboard page."""
+    return _serve_html_page("index")
+
+
+@app.get("/data-sources.html")
+async def read_data_sources():
+    """Serve the data sources page."""
+    return _serve_html_page("data-sources")
+
+
+@app.get("/mcp-servers.html")
+async def read_mcp_servers():
+    """Serve the MCP servers management page."""
+    return _serve_html_page("mcp-servers")
+
+
+# Health check
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "service": "analytics-agent"}
+
+
+# Auth routes
 @app.get("/api/auth/login")
 async def auth_login():
+    """Initiate Google OAuth login."""
     settings = _require_google_config()
-    from urllib.parse import urlencode
     params = {
         "client_id": settings.google_client_id,
         "redirect_uri": settings.google_redirect_uri,
@@ -168,13 +407,11 @@ async def auth_login():
 
 
 @app.get("/api/auth/callback")
-async def auth_callback(code: str, state: str = None):
+async def auth_callback(code: str, state: Optional[str] = None):
+    """Handle Google OAuth callback."""
     settings = _require_google_config()
-    import httpx
-    import base64
-    import json
-    
     return_to = "/"
+    
     if state:
         try:
             state_data = json.loads(base64.urlsafe_b64decode(state.encode()).decode())
@@ -198,13 +435,12 @@ async def auth_callback(code: str, state: str = None):
 
     if token_resp.status_code != 200:
         raise HTTPException(status_code=400, detail="Failed to exchange code")
+    
     token_data = token_resp.json()
-
     id_token = token_data.get("id_token")
     if not id_token:
         raise HTTPException(status_code=400, detail="Missing id_token")
 
-    # Validate ID token via tokeninfo
     async with httpx.AsyncClient() as client:
         info_resp = await client.get(
             "https://oauth2.googleapis.com/tokeninfo",
@@ -214,8 +450,8 @@ async def auth_callback(code: str, state: str = None):
 
     if info_resp.status_code != 200:
         raise HTTPException(status_code=400, detail="Invalid id_token")
+    
     user_info = info_resp.json()
-
     google_sub = user_info.get("sub")
     email = user_info.get("email")
     name = user_info.get("name")
@@ -225,7 +461,7 @@ async def auth_callback(code: str, state: str = None):
         raise HTTPException(status_code=400, detail="Invalid Google user")
 
     user_id = upsert_user(google_sub, email, name, picture)
-    session_id = f"sess_{int(datetime.datetime.now().timestamp())}_{google_sub}"
+    session_id = f"sess_{int(datetime.now().timestamp())}_{google_sub}"
     create_session(session_id, user_id)
 
     redirect_url = return_to if return_to and return_to.startswith('/') else "/index.html"
@@ -236,6 +472,7 @@ async def auth_callback(code: str, state: str = None):
 
 @app.post("/api/auth/logout")
 async def auth_logout(request: Request):
+    """Logout user and clear session."""
     session_id = request.cookies.get("session_id")
     if session_id:
         delete_session(session_id)
@@ -245,12 +482,10 @@ async def auth_logout(request: Request):
 
 
 @app.get("/api/auth/me")
-async def auth_me(user=Depends(current_user)):
+async def auth_me(user: dict = Depends(current_user)):
+    """Get current user information."""
     picture = user.get("picture")
-    if picture and isinstance(picture, str) and picture.strip():
-        picture_url = picture.strip()
-    else:
-        picture_url = None
+    picture_url = picture.strip() if picture and isinstance(picture, str) and picture.strip() else None
     
     return {
         "id": user["id"],
@@ -259,40 +494,8 @@ async def auth_me(user=Depends(current_user)):
         "picture": picture_url
     }
 
-@app.get("/")
-async def read_root():
-    """Serve the home page."""
-    try:
-        return _serve_html_page("home")
-    except HTTPException:
-        return {"message": "MoveDot Analytics Agent API", "status": "running"}
 
-@app.get("/home.html")
-async def read_home():
-    """Serve the home page."""
-    return _serve_html_page("home")
-
-@app.get("/index.html")
-async def read_dashboard():
-    """Serve the dashboard page."""
-    return _serve_html_page("index")
-
-@app.get("/data-sources.html")
-async def read_data_sources():
-    """Serve the data sources page."""
-    return _serve_html_page("data-sources")
-
-@app.get("/mcp-servers.html")
-async def read_mcp_servers():
-    """Serve the MCP servers management page."""
-    return _serve_html_page("mcp-servers")
-
-
-@app.get("/api/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "service": "analytics-agent"}
-
+# Data routes
 @app.get("/api/data/overview", response_model=DataOverview)
 async def get_data_overview():
     """Get overview of available data sources."""
@@ -300,57 +503,49 @@ async def get_data_overview():
         csv_memory = get_csv_memory()
         csv_data = csv_memory.load_csv_memory().get("csv_data", {})
         
-        datasets = []
-        for name, data in csv_data.items():
-            datasets.append(DataSource(
+        datasets = [
+            DataSource(
                 name=name,
                 size=data.get("size", 0),
                 source=data.get("source", "unknown")
-            ))
+            )
+            for name, data in csv_data.items()
+        ]
         
         return DataOverview(
             available_datasets=datasets,
             total_datasets=len(datasets)
         )
-        
     except Exception as e:
         logger.error(f"Error getting data overview: {e}")
         return DataOverview(available_datasets=[], total_datasets=0)
+
 
 @app.get("/api/data/preview/{dataset_name}")
 async def get_dataset_preview(dataset_name: str):
     """Get preview of a specific dataset."""
     try:
         df = _validate_dataset_exists(dataset_name)
-        
-        rows = len(df)
-        columns = len(df.columns)
-        
         memory_usage = df.memory_usage(deep=True).sum()
-        size_str = f"{memory_usage / 1024:.1f} KB"
-        
-        preview_df = df.head(15).fillna('N/A')
-        preview_data = preview_df.to_dict('records')
         
         return {
-            "rows": rows,
-            "columns": columns,
-            "size": size_str,
-            "preview": preview_data
+            "rows": len(df),
+            "columns": len(df.columns),
+            "size": f"{memory_usage / 1024:.1f} KB",
+            "preview": df.head(15).fillna('N/A').to_dict('records')
         }
-        
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error getting dataset preview for {dataset_name}: {e}")
         raise HTTPException(status_code=500, detail=f"Error loading dataset: {str(e)}")
 
+
 @app.get("/api/data/download/{dataset_name}")
 async def download_dataset(dataset_name: str):
     """Download a specific dataset as CSV."""
     try:
         df = _validate_dataset_exists(dataset_name)
-        
         csv_content = df.to_csv(index=False)
         
         return Response(
@@ -358,38 +553,32 @@ async def download_dataset(dataset_name: str):
             media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename={dataset_name}"}
         )
-        
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error downloading dataset {dataset_name}: {e}")
         raise HTTPException(status_code=500, detail=f"Error downloading dataset: {str(e)}")
 
+
+# Chat routes
 @app.post("/api/chat/stream")
-async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user)):
+async def stream_chat_with_agent(request: ChatMessage, user: dict = Depends(current_user)):
     """Stream chat with the analytics agent using Server-Sent Events."""
     try:
-        # Ensure conversation exists
-        conv_id = ensure_conversation(user_id=int(user["id"]), conversation_id=request.conversation_id)
+        user_id = int(user["id"])
+        conv_id = ensure_conversation(user_id=user_id, conversation_id=request.conversation_id)
         add_message(conv_id, "user", request.message)
         
         history = get_messages(conv_id, limit=50)
-        
-        messages_history = []
-        for msg in history:
-            role = msg["role"]
-            content = msg["content"]
-            if role == "user":
-                messages_history.append({"role": "user", "content": content})
-            elif role == "assistant":
-                messages_history.append({"role": "assistant", "content": content})
+        messages_history = [
+            {"role": msg["role"], "content": msg["content"]}
+            for msg in history
+            if msg["role"] in ("user", "assistant")
+        ]
         
         config = {"configurable": {"thread_id": str(conv_id)}}
         
-        user_id = int(user["id"])
         user_api_config = get_user_api_config(user_id)
-        
-        # Require API configuration - no fallback allowed
         if not user_api_config or not user_api_config.get("api_key"):
             raise HTTPException(
                 status_code=400,
@@ -403,47 +592,34 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
             "temperature": user_api_config["temperature"],
             "e2b_api_key": user_api_config.get("e2b_api_key"),
             "user_id": user_id,
+            "force_reload_agent": True,
         }
         
         async def generate_sse_stream():
             """Generate SSE stream from agent response."""
-            full_content = ""  # Accumulate all streamed content
-            logger.info(f"Starting SSE stream for conversation {conv_id}")
-            logger.info(f"User message: {request.message[:100]}...")
+            full_content = ""
             try:
                 from ..mcp.loader import ensure_user_mcp_servers_loaded_async
-                logger.info(f"Loading MCP servers for user {user_id} (for agent)...")
-                servers_loaded = await ensure_user_mcp_servers_loaded_async(user_id)
-                if servers_loaded > 0:
-                    logger.info(f"Successfully loaded {servers_loaded} MCP server(s) for agent")
-                else:
-                    logger.warning("No MCP servers loaded for agent - check server configuration")
+                await ensure_user_mcp_servers_loaded_async(user_id)
                 
-                logger.info("Calling stream_analytics_agent_with_history...")
-                final_user_config = user_config_dict.copy() if user_config_dict else {}
-                final_user_config['force_reload_agent'] = True
-                async for event_type, data in stream_analytics_agent_with_history(messages_history, config, final_user_config):
-                    logger.debug(f"SSE event: {event_type}")
+                async for event_type, data in stream_analytics_agent_with_history(
+                    messages_history, config, user_config_dict
+                ):
                     if event_type == "token":
                         content = data.get("content", "") if isinstance(data, dict) else ""
                         full_content += content
-                        yield f"event: token\n"
-                        yield f"data: {json.dumps(data)}\n\n"
+                        yield f"event: token\ndata: {json.dumps(data)}\n\n"
                     elif event_type == "complete":
-                        yield f"event: complete\n"
-                        yield f"data: {json.dumps(data)}\n\n"
+                        yield f"event: complete\ndata: {json.dumps(data)}\n\n"
                         if full_content:
                             add_message(conv_id, "assistant", full_content)
                         break
                     elif event_type == "error":
-                        yield f"event: error\n"
-                        yield f"data: {json.dumps(data)}\n\n"
+                        yield f"event: error\ndata: {json.dumps(data)}\n\n"
                         break
-                        
             except Exception as e:
                 logger.error(f"Error in SSE stream: {e}", exc_info=True)
-                yield f"event: error\n"
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
         
         return StreamingResponse(
             generate_sse_stream(),
@@ -455,143 +631,54 @@ async def stream_chat_with_agent(request: ChatMessage, user=Depends(current_user
                 "Access-Control-Allow-Headers": "Cache-Control"
             }
         )
-        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in SSE chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/chat/conversations")
+async def chat_list_conversations(user: dict = Depends(current_user)):
+    """List all conversations for the current user."""
+    return list_conversations(int(user["id"]))
+
+
+@app.post("/api/chat/conversations")
+async def chat_create_conversation(payload: ConversationCreate, user: dict = Depends(current_user)):
+    """Create a new conversation."""
+    conv_id = ensure_conversation(int(user["id"]), None, title=payload.title)
+    return {"id": conv_id}
+
+
+@app.delete("/api/chat/conversations/clear")
+async def chat_clear_all_conversations(user: dict = Depends(current_user)):
+    """Delete all conversations and messages for the current user."""
+    deleted_count = delete_user_conversations(int(user["id"]))
+    return {"status": "success", "deleted_conversations": deleted_count}
+
+
+@app.get("/api/chat/conversations/{conversation_id}")
+async def chat_get_conversation(conversation_id: str, user: dict = Depends(current_user)):
+    """Get a specific conversation with its messages."""
+    msgs = get_messages(conversation_id)
+    return {"id": conversation_id, "messages": msgs}
+
+
+# Model routes
 @app.get("/api/models/list")
-async def list_available_models(provider: str, api_key: Optional[str] = None, user=Depends(current_user)):
-    """
-    List available models for a provider using the user's API key.
-    
-    Args:
-        provider: 'openai' or 'anthropic'
-        api_key: Optional API key to validate (if not provided, uses saved config)
-    """
+async def list_available_models(provider: str, api_key: Optional[str] = None, user: dict = Depends(current_user)):
+    """List available models for a provider using the user's API key."""
     try:
-        # Check if provided API key is a placeholder (bullet points)
-        is_placeholder = (
-            api_key and (
-                api_key.startswith('•') or 
-                api_key.startswith('\u2022') or 
-                api_key.startswith('\u25CF') or
-                all(c in ['•', '\u2022', '\u25CF'] for c in api_key)
-            )
-        ) if api_key else False
-        
-        if api_key and not is_placeholder:
-            api_key_to_use = api_key
-        else:
-            user_config = get_user_api_config(int(user["id"]))
-            if not user_config:
-                raise HTTPException(status_code=400, detail=f"Please provide an API key or configure your {provider} API key first")
-            
-            if user_config["provider"] != provider.lower():
-                raise HTTPException(status_code=400, detail=f"Your configured provider is {user_config['provider']}, but you requested {provider}")
-            
-            api_key_to_use = user_config["api_key"]
-        
-        import httpx
+        user_config = get_user_api_config(int(user["id"])) if not api_key or _is_placeholder_key(api_key) else None
+        api_key_to_use = _get_api_key_to_use(api_key, user_config, provider)
         
         if provider.lower() == "openai":
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    "https://api.openai.com/v1/models",
-                    headers={"Authorization": f"Bearer {api_key_to_use}"},
-                    timeout=30.0
-                )
-                if response.status_code != 200:
-                    # Extract user-friendly error message first
-                    try:
-                        error_json = response.json()
-                        error_code = error_json.get("error", {}).get("code", "")
-                        error_message = error_json.get("error", {}).get("message", "")
-                        
-                        # Log only essential info, not full JSON
-                        if "invalid_api_key" in error_code:
-                            logger.warning(f"OpenAI API: Invalid API key (status {response.status_code})")
-                            user_message = "Invalid API key. Please check your OpenAI API key."
-                        elif error_message:
-                            logger.warning(f"OpenAI API error {response.status_code}: {error_message.split('.')[0]}")
-                            user_message = error_message.split(".")[0] if "." in error_message else error_message
-                        else:
-                            logger.warning(f"OpenAI API error: {response.status_code}")
-                            user_message = "Invalid API key or connection error."
-                    except:
-                        logger.warning(f"OpenAI API error: {response.status_code}")
-                        user_message = "Invalid API key. Please check your OpenAI API key."
-                    
-                    raise HTTPException(
-                        status_code=400, 
-                        detail=user_message
-                    )
-                data = response.json()
-                models = [
-                    {
-                        "id": model["id"],
-                        "display_name": model["id"],
-                        "created": model.get("created"),
-                        "owned_by": model.get("owned_by", "openai"),
-                    }
-                    for model in data.get("data", [])
-                    if model.get("id", "").startswith(("gpt-", "o1-")) and "deprecated" not in model.get("id", "").lower()
-                ]
-                # Sort by created date (newest first)
-                models.sort(key=lambda x: x.get("created", 0), reverse=True)
-                return {"provider": "openai", "models": models}
-        
+            return await _fetch_openai_models(api_key_to_use)
         elif provider.lower() == "anthropic":
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    "https://api.anthropic.com/v1/models",
-                    headers={
-                        "x-api-key": api_key_to_use,
-                        "anthropic-version": "2023-06-01"
-                    },
-                    timeout=30.0
-                )
-                if response.status_code != 200:
-                    # Extract user-friendly error message first
-                    try:
-                        error_json = response.json()
-                        error_message = error_json.get("error", {}).get("message", "")
-                        
-                        # Log only essential info, not full JSON
-                        if response.status_code == 401:
-                            logger.warning(f"Anthropic API: Invalid API key (status {response.status_code})")
-                            user_message = "Invalid API key. Please check your Anthropic API key."
-                        elif error_message:
-                            logger.warning(f"Anthropic API error {response.status_code}: {error_message.split('.')[0]}")
-                            user_message = error_message.split(".")[0] if "." in error_message else error_message
-                        else:
-                            logger.warning(f"Anthropic API error: {response.status_code}")
-                            user_message = "Invalid API key or connection error."
-                    except:
-                        logger.warning(f"Anthropic API error: {response.status_code}")
-                        user_message = "Invalid API key. Please check your Anthropic API key."
-                    
-                    raise HTTPException(
-                        status_code=400, 
-                        detail=user_message
-                    )
-                data = response.json()
-                models = [
-                    {
-                        "id": model["id"],
-                        "display_name": model.get("display_name", model["id"]),
-                        "created_at": model.get("created_at"),
-                        "type": model.get("type", "model"),
-                    }
-                    for model in data.get("data", [])
-                ]
-                models.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-                return {"provider": "anthropic", "models": models}
-        
+            return await _fetch_anthropic_models(api_key_to_use)
         else:
             raise HTTPException(status_code=400, detail="Provider must be 'openai' or 'anthropic'")
-            
     except HTTPException:
         raise
     except Exception as e:
@@ -599,106 +686,33 @@ async def list_available_models(provider: str, api_key: Optional[str] = None, us
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# User API config routes
 @app.post("/api/user/api-config")
-async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)):
+async def save_user_api_config(config: UserApiConfig, user: dict = Depends(current_user)):
     """Save or update user's API configuration."""
     try:
         if config.provider.lower() not in ["openai", "anthropic"]:
             raise HTTPException(status_code=400, detail="Provider must be 'openai' or 'anthropic'")
         
-        existing_config = get_user_api_config(int(user["id"]))
+        user_id = int(user["id"])
+        existing_config = get_user_api_config(user_id)
+        
         api_key_to_use = config.api_key
-        
-        is_placeholder = (
-            not api_key_to_use or 
-            api_key_to_use.startswith('•') or 
-            api_key_to_use.startswith('\u2022') or 
-            api_key_to_use.startswith('\u25CF') or
-            all(c in ['•', '\u2022', '\u25CF'] for c in api_key_to_use) if api_key_to_use else False
-        )
-        
-        if is_placeholder and existing_config:
+        if _is_placeholder_key(api_key_to_use) and existing_config:
             api_key_to_use = existing_config["api_key"]
         
         if not api_key_to_use:
             raise HTTPException(status_code=400, detail="API key is required")
         
-        import httpx
-        try:
-            if config.provider.lower() == "openai":
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(
-                        "https://api.openai.com/v1/models",
-                        headers={"Authorization": f"Bearer {api_key_to_use}"},
-                        timeout=30.0
-                    )
-                    if response.status_code != 200:
-                        # Extract user-friendly error message first
-                        try:
-                            error_json = response.json()
-                            error_code = error_json.get("error", {}).get("code", "")
-                            
-                            # Log only essential info, not full JSON
-                            if "invalid_api_key" in error_code:
-                                logger.warning(f"OpenAI API validation: Invalid API key (status {response.status_code})")
-                                user_message = "Invalid API key. Please check your OpenAI API key."
-                            else:
-                                error_message = error_json.get("error", {}).get("message", "")
-                                logger.warning(f"OpenAI API validation error {response.status_code}: {error_message.split('.')[0] if error_message else 'Unknown error'}")
-                                user_message = error_message.split(".")[0] if error_message and "." in error_message else "Invalid API key."
-                        except:
-                            logger.warning(f"OpenAI API validation error: {response.status_code}")
-                            user_message = "Invalid API key. Please check your OpenAI API key."
-                        
-                        raise HTTPException(status_code=400, detail=user_message)
-            elif config.provider.lower() == "anthropic":
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(
-                        "https://api.anthropic.com/v1/models",
-                        headers={
-                            "x-api-key": api_key_to_use,
-                            "anthropic-version": "2023-06-01"
-                        },
-                        timeout=30.0
-                    )
-                    if response.status_code != 200:
-                        # Extract user-friendly error message first
-                        try:
-                            error_json = response.json()
-                            error_message = error_json.get("error", {}).get("message", "")
-                            
-                            # Log only essential info, not full JSON
-                            if response.status_code == 401:
-                                logger.warning(f"Anthropic API validation: Invalid API key (status {response.status_code})")
-                                user_message = "Invalid API key. Please check your Anthropic API key."
-                            else:
-                                logger.warning(f"Anthropic API validation error {response.status_code}: {error_message.split('.')[0] if error_message else 'Unknown error'}")
-                                user_message = error_message.split(".")[0] if error_message and "." in error_message else "Invalid API key."
-                        except:
-                            logger.warning(f"Anthropic API validation error: {response.status_code}")
-                            user_message = "Invalid API key. Please check your Anthropic API key."
-                        
-                        raise HTTPException(status_code=400, detail=user_message)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Error validating API key: {e}")
-            raise HTTPException(status_code=400, detail=f"Failed to validate API key: {str(e)}")
+        if config.provider.lower() == "openai":
+            await _validate_openai_key(api_key_to_use)
+        elif config.provider.lower() == "anthropic":
+            await _validate_anthropic_key(api_key_to_use)
         
-        # Handle E2B API key (required, can be placeholder to keep existing)
         e2b_api_key_to_use = config.e2b_api_key
-        is_e2b_placeholder = (
-            not e2b_api_key_to_use or 
-            e2b_api_key_to_use.startswith('•') or 
-            e2b_api_key_to_use.startswith('\u2022') or 
-            e2b_api_key_to_use.startswith('\u25CF') or
-            all(c in ['•', '\u2022', '\u25CF'] for c in e2b_api_key_to_use) if e2b_api_key_to_use else False
-        )
-        
-        if is_e2b_placeholder and existing_config:
+        if _is_placeholder_key(e2b_api_key_to_use) and existing_config:
             e2b_api_key_to_use = existing_config.get("e2b_api_key")
         
-        # Validate E2B API key is required
         if not e2b_api_key_to_use:
             raise HTTPException(
                 status_code=400,
@@ -706,7 +720,7 @@ async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)
             )
         
         upsert_user_api_config(
-            user_id=int(user["id"]),
+            user_id=user_id,
             provider=config.provider.lower(),
             api_key=api_key_to_use,
             model=config.model,
@@ -715,7 +729,6 @@ async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)
         )
         
         return {"status": "success", "message": "API configuration saved successfully"}
-        
     except HTTPException:
         raise
     except Exception as e:
@@ -724,7 +737,7 @@ async def save_user_api_config(config: UserApiConfig, user=Depends(current_user)
 
 
 @app.get("/api/user/api-config")
-async def get_user_api_config_endpoint(user=Depends(current_user)):
+async def get_user_api_config_endpoint(user: dict = Depends(current_user)):
     """Get user's API configuration (without exposing the API key)."""
     try:
         config = get_user_api_config(int(user["id"]))
@@ -743,87 +756,32 @@ async def get_user_api_config_endpoint(user=Depends(current_user)):
 
 
 @app.delete("/api/user/api-config")
-async def delete_user_api_config_endpoint(user=Depends(current_user)):
+async def delete_user_api_config_endpoint(user: dict = Depends(current_user)):
     """Delete user's API configuration."""
     try:
-        from src.core.db import delete_user_api_config as db_delete_user_api_config
-        db_delete_user_api_config(int(user["id"]))
+        delete_user_api_config(int(user["id"]))
         return {"status": "success", "message": "API configuration deleted"}
     except Exception as e:
         logger.error(f"Error deleting API config: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Chat History APIs
-
-class ConversationCreate(BaseModel):
-    title: Optional[str] = None
-
-
-@app.get("/api/chat/conversations")
-async def chat_list_conversations(user=Depends(current_user)):
-    return list_conversations(int(user["id"]))
-
-
-@app.post("/api/chat/conversations")
-async def chat_create_conversation(payload: ConversationCreate, user=Depends(current_user)):
-    conv_id = ensure_conversation(int(user["id"]), None, title=payload.title)
-    return {"id": conv_id}
-
-
-@app.delete("/api/chat/conversations/clear")
-async def chat_clear_all_conversations(user=Depends(current_user)):
-    """Delete all conversations and messages for the current user."""
-    deleted_count = delete_user_conversations(int(user["id"]))
-    return {"status": "success", "deleted_conversations": deleted_count}
-
-
-@app.get("/api/chat/conversations/{conversation_id}")
-async def chat_get_conversation(conversation_id: str, user=Depends(current_user)):
-    # Listing messages implies the conversation belongs to the user; ensure it exists
-    msgs = get_messages(conversation_id)
-    return {"id": conversation_id, "messages": msgs}
-
-# Favicon endpoint - force no cache
+# Static files
 @app.get("/favicon.ico")
 async def favicon_ico():
-    """Serve favicon.ico (SVG) with no-cache headers."""
-    favicon_path = STATIC_DIR / "favicon.svg"
-    if favicon_path.exists():
-        content = favicon_path.read_bytes()
-        return Response(
-            content=content,
-            media_type="image/svg+xml",
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-                "Pragma": "no-cache",
-                "Expires": "0",
-                "ETag": '"v6"'
-            }
-        )
-    return Response(status_code=404)
+    """Serve favicon.ico with no-cache headers."""
+    return _serve_favicon()
+
 
 @app.get("/static/favicon.svg")
 async def favicon_svg():
     """Serve favicon.svg with no-cache headers."""
-    favicon_path = STATIC_DIR / "favicon.svg"
-    if favicon_path.exists():
-        content = favicon_path.read_bytes()
-        return Response(
-            content=content,
-            media_type="image/svg+xml",
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-                "Pragma": "no-cache",
-                "Expires": "0",
-                "ETag": '"v6"'
-            }
-        )
-    return Response(status_code=404)
+    return _serve_favicon()
 
-# Mount static files
+
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 
 if __name__ == "__main__":
     import uvicorn

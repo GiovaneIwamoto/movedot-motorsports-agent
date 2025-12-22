@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/mcp", tags=["mcp"])
 
 
+# Pydantic models
 class MCPServerCreate(BaseModel):
     name: str
     server_type: str
@@ -62,29 +63,31 @@ class MCPServerStatusResponse(MCPServerResponse):
     is_connected: bool
 
 
+# Helper functions
 def get_mcp_manager() -> MCPManager:
     """Get the global MCP manager instance."""
     from ..mcp import get_global_mcp_manager
     return get_global_mcp_manager()
 
 
-def current_user(request: Request):
+def current_user(request: Request) -> dict:
     """Dependency to get current user from session cookie."""
     session_id = request.cookies.get("session_id")
     if not session_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
     user = get_session_user(session_id)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid session")
+    
     return {"id": int(user["id"]), "email": user["email"], "name": user["name"]}
 
 
-async def ensure_user_servers_connected(user_id: int):
+async def ensure_user_servers_connected(user_id: int) -> None:
     """Ensure all enabled MCP servers for a user are connected in MCPManager."""
     mcp_manager = get_mcp_manager()
     enabled_servers = list_mcp_servers(user_id, enabled_only=True)
     
-    # Connect all enabled servers that aren't already connected
     for server in enabled_servers:
         existing_client = await mcp_manager.get_client(server["id"])
         
@@ -107,7 +110,6 @@ async def ensure_user_servers_connected(user_id: int):
             if success:
                 logger.info(f"Connected MCP server: {server['name']} ({server['id']})")
     
-    # Disconnect servers that are disabled
     connected_clients = await mcp_manager.list_clients()
     connected_server_ids = {client.server_id for client in connected_clients}
     enabled_server_ids = {server["id"] for server in enabled_servers}
@@ -118,18 +120,16 @@ async def ensure_user_servers_connected(user_id: int):
             logger.info(f"Disconnected MCP server: {server_id}")
 
 
+# Routes
 @router.get("/servers", response_model=List[MCPServerStatusResponse])
 async def list_servers(user: dict = Depends(current_user)):
     """List all MCP servers with their connection status."""
     user_id = user["id"]
-    
-    # Ensure enabled servers are connected
     await ensure_user_servers_connected(user_id)
     
     servers = list_mcp_servers(user_id)
     mcp_manager = get_mcp_manager()
     
-    # Check connection status for each server
     servers_with_status = []
     for server in servers:
         client = await mcp_manager.get_client(server["id"])
@@ -146,7 +146,6 @@ async def list_servers(user: dict = Depends(current_user)):
 @router.get("/servers/status", response_model=List[MCPServerStatusResponse])
 async def list_servers_status(user: dict = Depends(current_user)):
     """List all MCP servers with their connection status (alias for /servers)."""
-    # Delegate to list_servers to avoid code duplication
     return await list_servers(user)
 
 
@@ -173,7 +172,6 @@ async def create_server(
             enabled=server_data.enabled,
         )
         
-        # Ensure enabled servers are connected
         await ensure_user_servers_connected(user_id)
         
         server = get_mcp_server(server_id, user_id)
@@ -181,7 +179,6 @@ async def create_server(
             raise HTTPException(status_code=500, detail="Failed to create server")
         
         return server
-        
     except Exception as e:
         logger.error(f"Error creating MCP server: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -225,7 +222,6 @@ async def update_server(
             enabled=server_data.enabled,
         )
         
-        # Ensure enabled servers are connected (will reconnect if config changed)
         await ensure_user_servers_connected(user_id)
         
         updated = get_mcp_server(server_id, user_id)
@@ -233,7 +229,6 @@ async def update_server(
             raise HTTPException(status_code=500, detail="Failed to update server")
         
         return updated
-        
     except Exception as e:
         logger.error(f"Error updating MCP server: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -272,12 +267,10 @@ async def connect_server(
     try:
         mcp_manager = get_mcp_manager()
         
-        # Remove existing client if it exists
         existing_client = await mcp_manager.get_client(server_id)
         if existing_client:
             await mcp_manager.remove_client(server_id)
         
-        # Create and connect new client
         client = MCPClient(
             server_id=server_id,
             server_type=server["server_type"],
@@ -319,7 +312,6 @@ async def list_server_tools(
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
     
-    # Ensure enabled servers are connected
     await ensure_user_servers_connected(user_id)
     
     mcp_manager = get_mcp_manager()
@@ -361,7 +353,6 @@ async def list_server_resources(
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
     
-    # Ensure enabled servers are connected
     await ensure_user_servers_connected(user_id)
     
     mcp_manager = get_mcp_manager()

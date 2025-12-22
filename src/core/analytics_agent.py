@@ -377,7 +377,6 @@ async def stream_analytics_agent_with_history(messages_history: list, config: Op
         logger.error(f"Failed to stream analytics agent with history: {str(e)}", exc_info=True)
         yield ("error", {"error": f"Agent streaming failed: {str(e)}"})
 
-
 def process_message(message: str, config: Optional[Dict[str, Any]] = None) -> str:
     """
     Process a message using the analytics agent.
@@ -407,3 +406,4 @@ def process_message(message: str, config: Optional[Dict[str, Any]] = None) -> st
     except Exception as e:
         logger.error(f"Unexpected error processing message: {str(e)}")
         return f"Unexpected error processing your request: {str(e)}"
+
