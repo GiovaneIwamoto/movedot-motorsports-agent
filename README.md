@@ -6,47 +6,98 @@
 
 ## **OVERVIEW**
 
-AI Agent for Data Analysts—a documentation-driven platform that autonomously discovers data sources through MCP servers, constructs API queries from schema analysis, and executes sophisticated data analysis in isolated Python sandboxes. Deliver production-grade insights through conversational interaction.
+![LangChain](https://img.shields.io/badge/langchain-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)
 
-A ReAct orchestrator discovers your data landscape and builds domain knowledge from documentation, then delegates to specialized agents—an Analysis Agent for data fetching and transformation, a CodeAct Agent for autonomous code generation and execution in isolated sandboxes. Full observability across every reasoning step and action.
+**AI Agent for Data Analysts**—a documentation-driven platform that learns how to fetch data from URLs and external data sources by reading documentation provided through *Model Context Protocol* servers. The agent autonomously discovers available data sources, reads MCP resources to understand data domains and API endpoint structures, then invokes appropriate fetch tools to retrieve and analyze data.
 
-## Platform Capabilities
+> [!NOTE]
+> **How It Works**: MCP servers serve as documentation sources that teach the agent about data domains—explaining entity relationships, API endpoint formats, URL structures, and required parameters. The agent reads these MCP resources to learn how to construct valid API calls, then uses its `fetch_api_data` tool to retrieve data from the actual endpoints. 
 
-**Documentation-First Discovery**: Reads MCP resources (documentation) from MCP servers to understand data domains, entity relationships, and API endpoint structures before fetching data.
+This documentation-first approach ensures the agent understands both how to access data (URL construction, parameter formats) and how data is structured (entity schemas, relationships) before attempting to fetch it.
 
-**MCP Integration**: Connect any data source through Model Context Protocol servers. Each MCP server provides documentation resources that teach the agent about your data domain.
+A **ReAct orchestrator** discovers your data landscape and builds domain knowledge from documentation, then delegates to specialized agents—an **Analysis Agent** for data fetching and transformation, a **CodeAct Agent** for autonomous code generation and execution in isolated sandboxes. Full observability across every reasoning step and action.
 
-**Smart Data Fetching**: Constructs complete API URLs based on documentation understanding. Automatically converts JSON responses to CSV and caches data for efficient reuse.
+---
 
-**Secure Sandbox Execution**: Executes Python analysis in isolated E2B sandboxes with pandas, numpy, matplotlib, and seaborn pre-installed. CSV files automatically mounted for instant access.
+## **PLATFORM CAPABILITIES** 
 
-**Natural Language Interface**: Ask questions in plain English. The agent orchestrates multiple tools, reads documentation, fetches data, writes Python code, and presents insights—all conversationally.
+> Documentation-First Discovery:
 
-**Technical Stack**: LangGraph ReAct agent with conversational memory, FastAPI with SSE streaming, persistent CSV memory, MCP client management, LangSmith integration for observability.
+MCP servers provide documentation resources (not data directly) that teach the agent about your data domain. The agent reads these resources to learn endpoint structures, URL formats, entity relationships, and parameter requirements before constructing API calls.
 
-## Data Sources
+> MCP as Documentation Source: 
 
-The included OpenF1 MCP server demonstrates capabilities with 12 documented endpoints: Meetings, Sessions, Drivers, Car Data, Laps, Positions, Pit Stops, Intervals, Stints, Weather, Race Control, Team Radio.
+Each MCP server exposes documentation resources that serve as the agent's knowledge base. These resources explain how to access data (base URLs, endpoint paths, query parameters) and how data is structured (entity schemas, relationships, data types). The agent must read this documentation before fetching data to ensure correct URL construction and parameter usage.
 
-Each endpoint includes MCP resources with schemas, query parameters, examples, and use cases. To add new sources: create an MCP server with resource endpoints, define MCP resources, register in configuration.
+> Autonomous Data Fetching: 
 
-## Installation
+After learning from MCP resources, the agent constructs complete API URLs and invokes its `fetch_api_data` tool to retrieve data from external endpoints. Automatically converts JSON responses to CSV format and caches data for efficient reuse across analysis sessions.
 
-**Prerequisites**: Python 3.9+, Git
+> Secure Sandbox Execution:
 
-**Setup**:
-```bash
+Executes Python analysis in isolated E2B sandboxes with pandas, numpy, matplotlib, and seaborn pre-installed. CSV files automatically mounted for instant access.
+
+> Natural Language Interface:
+
+Ask questions in plain English. The agent orchestrates multiple tools, reads documentation, fetches data, writes Python code, and presents insights—all conversationally.
+
+> Technical Stack: 
+
+LangGraph ReAct agent with conversational memory, FastAPI with SSE streaming, persistent CSV memory, MCP client management, LangSmith integration for observability.
+
+---
+
+## **DATA SOURCES**
+
+For testing and demonstration purposes, we've created an `OpenF1` MCP server that connects to the MCP client and exposes documentation resources covering *Formula 1* data endpoints. Each resource teaches the agent about endpoint structures, query parameters, entity schemas, and data relationships.
+
+| Resource | Description |
+|----------|-------------|
+| **Meetings** | Info about GrandPrix or testing weekends including circuit details, location, and dates |
+| **Sessions** | Distinct periods of track activity (practice, qualifying, sprint, race) within a meeting |
+| **Drivers** | Driver information for each session, including names, team details, and driver numbers |
+| **Car Data** | Telemetry data including speed, throttle, brake, gear, RPM, and DRS status |
+| **Laps** | Detailed lap information including sector times, speeds, lap numbers, and segment data |
+| **Position** | Driver positions throughout a session, tracking position changes over time |
+| **Pit** | Pit stop information including duration, timing, and pit lane activity |
+| **Intervals** | Gap times between drivers, showing relative performance and positioning |
+| **Stints** | Tire stint information and strategy data for race analysis |
+| **Weather** | Track weather conditions updated approximately every minute during sessions |
+| **Race Control** | Flags, safety car periods, and race control messages during sessions |
+| **Team Radio** | Radio communications between drivers and teams during sessions |
+| **Session Result** | Final results and classifications for completed sessions |
+| **Starting Grid** | Starting positions and grid lineup information for race sessions |
+| **Overtakes** | Overtaking events and position changes during sessions |
+| **Location** | Circuit location and geographical data for meetings |
+
+Each resource includes complete documentation with endpoint URLs, query parameters, response schemas, examples, and use cases that enable the agent to construct valid API calls and understand data structures.
+
+> [!WARNING]
+> The OpenF1 server is provided as a demonstration. Users of this platform should develop their own MCP servers that expose documentation resources for their specific data sources. These MCP servers serve as knowledge bases that teach the agent about your data domain, enabling autonomous discovery and intelligent data fetching. 
+
+---
+
+## **INSTALLATION**
+
+Install dependencies and set up the platform:
+
+```ruby
 pip install -r requirements.txt
 python install.py
 ```
 
-**Start Services**:
-```bash
+Start servers and web interface:
+
+```ruby
 ./scripts/bin/run_mcp_openf1.sh  # MCP servers
-./scripts/bin/run_web.sh         # Web interface (http://localhost:8000)
+./scripts/bin/run_web.sh         # Web interface
 ```
 
-**Configuration**: API keys (OpenAI/Anthropic/E2B) can be configured via web interface. Optional env vars: `OPENAI_API_KEY`, `E2B_API_KEY`, `ANTHROPIC_API_KEY`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, `E2B_SANDBOX_TIMEOUT` (default: 300), `DATA_DIR` (default: ./data), `LOG_LEVEL` (default: INFO).
+> [!CAUTION]
+> Configure API keys according to `.env.example` you'll need to obtain API keys from:
+> - *E2B Sandbox*: For secure Python sandbox execution
+> - *Google OAuth*: For user authentication
+> - *LangSmith*: For observability and evaluations
 
 **MCP Server Config**: Edit `scripts/mcp_server_config.json`:
 ```json
@@ -58,37 +109,45 @@ python install.py
 }
 ```
 
+---
 
-## Technical Details
+## **EXTENDING THE PLATFORM** 
 
-**Agent Prompt**: System prompt includes role definition, MCP architecture context, workflow guidelines, safety constraints, and Markdown formatting standards.
+![Claude](https://img.shields.io/badge/Claude-D97757?style=for-the-badge&logo=claude&logoColor=white)
 
-**MCP Integration**: MCP resources describe data domains, tools are auto-converted to LangChain tools.
+The platform provides production-ready infrastructure—tool orchestration, prompt engineering, conversational memory, secure code execution, and behavior constraints are all handled. Focus on building your custom tools and connecting your data sources, not on infrastructure.
 
-**E2B Sandboxes**: Files uploaded to `/data/`, configurable timeouts, automatic cleanup, plots saved to `plots/`, pre-installed data science libraries.
+> **ADDING CUSTOM TOOLS**
 
-**Adding Tools**: Create tool in `src/tools/` with `@tool` decorator, register in `src/tools/__init__.py`.
+Create custom tools in `src/tools/` using the `@tool` decorator from LangChain:
 
-**Adding MCP Servers**: Create server directory with `server.py`, `resources.py`, and `docs/` folder with MCP resources. Implement MCP protocol with `list_resources()` and `read_resource()` handlers.
+```python
+from langchain_core.tools import tool
 
-## Limitations
+@tool
+def my_custom_tool(param: str) -> str:
+    """Tool description for the agent."""
+    # Your implementation
+    return result
+```
 
-- E2B sandbox timeouts may interrupt long analyses
-- MCP servers must start before web interface
-- No built-in multi-user authentication
-- Local plot storage (not centralized)
-- File-based CSV memory (not for very large datasets)
+> [!TIP]
+> Register your tool in `src/tools/` by adding it to the appropriate tool list. The agent automatically discovers and uses all registered tools.
 
-**Security**: API keys in env vars, E2B isolation with execution costs, no rate limiting, user code executed in sandboxes, CORS enabled for local dev.
+> **CONNECTING DATA SOURCES**
 
-**Performance**: CSV caching, sandbox reuse, streaming responses, memory cache, async MCP operations.
+Create an MCP server to expose your data sources as documentation resources:
 
-## Troubleshooting
+1. **Create MCP Server**: Set up a server directory with `server.py`, `resources.py`, and a `docs/` folder containing MCP resources (documentation files).
 
-- **Agent not responding**: Check MCP servers running, verify API keys, check logs, ensure E2B quota
-- **Data not fetching**: Verify MCP resources accessible, check MCP resource endpoint URLs, validate network
-- **Sandbox errors**: Check E2B config in Settings, verify timeout, check Python syntax, verify quota
-- **MCP connection issues**: Ensure server process running, check JSON config, verify Python path/imports
+2. **Define Resources**: Each resource documents a data endpoint—explaining entity schemas, URL structures, query parameters, and entity relationships.
+
+3. **Register Server**: Add your MCP server configuration to `scripts/mcp_server_config.json`.
+
+4. **Agent Discovery**: The agent automatically discovers your MCP server, reads its resources to learn about your data domain, and uses that knowledge to construct API calls and fetch data.
+
+> [!IMPORTANT]
+> The agent learns from your MCP resources how to access your data sources, then invokes its `fetch_api_data` tool to retrieve actual data. Focus on documenting your data sources well—the agent handles the rest.
 
 ---
 
