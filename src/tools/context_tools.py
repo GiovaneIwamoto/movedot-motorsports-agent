@@ -9,9 +9,9 @@ from typing import Dict, Any, Optional, List
 import httpx
 from langchain_core.tools import tool, StructuredTool
 
-from ..core import get_csv_memory
+from ..services.memory import get_csv_memory
 from ..utils import generate_csv_name
-from ..mcp.langchain_adapter import get_global_mcp_client, get_mcp_server_names
+from ..mcp.adapter import get_global_mcp_client, get_mcp_server_names
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +223,7 @@ def fetch_api_data(url: str) -> str:
                 response.text.count(',') > response.text.count('{')
             ):
                 csv_memory.store_csv_data(csv_name, response.text, "API")
-                return f"✓ CSV data stored as '{csv_name}'. Dataset is ready for analysis."
+                return f"CSV data stored as '{csv_name}'. Dataset is ready for analysis."
             
             # Handle JSON content
             if content_type.startswith('application/json'):
@@ -240,11 +240,17 @@ def fetch_api_data(url: str) -> str:
                             
                             # Count rows for user feedback
                             row_count = len(data) if isinstance(data, list) else 1
-                            return f"✓ JSON data converted to CSV and stored as '{csv_name}'. Dataset contains {row_count} records and is ready for analysis."
+                            return (
+                                f"JSON data converted to CSV and stored as '{csv_name}'. "
+                                f"Dataset contains {row_count} records and is ready for analysis."
+                            )
                         else:
                             # Couldn't convert to CSV, return JSON
                             logger.warning(f"Could not convert JSON to CSV for {url}")
-                            return f"⚠ Received JSON data but could not convert to CSV format:\n{json.dumps(data, indent=2)[:500]}..."
+                            return (
+                                "Received JSON data but could not convert to CSV format:\n"
+                                f"{json.dumps(data, indent=2)[:500]}..."
+                            )
                     else:
                         # Not a list or dict, just return the JSON
                         return f"Received non-tabular JSON data:\n{json.dumps(data, indent=2)}"

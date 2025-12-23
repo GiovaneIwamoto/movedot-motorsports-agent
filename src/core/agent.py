@@ -9,7 +9,7 @@ from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import get_settings, get_llm_client
-from ..prompt.analytics_agent_prompt import ANALYTICS_AGENT_PROMPT
+from ..prompt.agent_prompt import ANALYTICS_AGENT_PROMPT
 
 # Constants
 DEFAULT_RECURSION_LIMIT = 50
@@ -156,15 +156,9 @@ class AnalyticsAgentManager:
         
         if self._agent is None or force_reload or config_changed:
             from ..tools import get_all_tools
-            from ..mcp.loader import ensure_user_mcp_servers_loaded
-            
-            # Setup LangSmith tracing
+
+            # Setup LangSmith tracing for observability
             self._setup_langsmith_tracing()
-            
-            # NOTE: MCP servers should be loaded BEFORE calling get_agent()
-            # They are loaded in the API endpoint (stream_chat_with_agent) in async context
-            # This ensures they use the same event loop as the FastAPI application
-            # Following MCP SDK best practices - no manual loop management
             
             # Get current date for temporal context
             current_date = datetime.now().strftime("%Y-%m-%d")

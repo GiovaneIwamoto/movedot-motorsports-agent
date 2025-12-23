@@ -18,8 +18,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.config.settings import get_settings
-from src.core.analytics_agent import stream_analytics_agent_with_history
-from src.core.db import (
+from src.core.agent import stream_analytics_agent_with_history
+from src.repositories import (
     add_message,
     create_session,
     delete_session,
@@ -34,7 +34,7 @@ from src.core.db import (
     upsert_user,
     upsert_user_api_config,
 )
-from src.core.memory import get_csv_memory
+from src.services.memory import get_csv_memory
 
 logger = logging.getLogger(__name__)
 

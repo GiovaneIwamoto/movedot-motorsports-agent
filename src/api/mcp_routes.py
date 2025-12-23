@@ -7,11 +7,11 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from ..core.db import get_session_user
-from ..core.mcp_servers import (
+from ..repositories import (
     create_mcp_server,
     delete_mcp_server,
     get_mcp_server,
+    get_session_user,
     list_mcp_servers,
     update_mcp_server,
 )

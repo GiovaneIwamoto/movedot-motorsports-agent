@@ -1,6 +1,6 @@
-"""MCP client for API management endpoints (mcp_routes.py).
+"""MCP client for API management endpoints.
 
-Note: For agent tool integration, use langchain-mcp-adapters via langchain_adapter.py
+Note: For agent tool integration, use langchain-mcp-adapters via adapter.py
 """
 
 import logging
@@ -12,6 +12,19 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_text_from_content(content: List[Any]) -> str:
+    """Extract text from MCP content items."""
+    text_parts = []
+    for item in content:
+        if hasattr(item, 'text'):
+            text_parts.append(item.text)
+        elif isinstance(item, dict) and 'text' in item:
+            text_parts.append(item['text'])
+        elif isinstance(item, str):
+            text_parts.append(item)
+    return "\n".join(text_parts) if text_parts else ""
 
 
 class MCPClient:
@@ -61,7 +74,7 @@ class MCPClient:
             return False
     
     async def _connect_stdio(self) -> bool:
-        """Connect via stdio."""
+        """Connect via stdio transport."""
         try:
             server_params = StdioServerParameters(
                 command=self.command or "python",
@@ -96,7 +109,7 @@ class MCPClient:
             return False
     
     async def _cleanup_resources(self):
-        """Cleanup resources."""
+        """Cleanup connection resources."""
         try:
             await self._exit_stack.aclose()
         except Exception:
@@ -134,33 +147,30 @@ class MCPClient:
         try:
             result = await self._session.list_tools()
             
-            if not hasattr(result, 'tools'):
+            if not hasattr(result, 'tools') or not result.tools:
                 return []
             
-            tools_list = result.tools
             tools = []
-            
-            if tools_list:
-                for tool in tools_list:
-                    try:
-                        input_schema = {}
-                        if hasattr(tool, 'inputSchema') and tool.inputSchema is not None:
-                            input_schema_value = tool.inputSchema
-                            if isinstance(input_schema_value, dict):
-                                input_schema = input_schema_value
-                            elif hasattr(input_schema_value, 'model_dump'):
-                                input_schema = input_schema_value.model_dump()
-                            elif hasattr(input_schema_value, 'dict'):
-                                input_schema = input_schema_value.dict()
-                        
-                        tools.append({
-                            "name": tool.name,
-                            "description": tool.description or "",
-                            "inputSchema": input_schema,
-                        })
-                    except Exception as e:
-                        logger.error(f"Error processing tool {getattr(tool, 'name', 'unknown')}: {e}")
-                        continue
+            for tool in result.tools:
+                try:
+                    input_schema = {}
+                    if hasattr(tool, 'inputSchema') and tool.inputSchema is not None:
+                        input_schema_value = tool.inputSchema
+                        if isinstance(input_schema_value, dict):
+                            input_schema = input_schema_value
+                        elif hasattr(input_schema_value, 'model_dump'):
+                            input_schema = input_schema_value.model_dump()
+                        elif hasattr(input_schema_value, 'dict'):
+                            input_schema = input_schema_value.dict()
+                    
+                    tools.append({
+                        "name": tool.name,
+                        "description": tool.description or "",
+                        "inputSchema": input_schema,
+                    })
+                except Exception as e:
+                    logger.error(f"Error processing tool {getattr(tool, 'name', 'unknown')}: {e}")
+                    continue
             
             self._tools_cache = tools
             return tools
@@ -180,20 +190,17 @@ class MCPClient:
         try:
             result = await self._session.list_resources()
             
-            if not hasattr(result, 'resources'):
+            if not hasattr(result, 'resources') or not result.resources:
                 return []
             
-            resources_list = result.resources
             resources = []
-            
-            if resources_list:
-                for resource in resources_list:
-                    resources.append({
-                        "uri": str(resource.uri),
-                        "name": resource.name or str(resource.uri),
-                        "description": resource.description or "",
-                        "mimeType": resource.mimeType or "text/markdown",
-                    })
+            for resource in result.resources:
+                resources.append({
+                    "uri": str(resource.uri),
+                    "name": resource.name or str(resource.uri),
+                    "description": resource.description or "",
+                    "mimeType": resource.mimeType or "text/markdown",
+                })
             
             self._resources_cache = resources
             return resources
@@ -211,17 +218,7 @@ class MCPClient:
             result = await self._session.call_tool(tool_name, arguments)
             
             if result.content:
-                text_parts = []
-                for item in result.content:
-                    if hasattr(item, 'text'):
-                        text_parts.append(item.text)
-                    elif isinstance(item, dict) and 'text' in item:
-                        text_parts.append(item['text'])
-                    elif isinstance(item, str):
-                        text_parts.append(item)
-                
-                if text_parts:
-                    return "\n".join(text_parts)
+                return _extract_text_from_content(result.content)
             
             return str(result)
             
@@ -242,17 +239,7 @@ class MCPClient:
             result = await self._session.read_resource(resource_uri)
             
             if result.contents:
-                text_parts = []
-                for item in result.contents:
-                    if hasattr(item, 'text'):
-                        text_parts.append(item.text)
-                    elif isinstance(item, dict) and 'text' in item:
-                        text_parts.append(item['text'])
-                    elif isinstance(item, str):
-                        text_parts.append(item)
-                
-                if text_parts:
-                    return "\n".join(text_parts)
+                return _extract_text_from_content(result.contents)
             
             return None
             

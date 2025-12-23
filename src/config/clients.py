@@ -1,38 +1,40 @@
 """Client configurations for external services."""
 
-import logging
-from typing import Optional, Literal
-from langchain_openai import ChatOpenAI
+from typing import Union
+
 from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 
-from .settings import get_settings
+LLMClient = Union[ChatOpenAI, ChatAnthropic]
 
-logger = logging.getLogger(__name__)
 
-def get_llm_client(provider: str, api_key: str, model: str, temperature: float = 0.1):
+def get_llm_client(
+    provider: str,
+    api_key: str,
+    model: str,
+    temperature: float = 0.1,
+) -> LLMClient:
     """
-    Get LLM client instance for a specific provider.
-    
+    Create an LLM client for the given provider.
+
     Args:
-        provider: 'openai' or 'anthropic'
+        provider: "openai" or "anthropic"
         api_key: API key for the provider
         model: Model name to use
-        temperature: Temperature setting
-        
+        temperature: Temperature setting (default: 0.1)
+
     Returns:
         LLM client instance (ChatOpenAI or ChatAnthropic)
+
+    Raises:
+        ValueError: If provider is not supported
     """
-    if provider.lower() == 'openai':
-        return ChatOpenAI(
-            api_key=api_key,
-            model=model,
-            temperature=temperature
-        )
-    elif provider.lower() == 'anthropic':
-        return ChatAnthropic(
-            api_key=api_key,
-            model=model,
-            temperature=temperature
-        )
-    else:
-        raise ValueError(f"Unsupported provider: {provider}")
+    provider_normalized = provider.lower()
+
+    if provider_normalized == "openai":
+        return ChatOpenAI(api_key=api_key, model=model, temperature=temperature)
+
+    if provider_normalized == "anthropic":
+        return ChatAnthropic(api_key=api_key, model=model, temperature=temperature)
+
+    raise ValueError(f"Unsupported provider: {provider}")

@@ -67,7 +67,7 @@ def get_all_tools():
 async def _get_mcp_tools_async() -> List:
     """Get tools from MCP servers using langchain-mcp-adapters."""
     try:
-        from ..mcp.langchain_adapter import get_mcp_tools_from_client
+        from ..mcp.adapter import get_mcp_tools_from_client
         return await get_mcp_tools_from_client()
     except ImportError:
         return []
@@ -86,7 +86,7 @@ def _get_mcp_tools() -> List:
         pass
     
     try:
-        from ..mcp.langchain_adapter import get_mcp_tools_from_client
+        from ..mcp.adapter import get_mcp_tools_from_client
         
         try:
             loop = asyncio.get_event_loop()

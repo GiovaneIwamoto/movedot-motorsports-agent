@@ -2,9 +2,9 @@
 
 import json
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 from ..config import get_settings
 
@@ -15,7 +15,7 @@ class BaseMemoryManager:
     """Base class for memory managers with common functionality."""
     
     def __init__(self, file_name: str, data_key: str):
-        """Initialize base memory manager."""
+        """Initialize base memory manager for a given JSON file and root key."""
         settings = get_settings()
         self.file_name = file_name
         self.data_key = data_key
@@ -24,8 +24,8 @@ class BaseMemoryManager:
         self.file_path = self.data_dir / file_name
         self._initialize_file()
     
-    def _initialize_file(self):
-        """Initialize the memory file if it doesn't exist."""
+    def _initialize_file(self) -> None:
+        """Create an empty memory file if it does not exist."""
         if not self.file_path.exists():
             initial_data = {
                 "created_at": datetime.now().isoformat(),
@@ -35,25 +35,21 @@ class BaseMemoryManager:
             self._save_data(initial_data)
             logger.info(f"Initialized {self.file_name} file: {self.file_path}")
     
-    def _save_data(self, data: Dict[str, Any]):
-        """Save data to file."""
-        logger.info(f"Saving {self.file_name} to file: {self.file_path}")
+    def _save_data(self, data: Dict[str, Any]) -> None:
+        """Persist data to disk."""
         try:
             data["last_updated"] = datetime.now().isoformat()
             with open(self.file_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            logger.info(f"{self.file_name} saved successfully to {self.file_path}")
         except Exception as e:
             logger.error(f"Error saving {self.file_name}: {e}")
             raise
     
     def load_data(self, force_reload: bool = False) -> Dict[str, Any]:
-        """Load data from file."""
-        logger.info(f"Loading {self.file_name} from file: {self.file_path}")
+        """Load data from the backing JSON file."""
         try:
             with open(self.file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                logger.info(f"{self.file_name} loaded successfully. Found {len(data.get(self.data_key, {}))} entries")
                 return data
         except FileNotFoundError:
             logger.warning(f"{self.file_name} file {self.file_path} not found, initializing...")

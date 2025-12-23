@@ -1,6 +1,6 @@
-"""MCP manager for API management endpoints (mcp_routes.py).
+"""MCP manager for API management endpoints.
 
-Note: For agent tool integration, use langchain-mcp-adapters via langchain_adapter.py
+Note: For agent tool integration, use langchain-mcp-adapters via adapter.py
 """
 
 import asyncio

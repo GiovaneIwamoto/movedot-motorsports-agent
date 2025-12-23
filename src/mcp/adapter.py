@@ -1,4 +1,4 @@
-"""LangChain MCP Adapters integration."""
+"""LangChain MCP Adapters integration for agent tool loading."""
 
 import logging
 import shutil
@@ -8,21 +8,19 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 
 logger = logging.getLogger(__name__)
 
-
-def _get_python_command() -> str:
-    """Get the available Python command (python3 or python)."""
-    # Try python3 first (preferred on macOS/Linux)
-    if shutil.which("python3"):
-        return "python3"
-    # Fall back to python
-    if shutil.which("python"):
-        return "python"
-    # Default to python3 if neither is found
-    logger.warning("Neither 'python3' nor 'python' found in PATH, defaulting to 'python3'")
-    return "python3"
-
+# Global client state
 _global_mcp_client: Optional[MultiServerMCPClient] = None
 _global_server_names: List[str] = []
+
+
+def _get_python_command() -> str:
+    """Get available Python command (python3 or python)."""
+    if shutil.which("python3"):
+        return "python3"
+    if shutil.which("python"):
+        return "python"
+    logger.warning("Neither 'python3' nor 'python' found in PATH, defaulting to 'python3'")
+    return "python3"
 
 
 def get_global_mcp_client() -> Optional[MultiServerMCPClient]:
@@ -47,7 +45,16 @@ async def create_mcp_client_from_config(
     server_configs: List[Dict[str, Any]],
     tool_interceptors: Optional[List] = None,
 ) -> MultiServerMCPClient:
-    """Create a MultiServerMCPClient from server configurations."""
+    """
+    Create a MultiServerMCPClient from server configurations.
+    
+    Args:
+        server_configs: List of server configuration dictionaries
+        tool_interceptors: Optional tool interceptors for LangChain
+        
+    Returns:
+        Configured MultiServerMCPClient instance
+    """
     servers_config = {}
     
     for server_config in server_configs:
@@ -59,16 +66,12 @@ async def create_mcp_client_from_config(
             continue
         
         if server_type == "stdio":
-            # Get command and validate/fix it
             command = server_config.get("command", "python")
             
-            # If command is just "python" without path, check if it exists
-            if command in ("python", "python3"):
-                if not shutil.which(command):
-                    # Command doesn't exist, try to find a working Python command
-                    working_command = _get_python_command()
-                    logger.warning(f"Command '{command}' not found in PATH for server '{name}', using '{working_command}' instead")
-                    command = working_command
+            if command in ("python", "python3") and not shutil.which(command):
+                working_command = _get_python_command()
+                logger.warning(f"Command '{command}' not found for '{name}', using '{working_command}'")
+                command = working_command
             
             servers_config[name] = {
                 "transport": "stdio",
@@ -77,7 +80,6 @@ async def create_mcp_client_from_config(
             }
             if server_config.get("env"):
                 servers_config[name]["env"] = server_config["env"]
-            logger.info(f"Configured stdio server '{name}': command={servers_config[name]['command']}, args={servers_config[name]['args']}")
         elif server_type in ("http", "sse"):
             servers_config[name] = {
                 "transport": "http",
@@ -89,41 +91,38 @@ async def create_mcp_client_from_config(
             logger.warning(f"Unknown server type '{server_type}' for '{name}', skipping")
             continue
     
-    server_names = list(servers_config.keys())
-    
     if not servers_config:
         logger.warning("No valid server configs found - creating empty MultiServerMCPClient")
     
-    logger.info(f"Creating MultiServerMCPClient with {len(servers_config)} server(s): {server_names}")
     client = MultiServerMCPClient(
         servers_config,
         tool_interceptors=tool_interceptors if tool_interceptors else None
     )
-    logger.info(f"MultiServerMCPClient created successfully with servers: {server_names}")
     
-    # Store server names for later retrieval
+    server_names = list(servers_config.keys())
     set_global_mcp_client(client, server_names)
     
     return client
 
 
 async def get_mcp_tools_from_client(client: Optional[MultiServerMCPClient] = None) -> List:
-    """Get LangChain tools from MCP client."""
+    """
+    Get LangChain tools from MCP client.
+    
+    Args:
+        client: Optional MultiServerMCPClient (uses global if not provided)
+        
+    Returns:
+        List of LangChain tools
+    """
     if client is None:
         client = get_global_mcp_client()
     
     if client is None:
-        logger.warning("No global MCP client available - MCP tools will not be loaded")
         return []
     
     try:
         tools = await client.get_tools()
-        logger.info(f"Loaded {len(tools)} MCP tools from client")
-        if tools:
-            tool_names = [tool.name if hasattr(tool, 'name') else str(tool) for tool in tools[:5]]
-            logger.info(f"MCP tool names (first 5): {tool_names}")
-        else:
-            logger.debug("No tools returned from MCP client (may have no servers configured or servers don't expose tools)")
         return tools
     except Exception as e:
         logger.error(f"Error getting tools from MCP client: {e}", exc_info=True)
@@ -131,20 +130,25 @@ async def get_mcp_tools_from_client(client: Optional[MultiServerMCPClient] = Non
 
 
 async def get_mcp_server_names(client: Optional[MultiServerMCPClient] = None) -> List[str]:
-    """Get list of server names from MultiServerMCPClient."""
-    # First try to get from stored server names
+    """
+    Get list of server names from MultiServerMCPClient.
+    
+    Args:
+        client: Optional MultiServerMCPClient (uses global if not provided)
+        
+    Returns:
+        List of server names
+    """
     stored_names = get_global_server_names()
     if stored_names:
         return stored_names
     
-    # Fallback: try to extract from client if provided
     if client is None:
         client = get_global_mcp_client()
     
     if client is None:
         return []
     
-    # Try to access server config from client
     if hasattr(client, '_servers_config'):
         return list(client._servers_config.keys())
     elif hasattr(client, 'servers_config'):

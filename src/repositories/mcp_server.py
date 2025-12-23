@@ -1,10 +1,10 @@
-"""Database functions for managing MCP servers."""
+"""Repository for MCP server configuration management."""
 
 import json
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from .db import _connect
+from .base import _connect
 
 
 def create_mcp_server(
@@ -19,7 +19,21 @@ def create_mcp_server(
     headers: Optional[Dict[str, str]] = None,
     enabled: bool = True,
 ) -> None:
-    """Create a new MCP server configuration."""
+    """
+    Create a new MCP server configuration.
+    
+    Args:
+        server_id: Unique server identifier
+        user_id: Owner user ID
+        name: Server display name
+        server_type: Server type ("stdio" or "sse")
+        command: Command to execute (for stdio servers)
+        args: Command arguments (for stdio servers)
+        env: Environment variables (for stdio servers)
+        url: Server URL (for SSE servers)
+        headers: HTTP headers (for SSE servers)
+        enabled: Whether server is enabled (default: True)
+    """
     now = datetime.utcnow().isoformat()
     
     with _connect() as conn:
@@ -48,7 +62,16 @@ def create_mcp_server(
 
 
 def get_mcp_server(server_id: str, user_id: int) -> Optional[Dict]:
-    """Get an MCP server configuration."""
+    """
+    Get an MCP server configuration.
+    
+    Args:
+        server_id: Server identifier
+        user_id: Owner user ID
+        
+    Returns:
+        Server configuration dictionary or None if not found
+    """
     with _connect() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -78,7 +101,16 @@ def get_mcp_server(server_id: str, user_id: int) -> Optional[Dict]:
 
 
 def list_mcp_servers(user_id: int, enabled_only: bool = False) -> List[Dict]:
-    """List all MCP servers for a user."""
+    """
+    List all MCP servers for a user.
+    
+    Args:
+        user_id: Owner user ID
+        enabled_only: If True, only return enabled servers
+        
+    Returns:
+        List of server configuration dictionaries
+    """
     with _connect() as conn:
         cur = conn.cursor()
         if enabled_only:
@@ -132,7 +164,24 @@ def update_mcp_server(
     headers: Optional[Dict[str, str]] = None,
     enabled: Optional[bool] = None,
 ) -> bool:
-    """Update an MCP server configuration."""
+    """
+    Update an MCP server configuration (partial update).
+    
+    Args:
+        server_id: Server identifier
+        user_id: Owner user ID
+        name: New server name (optional)
+        server_type: New server type (optional)
+        command: New command (optional)
+        args: New arguments (optional)
+        env: New environment variables (optional)
+        url: New URL (optional)
+        headers: New headers (optional)
+        enabled: New enabled status (optional)
+        
+    Returns:
+        True if update was successful, False if no changes were made
+    """
     updates = []
     values = []
     
@@ -181,7 +230,16 @@ def update_mcp_server(
 
 
 def delete_mcp_server(server_id: str, user_id: int) -> bool:
-    """Delete an MCP server configuration."""
+    """
+    Delete an MCP server configuration.
+    
+    Args:
+        server_id: Server identifier
+        user_id: Owner user ID
+        
+    Returns:
+        True if deletion was successful, False if server not found
+    """
     with _connect() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -190,3 +248,4 @@ def delete_mcp_server(server_id: str, user_id: int) -> bool:
         )
         conn.commit()
         return cur.rowcount > 0
+

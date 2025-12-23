@@ -9,7 +9,7 @@ from typing import Optional
 from langchain_core.tools import tool
 
 from ..config import get_settings
-from ..core import get_csv_memory
+from ..services.memory import get_csv_memory
 from ..services import E2BPythonREPL, get_or_create_e2b_sandbox, cleanup_e2b_sandbox
 
 logger = logging.getLogger(__name__)
