@@ -89,8 +89,8 @@ python install.py
 Start servers and web interface:
 
 ```ruby
-./scripts/bin/run_mcp_openf1.sh  # MCP servers
-./scripts/bin/run_web.sh         # Web interface
+./bin/run_mcp.sh          # MCP servers
+./bin/run_web.sh          # Web interface
 ```
 
 > [!CAUTION]
@@ -99,11 +99,11 @@ Start servers and web interface:
 > - *Google OAuth*: For user authentication
 > - *LangSmith*: For observability and evaluations
 
-**MCP Server Config**: Edit `scripts/mcp_server_config.json`:
+**MCP Server Config**: Edit `src/integrations/mcp_openf1/mcp_config.json`:
 ```json
 {
   "command": "python",
-  "args": ["-m", "servers.mcp_openf1.server"],
+  "args": ["-m", "src.integrations.mcp_openf1.server"],
   "env": {},
   "cwd": "."
 }
@@ -119,7 +119,7 @@ The platform provides production-ready infrastructure—tool orchestration, prom
 
 > **ADDING CUSTOM TOOLS**
 
-Create custom tools in `src/tools/` using the `@tool` decorator from LangChain:
+Create custom tools in `src/backend/tools/` using the `@tool` decorator from LangChain:
 
 ```python
 from langchain_core.tools import tool
@@ -132,7 +132,7 @@ def my_custom_tool(param: str) -> str:
 ```
 
 > [!TIP]
-> Register your tool in `src/tools/` by adding it to the appropriate tool list. The agent automatically discovers and uses all registered tools.
+> Register your tool in `src/backend/tools/` by adding it to the appropriate tool list. The agent automatically discovers and uses all registered tools.
 
 > **CONNECTING DATA SOURCES**
 
@@ -142,7 +142,7 @@ Create an MCP server to expose your data sources as documentation resources:
 
 2. **Define Resources**: Each resource documents a data endpoint—explaining entity schemas, URL structures, query parameters, and entity relationships.
 
-3. **Register Server**: Add your MCP server configuration to `scripts/mcp_server_config.json`.
+3. **Register Server**: Add your MCP server configuration to `src/integrations/mcp_openf1/mcp_config.json`.
 
 4. **Agent Discovery**: The agent automatically discovers your MCP server, reads its resources to learn about your data domain, and uses that knowledge to construct API calls and fetch data.
 

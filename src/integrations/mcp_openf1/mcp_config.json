@@ -2,6 +2,6 @@
     "name": "OpenF1",
     "server_type": "stdio",
     "command": "python3",
-    "args": ["-m", "servers.mcp_openf1.server"],
+    "args": ["-m", "src.integrations.mcp_openf1.server"],
     "enabled": true
 }

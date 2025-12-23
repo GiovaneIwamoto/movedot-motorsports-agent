@@ -69,8 +69,8 @@ class E2BPythonREPL:
                 for idx, result in enumerate(execution.results):
                     # Check if result contains image data
                     if hasattr(result, 'formats') and callable(result.formats) and 'png' in result.formats():
-                        # Save plot to local plots directory
-                        plots_dir = "plots"
+                        # Save plot to local exports directory
+                        plots_dir = "exports"
                         if not os.path.exists(plots_dir):
                             os.makedirs(plots_dir)
                         

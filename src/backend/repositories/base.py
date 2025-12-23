@@ -3,7 +3,7 @@
 import sqlite3
 from pathlib import Path
 
-from src.config.settings import get_settings
+from src.backend.config.settings import get_settings
 
 
 def _connect() -> sqlite3.Connection:

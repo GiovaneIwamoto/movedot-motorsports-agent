@@ -5,7 +5,7 @@
 
 # Get the directory where this script is located and navigate to project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 cd "$PROJECT_ROOT"
 
 echo "MoveDot Data Analytics Agent"
@@ -30,7 +30,7 @@ if [ ! -f ".env" ]; then
 fi
 
 # Create necessary directories
-mkdir -p data plots frontend/{assets,css/{base,components,pages},js/{core,components,pages},pages}
+mkdir -p data exports src/frontend/{assets,css/{base,components,pages},js/{core,components,pages},pages}
 
 # Start the web server
 echo ""
@@ -43,4 +43,4 @@ echo "Press Ctrl+C to stop the server"
 echo "============================================================"
 
 # Start the server
-python3 -m src.api.main
+python3 -m src.backend.api.main

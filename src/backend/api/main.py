@@ -17,9 +17,9 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from src.config.settings import get_settings
-from src.core.agent import stream_analytics_agent_with_history
-from src.repositories import (
+from src.backend.config.settings import get_settings
+from src.backend.core.agent import stream_analytics_agent_with_history
+from src.backend.repositories import (
     add_message,
     create_session,
     delete_session,
@@ -34,13 +34,13 @@ from src.repositories import (
     upsert_user,
     upsert_user_api_config,
 )
-from src.services.memory import get_csv_memory
+from src.backend.services.memory import get_csv_memory
 
 logger = logging.getLogger(__name__)
 
 # Paths
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+FRONTEND_DIR = BASE_DIR / "src" / "frontend"
 ASSETS_DIR = FRONTEND_DIR / "assets"
 CSS_DIR = FRONTEND_DIR / "css"
 JS_DIR = FRONTEND_DIR / "js"

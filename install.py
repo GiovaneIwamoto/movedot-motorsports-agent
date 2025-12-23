@@ -75,7 +75,7 @@ def main():
     
     # Create necessary directories
     print("[INFO] Creating directories...")
-    directories = ["data", "plots", "web/static"]
+    directories = ["data", "exports"]
     for directory in directories:
         Path(directory).mkdir(parents=True, exist_ok=True)
         print(f"[SUCCESS] Created/verified {directory}/ directory")
@@ -98,7 +98,7 @@ def main():
     print("[SUCCESS] Installation completed successfully!")
     print("=" * 60)
     print("Next steps:")
-    print("1. Start web interface: ./scripts/bin/run_web.sh")
+    print("1. Start web interface: ./bin/run_web.sh")
     print("2. Open http://localhost:8000 in your browser")
     print("=" * 60)
 
