@@ -30,7 +30,7 @@ if [ ! -f ".env" ]; then
 fi
 
 # Create necessary directories
-mkdir -p data plots web/static
+mkdir -p data plots frontend/{assets,css/{base,components,pages},js/{core,components,pages},pages}
 
 # Start the web server
 echo ""

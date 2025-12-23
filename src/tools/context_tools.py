@@ -73,6 +73,35 @@ def _json_to_csv(json_data: Any) -> Optional[str]:
         return None
 
 
+def _extract_error_message(e: Exception) -> str:
+    """
+    Extract the actual error message from nested exceptions (ExceptionGroup, etc).
+    
+    Args:
+        e: The exception to extract message from
+    
+    Returns:
+        The most relevant error message string
+    """
+    error_str = str(e)
+    
+    # Check if it's an ExceptionGroup and try to extract the real error
+    if hasattr(e, '__cause__') and e.__cause__:
+        cause_str = str(e.__cause__)
+        # If the cause has a more specific message, use it
+        if "Unknown resource" in cause_str or "not found" in cause_str.lower():
+            return cause_str
+    
+    # Check nested exceptions in ExceptionGroup
+    if hasattr(e, 'exceptions') and e.exceptions:
+        for nested_ex in e.exceptions:
+            nested_str = str(nested_ex)
+            if "Unknown resource" in nested_str or "not found" in nested_str.lower():
+                return nested_str
+    
+    return error_str
+
+
 async def _read_mcp_resource_impl(uri: str) -> str:
     """
     Implementation function for reading MCP resources.
@@ -100,16 +129,23 @@ async def _read_mcp_resource_impl(uri: str) -> str:
             return f"Resource '{uri}' is not text content (MIME type: {blob.mimetype})"
             
     except Exception as e:
-        error_str = str(e)
-        error_repr = repr(e)
-        combined_error = (error_str + " " + error_repr).lower()
+        error_msg = _extract_error_message(e)
+        error_lower = error_msg.lower()
         
-        if "unknown resource" in combined_error or "not found" in combined_error or "mcp error" in combined_error:
-            logger.warning(f"Resource not found: {uri} - {error_str}")
-            return f"Resource '{uri}' not found."
+        # Check if it's a resource not found error (expected case)
+        is_not_found = (
+            "unknown resource" in error_lower or 
+            "not found" in error_lower or 
+            "error fetching resource" in error_lower
+        )
         
-        logger.error(f"Error reading MCP resource {uri}: {e}", exc_info=True)
-        return f"Error reading resource '{uri}': {error_str}"
+        if is_not_found:
+            # Silent for expected errors - no logging needed
+            return f"Resource '{uri}' not found. Use list_mcp_resources() to see available URIs."
+        
+        # For unexpected errors, log concisely without full traceback
+        logger.error(f"Error reading MCP resource {uri}: {error_msg}")
+        return f"Error reading resource '{uri}': {error_msg}"
 
 
 read_mcp_resource = StructuredTool.from_function(

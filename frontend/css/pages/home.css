@@ -45,7 +45,6 @@
 }
 
 html {
-  /* Removed scroll-behavior: smooth - was causing grip/forced scroll positions */
   scroll-padding-top: 0;
   background: #0a0a0a !important;
   overflow-x: hidden;
@@ -72,7 +71,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   position: relative;
   background: #0a0a0a !important;
-  /* Ensure free scrolling */
   overscroll-behavior: auto;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
@@ -222,12 +220,6 @@ body::before {
 
 .bg-lines::after {
   display: none;
-      transparent,
-      transparent 100px,
-      rgba(255, 255, 255, 0.02) 100px,
-      rgba(255, 255, 255, 0.02) 102px
-    );
-  animation: linesMoveReverse 60s linear infinite;
 }
 
 @keyframes linesMove {
@@ -240,44 +232,6 @@ body::before {
   100% { transform: translate(120px, 120px); }
 }
 
-/* Granular noise texture */
-.bg-noise {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
-  opacity: 0.4;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.bg-noise::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: 
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 1px,
-      rgba(255, 255, 255, 0.008) 1px,
-      rgba(255, 255, 255, 0.008) 2px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 1px,
-      rgba(255, 255, 255, 0.008) 1px,
-      rgba(255, 255, 255, 0.008) 2px
-    );
-  opacity: 0.4;
-  mix-blend-mode: overlay;
-}
 
 /* Spotlights/Glows - Multiple strategic positions */
 .bg-spotlight {
@@ -380,61 +334,6 @@ body::before {
   pointer-events: none;
   z-index: 4;
   opacity: 0.3;
-}
-
-.radiate-line {
-  animation: radiateGlow 4s ease-in-out infinite;
-}
-
-.radiate-line:nth-child(odd) {
-  animation-delay: 0s;
-}
-
-.radiate-line:nth-child(even) {
-  animation-delay: 2s;
-}
-
-@keyframes radiateGlow {
-  0%, 100% {
-    opacity: 0.3;
-    stroke-opacity: 0.4;
-  }
-  50% {
-    opacity: 0.6;
-    stroke-opacity: 0.8;
-  }
-}
-
-.glow-node {
-  animation: nodePulse 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
-}
-
-.glow-node:nth-child(2) {
-  animation-delay: 0.5s;
-}
-
-.glow-node:nth-child(3) {
-  animation-delay: 1s;
-}
-
-.glow-node:nth-child(4) {
-  animation-delay: 1.5s;
-}
-
-.glow-node:nth-child(5) {
-  animation-delay: 2s;
-}
-
-@keyframes nodePulse {
-  0%, 100% {
-    r: 2;
-    opacity: 0.4;
-  }
-  50% {
-    r: 3;
-    opacity: 0.8;
-  }
 }
 
 .radiate-line {
@@ -960,7 +859,6 @@ body::before {
   }
 }
 
-/* Timeline Guide - Removed (was causing visual line bug) */
 .timeline-guide {
   display: none;
 }
@@ -1019,7 +917,6 @@ body::before {
   }
 }
 
-/* Cinematic lighting layers - removed to avoid z-index conflicts */
 .hero::before {
   display: none;
 }
@@ -1033,8 +930,7 @@ body::before {
   padding: 0 var(--spacing-2xl);
 }
 
-/* Hero Layout - Completely Rearranged */
-/* Hero Layout - Completely Rearranged */
+/* Hero Layout */
 .hero-layout {
   display: flex;
   flex-direction: column;
@@ -1530,9 +1426,6 @@ body::before {
   position: relative;
 }
 
-/* Hero divider removed - was causing visual bugs */
-
-/* Removed - duplicate code */
 
 @keyframes lightSweep {
   0%, 100% {
@@ -1845,7 +1738,6 @@ body::before {
   transform: translateY(0);
 }
 
-/* Section divider removed - was causing visual line bug */
 .features::before {
   display: none;
 }
@@ -1857,8 +1749,6 @@ section {
   position: relative;
   z-index: 10;
 }
-
-/* Hero divider removed - duplicate code */
 
 .features::after {
   display: none;
@@ -2222,7 +2112,6 @@ section {
   position: relative;
   margin-top: 0;
   overflow: visible;
-  /* Removed min-height: 100vh - was causing grip effect */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2372,7 +2261,6 @@ section {
   }
 }
 
-/* Removed blue light animations - cleaner static paths */
 
 /* Database Box */
 .database-box {
@@ -2547,7 +2435,6 @@ section {
   z-index: 0;
 }
 
-/* Duplicates removed - using animated background above */
 
 @keyframes ctaGlow {
   0%, 100% {
@@ -2588,8 +2475,6 @@ section {
   font-weight: 300;
 }
 
-/* Enhanced animations for better visual appeal */
-/* Duplicate removed - using main .scroll-animate definition above */
 
 /* Stagger animation delays for sequential appearance */
 .feature-card.scroll-animate:nth-child(1) { --animation-delay: 0s; }
@@ -2849,7 +2734,6 @@ section {
   margin-top: 0;
   background: #000000;
   position: relative;
-  /* Removed scroll-snap-align - was causing grip effect */
 }
 
 .footer::before {

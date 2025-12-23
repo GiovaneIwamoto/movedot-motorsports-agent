@@ -8,9 +8,9 @@
     <link rel="shortcut icon" href="/static/favicon.svg?v=7">
     <link rel="apple-touch-icon" href="/static/favicon.svg?v=7">
     <meta name="theme-color" content="#000000">
-    <link rel="stylesheet" href="static/styles.css?v=5">
-    <link rel="stylesheet" href="static/effects.css?v=5">
-    <link rel="stylesheet" href="static/framer-components.css?v=5">
+    <link rel="stylesheet" href="/css/base/styles.css?v=5">
+    <link rel="stylesheet" href="/css/components/effects.css?v=5">
+    <link rel="stylesheet" href="/css/components/framer-components.css?v=5">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -160,8 +160,8 @@
         </div>
     </div>
 
-    <script src="static/auth-guard.js"></script>
-    <script src="static/app.js?v=5"></script>
+    <script src="/js/components/auth-guard.js"></script>
+    <script src="/js/core/app.js?v=5"></script>
     <script>
         // Initialize Grid Pattern Animation
         function initGridPattern() {
@@ -169,11 +169,8 @@
             const squaresContainer = document.querySelector('.hero-grid-squares');
             
             if (!bgContainer || !squaresContainer) {
-                console.error('Grid pattern elements not found');
                 return;
             }
-            
-            console.log('Initializing grid pattern for MCP servers page...');
             
             const gridSize = 40;
             const numSquares = 50;
@@ -228,7 +225,6 @@
                     squaresContainer.appendChild(rect);
                 });
                 
-                console.log(`Created ${numSquares} animated grid squares`);
             }
 
             setTimeout(() => {
@@ -262,8 +258,7 @@
                     this.startStatusPolling();
                     this.setupFormHandlers();
                 } catch (error) {
-                    console.error('Error initializing MCP Servers Manager:', error);
-                    this.renderServers(); // Render empty state on error
+                    this.renderServers();
                 }
             }
             
@@ -292,7 +287,6 @@
                     const data = await response.json();
                     this.servers = Array.isArray(data) ? data : [];
                 } catch (error) {
-                    console.error('Error loading servers:', error);
                     this.servers = [];
                     // Don't show error on initial load, just render empty state
                     if (this.servers.length === 0) {
@@ -317,7 +311,7 @@
                         }
                     }
                 } catch (error) {
-                    console.error('Error loading server status:', error);
+                    // Failed to load server status
                 }
             }
             
@@ -326,7 +320,6 @@
                 const container = document.getElementById('mcp-servers-list');
                 
                 if (!countElement || !container) {
-                    console.error('Required DOM elements not found');
                     return;
                 }
                 
@@ -435,7 +428,6 @@
             }
             
             showError(message) {
-                console.error('MCP Servers Error:', message);
                 const container = document.getElementById('mcp-servers-list');
                 if (!container) return;
                 
@@ -524,7 +516,6 @@
                     this.renderServers();
                     this.showNotification('Server added successfully', 'success');
                 } catch (error) {
-                    console.error('Error saving server:', error);
                     alert(`Error: ${error.message}`);
                 }
             }
@@ -771,7 +762,7 @@
                     }
                 });
             } catch (error) {
-                console.error('Error initializing MCPServersManager:', error);
+                // Failed to initialize MCPServersManager
             }
         });
     </script>

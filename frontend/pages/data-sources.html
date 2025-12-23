@@ -8,9 +8,9 @@
     <link rel="shortcut icon" href="/static/favicon.svg?v=7">
     <link rel="apple-touch-icon" href="/static/favicon.svg?v=7">
     <meta name="theme-color" content="#000000">
-    <link rel="stylesheet" href="static/styles.css?v=5">
-    <link rel="stylesheet" href="static/effects.css?v=5">
-    <link rel="stylesheet" href="static/framer-components.css?v=5">
+    <link rel="stylesheet" href="/css/base/styles.css?v=5">
+    <link rel="stylesheet" href="/css/components/effects.css?v=5">
+    <link rel="stylesheet" href="/css/components/framer-components.css?v=5">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -90,8 +90,8 @@
         </nav>
     </div>
 
-    <script src="static/auth-guard.js"></script>
-    <script src="static/app.js?v=5"></script>
+    <script src="/js/components/auth-guard.js"></script>
+    <script src="/js/core/app.js?v=5"></script>
     <script>
         // Initialize Grid Pattern Animation
         function initGridPattern() {
@@ -99,11 +99,8 @@
             const squaresContainer = document.querySelector('.hero-grid-squares');
             
             if (!bgContainer || !squaresContainer) {
-                console.error('Grid pattern elements not found');
                 return;
             }
-            
-            console.log('Initializing grid pattern for datasets page...');
             
             const gridSize = 40;
             const numSquares = 50;
@@ -158,7 +155,6 @@
                     squaresContainer.appendChild(rect);
                 });
                 
-                console.log(`Created ${numSquares} animated grid squares`);
             }
 
             setTimeout(() => {
@@ -212,8 +208,6 @@
                     }));
                     
                 } catch (error) {
-                    console.error('Error loading datasets:', error);
-                    // Show error state instead of mock data
                     this.datasets = [];
                     this.showError(`Failed to load datasets: ${error.message}. Please check your connection and try again.`);
                 }
@@ -232,7 +226,6 @@
                 const container = document.getElementById('all-datasets');
                 
                 if (!countElement || !container) {
-                    console.error('Required DOM elements not found');
                     return;
                 }
                 
@@ -284,7 +277,6 @@
             showError(message) {
                 const container = document.getElementById('all-datasets');
                 if (!container) {
-                    console.error('Container not found for error display');
                     return;
                 }
                 
@@ -449,7 +441,6 @@
                 adjustModalHeight(data.data?.length || data.preview?.length || 0);
                 
             } catch (error) {
-                console.error('Error loading dataset:', error);
                 document.querySelector('.loading-dataset').innerHTML = `
                     <div class="error-icon">
                         <i class="fas fa-exclamation-triangle"></i>
@@ -484,7 +475,6 @@
         function populateDatasetTable(data) {
             const table = document.getElementById('dataset-table');
             if (!table) {
-                console.error('Dataset table not found');
                 return;
             }
             
@@ -605,7 +595,7 @@
             try {
                 window.datasetsManager = new DatasetsManager();
             } catch (error) {
-                console.error('Error initializing DatasetsManager:', error);
+                // Failed to initialize DatasetsManager
             }
         });
     </script>

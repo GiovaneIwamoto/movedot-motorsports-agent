@@ -40,8 +40,11 @@ logger = logging.getLogger(__name__)
 
 # Paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-WEB_DIR = BASE_DIR / "web"
-STATIC_DIR = WEB_DIR / "static"
+FRONTEND_DIR = BASE_DIR / "frontend"
+ASSETS_DIR = FRONTEND_DIR / "assets"
+CSS_DIR = FRONTEND_DIR / "css"
+JS_DIR = FRONTEND_DIR / "js"
+PAGES_DIR = FRONTEND_DIR / "pages"
 
 # FastAPI app
 app = FastAPI(
@@ -99,7 +102,7 @@ def _load_dataframe_from_csv(csv_name: str) -> Optional[pd.DataFrame]:
 
 def _serve_html_page(page_name: str) -> HTMLResponse:
     """Serve HTML page with error handling."""
-    html_path = WEB_DIR / f"{page_name}.html"
+    html_path = PAGES_DIR / f"{page_name}.html"
     if html_path.exists():
         return HTMLResponse(content=html_path.read_text(), media_type="text/html")
     raise HTTPException(status_code=404, detail=f"{page_name.title()} page not found")
@@ -325,7 +328,7 @@ def current_user(request: Request) -> dict:
 
 def _serve_favicon() -> Response:
     """Serve favicon with no-cache headers."""
-    favicon_path = STATIC_DIR / "favicon.svg"
+    favicon_path = ASSETS_DIR / "favicon.svg"
     if favicon_path.exists():
         return Response(
             content=favicon_path.read_bytes(),
@@ -779,8 +782,15 @@ async def favicon_svg():
     return _serve_favicon()
 
 
-if STATIC_DIR.exists():
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+# Mount static file directories
+if CSS_DIR.exists():
+    app.mount("/css", StaticFiles(directory=str(CSS_DIR)), name="css")
+if JS_DIR.exists():
+    app.mount("/js", StaticFiles(directory=str(JS_DIR)), name="js")
+if ASSETS_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
+    # Also mount assets as /static for backward compatibility (favicon)
+    app.mount("/static", StaticFiles(directory=str(ASSETS_DIR)), name="static")
 
 
 if __name__ == "__main__":

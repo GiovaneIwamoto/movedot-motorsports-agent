@@ -243,7 +243,6 @@ h3 {
     }
 }
 
-/* All old background effects removed - Using only Hero grid pattern */
 
 /* Buttons */
 .btn-primary,
@@ -385,7 +384,6 @@ h3 {
     transform: translateY(10px);
 }
 
-/* Magnetic alignment indicators - removed visual indicators */
 
 /* Dock magnetic state */
 .floating-dock.magnetic-active {
@@ -418,7 +416,6 @@ h3 {
     color: var(--text-secondary);
 }
 
-/* Removed hover animation for chat section */
 
 /* Minimal Chat Header */
 .chat-header-minimal {
@@ -1103,7 +1100,6 @@ h3 {
     }
 }
 
-/* Legacy chat input styles removed - not used */
 
 .send-button {
     background: var(--bg-tertiary);
@@ -1194,30 +1190,6 @@ h3 {
     padding: 0.3rem 0.5rem;
     gap: 0.55rem;
 }
-    -webkit-mask-image: linear-gradient(
-        to right,
-        transparent 0%,
-        black 15%,
-        black 85%,
-        transparent 100%
-    );
-    mask-image: linear-gradient(
-        to right,
-        transparent 0%,
-        black 15%,
-        black 85%,
-        transparent 100%
-    );
-    /* Add depth effect */
-    transform: translateZ(0);
-    will-change: scroll-position;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-}
 
 /* Remove mask/gradient fade effect when there are messages */
 .chat-centered-block.has-messages .input-suggestions {
@@ -1229,7 +1201,6 @@ h3 {
     display: none; /* Chrome, Safari, Opera */
 }
 
-/* Fade effect on edges removed */
 
 .suggestion-chip {
     background: var(--bg-tertiary);
@@ -1561,7 +1532,6 @@ h3 {
     margin-top: 0.2rem;
 }
 
-/* Original metric cards removed - using compact version only */
 
 .charts-section {
     margin-top: 1.5rem;
@@ -1689,7 +1659,6 @@ h3 {
     
 }
 
-/* Legacy scrollbar styling removed - using standardized system above */
 
 /* Modern Minimalist Animations */
 @keyframes fadeIn {
@@ -1803,7 +1772,6 @@ h3 {
     color: var(--error-color);
 }
 
-/* Animated placeholder styles removed - not used */
 
 /* Floating Dock - Aceternity UI Style */
 .floating-dock {
@@ -2378,16 +2346,6 @@ h3 {
 
 /* Custom Scrollbar for Card Content - using standardized system above */
 
-/* Ultra minimalist styles removed - not used */
-
-/* Minimalist styles removed - not used in current HTML */
-
-/* Additional effects removed - not used */
-
-/* Status indicator styles removed - not used */
-
-
-/* Data sources sidebar removed - not used */
 
 
 /* Modal Overlay */
@@ -4700,7 +4658,6 @@ button.btn-secondary.btn-sm:hover {
     line-height: 1.5;
 }
 
-/* Removed complex stagger animations for simpler UX */
 
 .tools-list li:hover,
 .resources-list li:hover {

@@ -402,8 +402,6 @@ class MarkdownRenderer {
             this.container.innerHTML = html;
             
         } catch (error) {
-            console.error('Error rendering markdown:', error);
-            // Fallback to plain text
             this.container.textContent = content;
         }
     }
@@ -423,7 +421,7 @@ class MarkdownRenderer {
                 const result = await this.convertMarkdownWithUnified(html);
                 return result;
             } catch (e) {
-                console.warn('Unified parser failed, using internal parser:', e);
+                // Fallback to internal parser
             }
         }
         

@@ -12,10 +12,6 @@
     overflow: hidden;
 }
 
-/* Removed framer card top border effect */
-
-/* Removed framer card hover animation */
-
 /* Framer Button Styles */
 .framer-btn {
     display: inline-flex;
@@ -39,8 +35,6 @@
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-md);
 }
-
-/* Removed button shimmer effect */
 
 .framer-btn-primary:hover {
     background: var(--bg-hover);
@@ -164,8 +158,6 @@
     animation: framer-progress 2s infinite;
 }
 
-/* Removed progress bar shimmer effect */
-
 @keyframes framer-progress {
     0% { width: 0%; }
     100% { width: 100%; }
@@ -183,8 +175,6 @@
 .framer-hover-lift {
     transition: var(--transition-normal);
 }
-
-/* Removed framer hover lift animation */
 
 .framer-hover-glow {
     transition: var(--transition-normal);

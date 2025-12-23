@@ -52,9 +52,6 @@ class DataAnalytics {
         this.isTyping = false;
         this.isInputFocused = false;
         
-        // Loader system
-        this.loaderTimeout = null;
-        this.isLoading = false;
         
         // Floating Dock system - Simplified
         this.currentPage = 'dashboard';
@@ -75,7 +72,6 @@ class DataAnalytics {
             const res = await fetch(`${this.apiBase}/auth/me`, { credentials: 'include' });
             if (!res.ok) throw new Error('Not authenticated');
             this.currentUser = await res.json();
-            console.log('Current user data:', this.currentUser); // Debug log
         } catch (e) {
             window.location.href = `${this.apiBase}/auth/login`;
             throw e;
@@ -111,7 +107,6 @@ class DataAnalytics {
                     pictureEl.style.borderRadius = '50%';
                     pictureEl.style.objectFit = 'cover';
                     pictureEl.onerror = () => {
-                        console.warn('Failed to load user picture:', this.currentUser.picture);
                         pictureEl.style.display = 'none';
                     };
                 }
@@ -136,7 +131,7 @@ class DataAnalytics {
             // Setup menu items
             this.setupUserMenuActions();
         } catch (e) {
-            console.warn('Auth UI setup error', e);
+            // Auth UI setup failed silently
         }
     }
     
@@ -214,13 +209,10 @@ class DataAnalytics {
                                 menuDropdown.style.display = 'none';
                             }
                         } else {
-                            const errorText = await res.text();
-                            console.error('Failed to clear history:', res.status, errorText);
                             throw new Error(`Failed to clear history: ${res.status}`);
                         }
                         } catch (e) {
                             this.showNotification('Failed to clear chat history. Please try again.', 'error');
-                            console.error('Error clearing history:', e);
                         }
                     };
                 }
@@ -315,7 +307,7 @@ class DataAnalytics {
                 this.conversationId = data.id;
             }
         } catch (e) {
-            console.error('Error bootstrapping conversation', e);
+            // Conversation bootstrap failed
         }
     }
 
@@ -340,12 +332,12 @@ class DataAnalytics {
                 this.showWelcomeMessage();
             }
         } catch (e) {
-            console.error('Error loading conversation messages', e);
+            // Failed to load conversation messages
         }
     }
 
     generateSessionId() {
-        return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 
     async init() {
@@ -428,7 +420,6 @@ class DataAnalytics {
                 // Trigger input event to update UI if needed
                 chatInput.dispatchEvent(new Event('input', { bubbles: true }));
             } else {
-                console.error('Chat input not found');
                 // Retry after a bit more time
                 setTimeout(() => {
                     const retryChatInput = document.getElementById('chat-input');
@@ -611,8 +602,7 @@ class DataAnalytics {
             this.updateMetrics(data.total_datasets);
             
         } catch (error) {
-            console.error('Error loading data overview:', error);
-            // Don't show error message immediately, try again after a delay
+            // Retry after delay
             setTimeout(() => {
                 this.retryLoadDataOverview();
             }, 2000);
@@ -633,9 +623,7 @@ class DataAnalytics {
             this.updateMetrics(data.total_datasets);
             
         } catch (error) {
-            console.error('Error loading data overview (retry):', error);
-            // Don't show error in chat, just log it
-            console.warn('Data overview could not be loaded, continuing without it');
+            // Data overview unavailable, continue without it
         }
     }
 
@@ -643,9 +631,7 @@ class DataAnalytics {
         const container = document.getElementById('data-sources');
         const countElement = document.getElementById('data-count');
 
-        // If not on data-sources page, safely skip
         if (!container) {
-            console.warn('Data sources container not found; skipping update');
             return;
         }
         
@@ -847,7 +833,7 @@ class DataAnalytics {
                 return;
             }
         } catch (e) {
-            console.error('Error checking API config:', e);
+            // API config check failed
         }
         
         // Hide welcome message on first message
@@ -887,7 +873,6 @@ class DataAnalytics {
             // Use SSE for streaming response
             await this.sendMessageSSE(message);
         } catch (error) {
-            console.error('Error sending message:', error);
             this.isProcessingQuery = false; // Reset processing flag
             this.addMessage('Error sending message. Please try again.', 'agent');
             this.hideTypingIndicator();
@@ -982,7 +967,6 @@ class DataAnalytics {
             await this.streamWithFetch(url, requestBody);
             
         } catch (error) {
-            console.error('Error in SSE:', error);
             throw error;
         }
     }
@@ -1030,16 +1014,15 @@ class DataAnalytics {
                             try {
                                 const parsedData = JSON.parse(data);
                                 await this.handleSSEEvent(currentEventType, parsedData);
-                            } catch (e) {
-                                console.error('Error parsing SSE data:', e);
-                            }
+                                } catch (e) {
+                                    // Failed to parse SSE data
+                                }
                         }
                     }
                 }
             }
             
         } catch (error) {
-            console.error('Error in fetch streaming:', error);
             throw error;
         }
     }
@@ -1585,11 +1568,6 @@ class DataAnalytics {
             }
             placeholderText.style.opacity = '1';
             this.startPlaceholderAnimation();
-        } else {
-            console.warn('placeholder elements not found during initialization', {
-                placeholderText: !!placeholderText,
-                vanishPlaceholder: !!vanishPlaceholder
-            });
         }
     }
 
@@ -1646,7 +1624,7 @@ class DataAnalytics {
         
         const placeholderText = document.getElementById('placeholder-text');
         if (!placeholderText) {
-            console.warn('placeholder-text element not found');
+            // Placeholder text element not found
             return;
         }
 
@@ -1704,7 +1682,7 @@ class DataAnalytics {
     typeText() {
         const placeholderText = document.getElementById('placeholder-text');
         if (!placeholderText) {
-            console.warn('placeholder-text element not found in typeText');
+            // Placeholder text element not found
             return;
         }
 
@@ -2092,28 +2070,6 @@ class DataAnalytics {
         dock.classList.add('magnetic-active');
     }
 
-    smoothAlignToCard(cardElement) {
-        const dock = document.getElementById('floating-dock');
-        if (!dock) return;
-        
-        const dockRect = dock.getBoundingClientRect();
-        const cardRect = cardElement.getBoundingClientRect();
-        
-        // Calculate the scroll position needed to align card bottom with dock center
-        const dockCenterY = dockRect.top + (dockRect.height / 2);
-        const cardBottomY = cardRect.bottom;
-        
-        // Calculate target scroll position
-        const currentScrollY = window.scrollY;
-        const targetScrollY = currentScrollY + (cardBottomY - dockCenterY);
-        
-        // Smooth scroll to alignment
-        window.scrollTo({
-            top: targetScrollY,
-            behavior: 'smooth'
-        });
-    }
-
     setupScrollListener() {
         let scrollTimeout;
         let magneticTimeout;
@@ -2142,19 +2098,19 @@ class DataAnalytics {
             return;
         }
         
-            const analyticsRect = analyticsSection.getBoundingClientRect();
-            const chatRect = chatSection.getBoundingClientRect();
-            
+        const analyticsRect = analyticsSection.getBoundingClientRect();
+        const chatRect = chatSection.getBoundingClientRect();
+        
         // Simple detection: if analytics is mostly in view, it's active
         if (analyticsRect.top < window.innerHeight * 0.3) {
-                if (this.activeSection !== 'analytics') {
-                    this.activeSection = 'analytics';
-                    this.updateBlurEffect();
-                }
-            } else if (chatRect.top < window.innerHeight * 0.5) {
+            if (this.activeSection !== 'analytics') {
+                this.activeSection = 'analytics';
+                this.updateBlurEffect();
+            }
+        } else if (chatRect.top < window.innerHeight * 0.5) {
             if (this.activeSection !== 'dashboard') {
                 this.activeSection = 'dashboard';
-                    this.updateBlurEffect();
+                this.updateBlurEffect();
             }
         }
     }
@@ -2167,13 +2123,11 @@ class DataAnalytics {
         }
         
         if (this.activeSection === 'dashboard') {
-            // Add blur effect when viewing dashboard (chat section)
-                analyticsSection.classList.add('blurred');
-            } else {
-                // Remove blur effect when viewing analytics
-                analyticsSection.classList.remove('blurred');
-            }
+            analyticsSection.classList.add('blurred');
+        } else {
+            analyticsSection.classList.remove('blurred');
         }
+    }
 
     restoreChatSection() {
         // Restore chat input functionality
@@ -2256,10 +2210,6 @@ class DataAnalytics {
             this.startPlaceholderAnimation();
         }
         
-        // Ensure WebSocket is connected
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-            this.connectWebSocket();
-        }
         
         // Force re-render of chat section
         this.forceChatSectionRerender();
@@ -2674,7 +2624,7 @@ class DataAnalytics {
                 currentConfig = await res.json();
             }
         } catch (e) {
-            console.error('Error loading API config:', e);
+            // Failed to load API config
         }
         
         // Create minimal modal overlay
@@ -2889,7 +2839,6 @@ class DataAnalytics {
             } catch (e) {
                 modelSelect.innerHTML = '<option value="">Error loading models</option>';
                 this.showNotification(`Error loading models: ${e.message}`, 'error');
-                console.error('Error loading models:', e);
             } finally {
                 if (loadingIndicator) loadingIndicator.style.display = 'none';
             }
@@ -3014,7 +2963,6 @@ class DataAnalytics {
                     modalOverlay.remove();
                 } catch (e) {
                     this.showNotification(`Error saving configuration: ${e.message}`, 'error');
-                    console.error('Error saving config:', e);
                 } finally {
                     saveBtn.disabled = false;
                     saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Configuration';
@@ -3046,7 +2994,6 @@ class DataAnalytics {
                     modalOverlay.remove();
                 } catch (e) {
                     this.showNotification(`Error removing configuration: ${e.message}`, 'error');
-                    console.error('Error deleting config:', e);
                 } finally {
                     deleteBtn.disabled = false;
                     deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Remove Configuration';
@@ -3160,11 +3107,8 @@ class DataAnalytics {
         const squaresContainer = document.querySelector('.hero-grid-squares');
         
         if (!bgContainer || !squaresContainer) {
-            console.log('Grid pattern elements not found:', { bgContainer, squaresContainer });
             return;
         }
-        
-        console.log('Setting up grid pattern animation...');
 
         const gridSize = 40;
         const numSquares = 50;

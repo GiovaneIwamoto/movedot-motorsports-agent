@@ -1,5 +1,3 @@
-// MoveDot Home Page JavaScript - Zero Scroll Interference
-
 class HomePage {
     constructor() {
         this.init();
@@ -9,7 +7,6 @@ class HomePage {
         this.setupEventListeners();
         this.setupHeroGridPattern();
         this.setupAuth();
-        // Delay animations significantly to ensure no scroll interference
         setTimeout(() => {
             this.setupScrollAnimations();
         }, 500);
@@ -27,7 +24,6 @@ class HomePage {
             
             if (response.ok) {
                 const user = await response.json();
-                console.log('User authenticated:', user.email);
                 this.showUserProfile(user);
             } else {
                 if (loginBtn) {
@@ -36,7 +32,6 @@ class HomePage {
                 }
             }
         } catch (error) {
-            console.error('Auth error:', error);
             if (loginBtn) {
                 loginBtn.style.display = 'inline-flex';
                 loginBtn.addEventListener('click', () => this.handleLogin());
@@ -49,25 +44,16 @@ class HomePage {
     }
     
     showUserProfile(user) {
-        console.log('[DEBUG] User data:', user);
-        console.log('[DEBUG] Picture URL:', user.picture);
-        
         const loginBtn = document.getElementById('loginBtn');
         const userProfile = document.getElementById('userProfile');
         const userName = document.getElementById('userName');
         const userAvatar = document.getElementById('userAvatar');
         const avatarPlaceholder = document.getElementById('userAvatarPlaceholder');
         
-        console.log('[DEBUG] Elements:', {
-            userAvatar: userAvatar ? 'found' : 'missing',
-            avatarPlaceholder: avatarPlaceholder ? 'found' : 'missing'
-        });
-        
         if (loginBtn) loginBtn.style.display = 'none';
         if (userProfile) userProfile.style.display = 'flex';
         if (userName) userName.textContent = user.name || user.email;
         
-        // Handle avatar
         if (user.picture && user.picture.trim() && userAvatar) {
             userAvatar.setAttribute('referrerpolicy', 'no-referrer');
             userAvatar.setAttribute('crossorigin', 'anonymous');
@@ -77,7 +63,6 @@ class HomePage {
             if (avatarPlaceholder) avatarPlaceholder.style.display = 'none';
             
             userAvatar.onerror = () => {
-                console.warn('Avatar failed to load, using placeholder');
                 userAvatar.style.display = 'none';
                 if (avatarPlaceholder) avatarPlaceholder.style.display = 'flex';
             };
@@ -88,29 +73,22 @@ class HomePage {
     }
     
     handleLogin() {
-        // Redirect to existing backend login with return_to parameter
         window.location.href = '/api/auth/login?return_to=/home.html';
     }
     
     async handleLogout() {
         try {
-            // Call existing backend logout
             await fetch('/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include'
             });
-            
-            // Redirect to homepage after logout
             window.location.href = '/home.html';
         } catch (error) {
-            console.error('Logout error:', error);
-            // Force redirect anyway
             window.location.href = '/home.html';
         }
     }
 
     setupEventListeners() {
-        // Simple anchor navigation
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -137,7 +115,6 @@ class HomePage {
         const numSquares = 50;
         let squares = [];
 
-        // Get random position within hero section
         function getRandomPos() {
             const rect = heroSection.getBoundingClientRect();
             const maxX = Math.max(1, Math.floor(rect.width / gridSize));
@@ -148,7 +125,6 @@ class HomePage {
             ];
         }
 
-        // Generate initial squares
         function generateSquares() {
             squares = Array.from({ length: numSquares }, (_, i) => ({
                 id: i,
@@ -156,7 +132,6 @@ class HomePage {
             }));
         }
 
-        // Update square position
         function updateSquarePosition(id) {
             const newPos = getRandomPos();
             squares = squares.map(sq =>
@@ -165,7 +140,6 @@ class HomePage {
             return newPos;
         }
 
-        // Create and animate squares
         function createSquares() {
             squaresContainer.innerHTML = '';
             
@@ -178,11 +152,9 @@ class HomePage {
                 rect.setAttribute('y', y * gridSize + 1);
                 rect.style.animationDelay = `${index * 0.1}s`;
                 
-                // Update position when animation completes (after reverse)
                 let animationCount = 0;
                 rect.addEventListener('animationiteration', () => {
                     animationCount++;
-                    // Update position after each complete cycle (0 -> 1 -> 0)
                     if (animationCount % 2 === 0) {
                         const newPos = updateSquarePosition(id);
                         rect.setAttribute('x', newPos[0] * gridSize + 1);
@@ -194,13 +166,11 @@ class HomePage {
             });
         }
 
-        // Initialize after a small delay to ensure hero section is rendered
         setTimeout(() => {
             generateSquares();
             createSquares();
         }, 100);
 
-        // Update on resize
         let resizeTimeout;
         const resizeObserver = new ResizeObserver(() => {
             clearTimeout(resizeTimeout);
@@ -214,13 +184,11 @@ class HomePage {
     }
 
     setupScrollAnimations() {
-        // Observer with better thresholds for smooth animations
         const observerOptions = {
             threshold: [0, 0.1, 0.25, 0.5],
-            rootMargin: '50px' // Trigger slightly before element enters viewport
+            rootMargin: '50px'
         };
 
-        // Smooth animation observer with RAF
         let isProcessing = false;
         const observer = new IntersectionObserver((entries) => {
             if (isProcessing) return;
@@ -228,14 +196,12 @@ class HomePage {
             
             requestAnimationFrame(() => {
                 entries.forEach(entry => {
-                    // Smooth transition based on intersection ratio
                     const ratio = entry.intersectionRatio;
                     
                     if (entry.isIntersecting && ratio > 0.1) {
                         entry.target.classList.add('is-visible');
                         entry.target.classList.remove('is-hidden');
                     } else if (!entry.isIntersecting) {
-                        // Only hide if completely out of viewport
                         const rect = entry.boundingClientRect;
                         if (rect.bottom < -200 || rect.top > window.innerHeight + 200) {
                             entry.target.classList.remove('is-visible');
@@ -247,7 +213,6 @@ class HomePage {
             });
         }, observerOptions);
 
-        // Observe elements only once
         const elements = [
             ...document.querySelectorAll('.hero-header, .hero-title, .hero-subtitle'),
             ...document.querySelectorAll('.hero-cta'),
@@ -264,7 +229,6 @@ class HomePage {
                 el.style.setProperty('--animation-delay', `${index * 0.08}s`);
             }
             if (el.classList.contains('workflow-step')) {
-                // Add staggered delay for workflow steps
                 const stepIndex = Array.from(document.querySelectorAll('.workflow-step')).indexOf(el);
                 el.style.transitionDelay = `${stepIndex * 0.15}s`;
             }
@@ -273,7 +237,6 @@ class HomePage {
     }
 }
 
-// CTA Canvas Particle Animation
 class CTAParticles {
     constructor() {
         this.canvas = document.getElementById('ctaCanvas');
@@ -334,20 +297,16 @@ class CTAParticles {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         this.particles.forEach(particle => {
-            // Move particle up
             particle.y -= particle.speed;
             
-            // Reset if out of bounds
             if (particle.y < 0) {
                 this.resetParticle(particle);
             }
             
-            // Start fading out after delay
             if (!particle.fadingOut && Date.now() > particle.fadeStart) {
                 particle.fadingOut = true;
             }
             
-            // Fade out gradually
             if (particle.fadingOut) {
                 particle.opacity -= 0.008;
                 if (particle.opacity <= 0) {
@@ -355,7 +314,6 @@ class CTAParticles {
                 }
             }
             
-            // Draw particle
             this.ctx.fillStyle = `rgba(250, 250, 250, ${particle.opacity})`;
             this.ctx.fillRect(
                 particle.x,
@@ -385,7 +343,6 @@ class CTAParticles {
     }
 }
 
-// Initialize with passive event
 document.addEventListener('DOMContentLoaded', () => {
     new HomePage();
     new CTAParticles();
